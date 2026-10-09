@@ -12,7 +12,7 @@
  */
 
 import { useState } from 'react'
-import type { SessionItem } from '@livre/shared'
+import type { SessionItem } from '@prandia/shared'
 
 import { Sheet } from '../../components/Sheet.js'
 import { useRemoveSessionItem, useUpdateSessionItem } from '../../lib/queries.js'

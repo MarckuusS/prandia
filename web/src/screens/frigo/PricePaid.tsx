@@ -16,7 +16,7 @@
  * mutation et decide quoi faire de ses echecs.
  */
 
-import { todayLocalIsoDate } from '@livre/shared'
+import { todayLocalIsoDate } from '@prandia/shared'
 
 import { NumberField, TextField } from '../../components/Field.js'
 import { QuantityField } from '../../components/QuantityField.js'

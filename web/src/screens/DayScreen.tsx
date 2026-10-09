@@ -25,7 +25,7 @@ import {
   perEater,
   type MealSlot,
   type NutritionTotal,
-} from "@livre/shared";
+} from "@prandia/shared";
 
 import { EmptyState, ErrorState, LoadingRows } from "../components/States.js";
 import { useToast } from "../components/Toast.js";

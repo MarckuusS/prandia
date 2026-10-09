@@ -69,7 +69,7 @@ groupées, ou accepter la non-atomicité là où le code Python la garantissait
 _BASE_URL        = "https://world.openfoodfacts.org"
 _SEARCH_BASE_URL = "https://search.openfoodfacts.org"
 _HEALTH_HOST     = "https://search.openfoodfacts.org/"
-_USER_AGENT      = "livre-de-recettes/0.1.0 (+https://github.com/MarckuusS/livre-de-recette)"
+_USER_AGENT      = "prandia/0.1.0 (+https://github.com/MarckuusS/prandia)"
 _TIMEOUT         = httpx.Timeout(10.0, connect=5.0)   # connect 5 s, read/write/pool 10 s
 
 _PRODUCT_FIELDS = "code,product_name,product_name_fr,brands,nutriments"
@@ -100,7 +100,7 @@ par `_friendly_http_error(exc)` :
 
 - Requête : **`GET https://search.openfoodfacts.org/`** (avec le slash final).
 - Client dédié : `httpx.Client(timeout=3.0, follow_redirects=False)`, en-tête
-  `User-Agent: livre-de-recettes/0.1.0 (+https://github.com/MarckuusS/livre-de-recette)` uniquement
+  `User-Agent: prandia/0.1.0 (+https://github.com/MarckuusS/prandia)` uniquement
   (**pas** de `Accept`).
 - Retourne `True` ssi `200 <= status_code < 400`.
 - Capture `TimeoutException`, `HTTPError`, `OSError` → `False`. Ne lève jamais.

@@ -19,7 +19,7 @@ class MainWindow(QMainWindow):
     def __init__(self, ctx: AppContext) -> None:
         super().__init__()
         self.ctx = ctx
-        self.setWindowTitle("Livre de recettes")
+        self.setWindowTitle("Prandia")
         self.resize(QSize(1280, 800))
 
         tabs = QTabWidget(self)

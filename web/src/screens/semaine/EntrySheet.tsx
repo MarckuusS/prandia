@@ -18,7 +18,7 @@ import {
   MEAL_SLOTS,
   MEAL_SLOT_LABELS,
   type MealSlot,
-} from '@livre/shared'
+} from '@prandia/shared'
 
 import { Link } from 'react-router'
 

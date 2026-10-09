@@ -6,7 +6,7 @@
  * semaine » calculable sans fuseau horaire.
  */
 
-import type { MealPlanEntry } from '@livre/shared'
+import type { MealPlanEntry } from '@prandia/shared'
 
 import { toMealPlanEntry, type MealPlanEntryRow } from '../rows.js'
 import { NOW_SQL } from './sql.js'

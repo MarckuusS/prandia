@@ -14,7 +14,7 @@
 import {
   formatEuros,
   mealPlanEntryCost,
-} from '@livre/shared'
+} from '@prandia/shared'
 
 import { MacroBar } from '../../components/MacrosDonut.js'
 import { Icon, RayonIcon } from '../../icons/index.js'

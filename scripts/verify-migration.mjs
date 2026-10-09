@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
-const SOURCE_DB = process.env['LIVRE_DB_PATH'] ?? join(ROOT, 'livre_de_recettes.db')
+const SOURCE_DB = process.env['PRANDIA_DB_PATH'] ?? join(ROOT, 'prandia.db')
 const SEED = join(ROOT, 'scripts', '_dump', 'd1-seed.sql')
 
 if (!existsSync(SEED)) {

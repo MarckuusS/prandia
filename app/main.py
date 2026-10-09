@@ -52,8 +52,8 @@ def main() -> int:
     logging.getLogger(__name__).info("Application starting (frozen=%s)", getattr(sys, "frozen", False))
 
     qt_app = QApplication(sys.argv)
-    qt_app.setApplicationName("Livre de recettes")
-    qt_app.setOrganizationName("livre-de-recettes")
+    qt_app.setApplicationName("Prandia")
+    qt_app.setOrganizationName("prandia")
 
     # On Windows the default Qt Quick Controls style is FluentWinUI3, which is a
     # native style — it forbids overriding `background`, `indicator`, `contentItem`

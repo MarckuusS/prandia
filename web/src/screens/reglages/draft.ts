@@ -5,7 +5,7 @@
  * partagent sans que l'un importe l'autre.
  */
 
-import type { ActivityCode, GoalCode, SplitCode } from '@livre/shared'
+import type { ActivityCode, GoalCode, SplitCode } from '@prandia/shared'
 
 export interface Draft {
   sex: 'f' | 'm' | null

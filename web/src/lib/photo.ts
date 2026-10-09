@@ -17,7 +17,7 @@
  * serveur qui refuse un JPEG portant encore ces segments.
  */
 
-import { PHOTO, type PhotoSize, scaleFor } from '@livre/shared'
+import { PHOTO, type PhotoSize, scaleFor } from '@prandia/shared'
 
 /** Le fichier ne se decode pas : format inconnu du navigateur, ou fichier abime. */
 export class PhotoIllisibleError extends Error {

@@ -25,7 +25,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router'
-import type { Ingredient } from '@livre/shared'
+import type { Ingredient } from '@prandia/shared'
 
 import { BarcodeScanner } from '../../components/BarcodeScanner.js'
 import { SourceBadge } from '../../components/States.js'

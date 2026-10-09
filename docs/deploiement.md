@@ -3,22 +3,22 @@
 Le front est servi par **Cloudflare Pages**, l'API par un **Worker** sur `/api/*`,
 les données vivent dans **D1**, les photos et tickets dans **R2**.
 
-Production : https://livre-de-recette.pages.dev
+Production : https://prandia.pages.dev
 
 ---
 
 ## 1. Le front (Cloudflare Pages)
 
 À faire **une seule fois**, dans le tableau de bord Cloudflare →
-*Workers & Pages* → projet `livre-de-recette` → *Settings* → *Builds & deployments*.
+*Workers & Pages* → projet `prandia` → *Settings* → *Builds & deployments*.
 
-Connecter le dépôt GitHub `MarckuusS/livre-de-recette`, branche de production `main`,
+Connecter le dépôt GitHub `MarckuusS/prandia`, branche de production `main`,
 puis renseigner :
 
 | Réglage | Valeur |
 |---|---|
 | Framework preset | `None` |
-| Build command | `npm install && npm run build --workspace @livre/web` |
+| Build command | `npm install && npm run build --workspace @prandia/web` |
 | Build output directory | `web/dist` |
 | Root directory | *(laisser vide — la racine du dépôt)* |
 
@@ -50,7 +50,7 @@ Pages exécute devant chaque requête : il traite `/api/*` et délègue le reste
 fichiers statiques.
 
 Ce n'est pas un détail d'implémentation, c'est une contrainte : une route Worker
-du type `livre-de-recette.pages.dev/api/*` est **impossible**, car les routes
+du type `prandia.pages.dev/api/*` est **impossible**, car les routes
 Worker exigent un domaine qu'on possède — et `pages.dev` appartient à
 Cloudflare. Sans domaine personnalisé, l'API doit être livrée *avec* le site.
 
@@ -61,7 +61,7 @@ suffit.
 
 ```bash
 npx wrangler login
-npx wrangler d1 create livre-de-recettes
+npx wrangler d1 create prandia
 ```
 
 La commande affiche un `database_id` à reporter dans `wrangler.toml`. Ce n'est
@@ -85,8 +85,8 @@ ligne dépassait les limites de taille de requête de `wrangler`.
 Le bucket des photos de recettes reste à créer :
 
 ```bash
-npx wrangler r2 bucket create livre-de-recettes-media
-npx wrangler r2 object put livre-de-recettes-media/recipes/6.jpg   --file="$HOME/.livre-de-recettes/recipe_photos/6.jpg"
+npx wrangler r2 bucket create prandia-media --jurisdiction eu
+npx wrangler r2 object put prandia-media/recipes/6.jpg   --file="$HOME/.prandia/recipe_photos/6.jpg" --jurisdiction eu
 ```
 
 ⚠️ Le jeton `wrangler` actuel n'a **pas** la portée `r2`. Il faudra relancer
@@ -104,7 +104,7 @@ version. Ce sont deux choses différentes, à diagnostiquer séparément.
 compilé dans le bundle :
 
 ```bash
-curl -s https://livre-de-recette.pages.dev/ | grep -o 'assets/index-[A-Za-z0-9_-]*\.js'
+curl -s https://prandia.pages.dev/ | grep -o 'assets/index-[A-Za-z0-9_-]*\.js'
 ```
 
 **Ce que l'appareil exécute** : **Paramètres → Application → Version**. C'est le
@@ -143,7 +143,7 @@ tourne, et il ne contient pas encore la surveillance. Une fois, à la main :
 ## 4. Vérifier
 
 ```bash
-curl https://livre-de-recette.pages.dev/api/health
+curl https://prandia.pages.dev/api/health
 ```
 
 Ou, depuis l'application, l'écran **Diagnostic** (bouton `⋯` en haut à droite) :
@@ -154,7 +154,7 @@ le nombre d'ingrédients.
 
 ## 5. Installer sur l'iPhone
 
-Ouvrir https://livre-de-recette.pages.dev dans **Safari** (Chrome iOS ne sait pas
+Ouvrir https://prandia.pages.dev dans **Safari** (Chrome iOS ne sait pas
 installer de PWA), puis *Partager* → **Sur l'écran d'accueil**.
 
 L'application se lance alors en plein écran, sans barre d'adresse. L'écran
@@ -236,13 +236,13 @@ quand la recette n'existe plus.
 ### Déverrouiller après trop de tentatives
 
 ```bash
-npx wrangler d1 execute livre-de-recettes --remote   --command "DELETE FROM app_setting WHERE key='auth.failures'"
+npx wrangler d1 execute DB --remote   --command "DELETE FROM app_setting WHERE key='auth.failures'"
 ```
 
 ### Déconnecter tout le monde immédiatement
 
 ```bash
-npx wrangler d1 execute livre-de-recettes --remote   --command "DELETE FROM app_setting WHERE key='auth.session_secret'"
+npx wrangler d1 execute DB --remote   --command "DELETE FROM app_setting WHERE key='auth.session_secret'"
 ```
 
 Un nouveau secret sera généré au prochain appel : toutes les sessions ouvertes
@@ -251,7 +251,7 @@ deviennent invalides, sur tous les appareils.
 ### Désactiver un compte sans effacer son historique
 
 ```bash
-npx wrangler d1 execute livre-de-recettes --remote   --command "UPDATE user SET is_active = 0 WHERE username = 'invite'"
+npx wrangler d1 execute DB --remote   --command "UPDATE user SET is_active = 0 WHERE username = 'invite'"
 ```
 
 L'effet est immédiat — le compte est relu en base à chaque requête, sans

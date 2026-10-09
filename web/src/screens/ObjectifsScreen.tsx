@@ -28,7 +28,7 @@ import {
   type Cap,
   type NutritionTotal,
   type TrendPoint,
-} from '@livre/shared'
+} from '@prandia/shared'
 
 import { NumberField } from '../components/Field.js'
 import { ErrorState, LoadingRows } from '../components/States.js'

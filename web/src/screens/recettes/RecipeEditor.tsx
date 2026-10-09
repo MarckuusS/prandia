@@ -20,7 +20,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { Icon } from '../../icons/index.js'
-import type { Ingredient, Recipe } from '@livre/shared'
+import type { Ingredient, Recipe } from '@prandia/shared'
 
 import { NumberField, TextArea, TextField } from '../../components/Field.js'
 import { IngredientPicker } from '../../components/IngredientPicker.js'

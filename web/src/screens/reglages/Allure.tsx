@@ -27,7 +27,7 @@
  * manipulation choisit une allure ; le bouton du bas revient a `null`.
  */
 
-import { PACE_BOUNDS, SAFE_PACE, paceLabel } from '@livre/shared'
+import { PACE_BOUNDS, SAFE_PACE, paceLabel } from '@prandia/shared'
 
 /** Haut de l'echelle DESSINEE, au-dela de ce que le curseur peut atteindre. */
 const ECHELLE_MAX = 1.2

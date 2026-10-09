@@ -16,7 +16,7 @@
  */
 
 import { useEffect, useState, useMemo } from 'react'
-import { formatEuros } from '@livre/shared'
+import { formatEuros } from '@prandia/shared'
 
 import { TextField } from '../../components/Field.js'
 import { Icon } from '../../icons/index.js'

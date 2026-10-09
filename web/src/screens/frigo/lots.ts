@@ -27,7 +27,7 @@ import {
   type Ingredient,
   type PantryStock,
   type UrgencyBucket,
-} from '@livre/shared'
+} from '@prandia/shared'
 
 // ---------------------------------------------------------------------------
 // Le lot

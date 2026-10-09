@@ -74,8 +74,8 @@ Window {
         {
             "category": "Diagnostic",
             "items": [
-                { "keys": "Menu Aide",   "label": "Ouvrir le dossier de logs (~/.livre-de-recettes/logs/)" },
-                { "keys": "LIVRE_DEBUG=1", "label": "Activer DEBUG en variable d'env (relance requise)" }
+                { "keys": "Menu Aide",   "label": "Ouvrir le dossier de logs (~/.prandia/logs/)" },
+                { "keys": "PRANDIA_DEBUG=1", "label": "Activer DEBUG en variable d'env (relance requise)" }
             ]
         }
     ]

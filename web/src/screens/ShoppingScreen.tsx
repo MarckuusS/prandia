@@ -8,7 +8,7 @@ import {
   formatShoppingQuantity,
   groupByCategory,
   type ShoppingItem,
-} from '@livre/shared'
+} from '@prandia/shared'
 
 import { Sheet } from '../components/Sheet.js'
 import { EmptyState, ErrorState, LoadingRows } from '../components/States.js'

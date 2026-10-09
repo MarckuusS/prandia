@@ -6,7 +6,7 @@
  * le plus proche de la peremption sans toucher aux autres.
  */
 
-import { isStorageSpace, pantryMovementReasonSchema, pantryStockWriteSchema } from '@livre/shared'
+import { isStorageSpace, pantryMovementReasonSchema, pantryStockWriteSchema } from '@prandia/shared'
 
 import { logActivity } from '../activity.js'
 import { badRequest, intParam, json, notFound, parseOrThrow, readJson, route } from '../http.js'

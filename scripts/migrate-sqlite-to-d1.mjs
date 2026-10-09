@@ -2,9 +2,9 @@
 /**
  * Migration des donnees du SQLite local vers Cloudflare D1.
  *
- * Lit `livre_de_recettes.db` et produit un fichier SQL applicable tel quel :
- *     npx wrangler d1 execute livre-de-recettes --local  --file=scripts/_dump/d1-seed.sql
- *     npx wrangler d1 execute livre-de-recettes --remote --file=scripts/_dump/d1-seed.sql
+ * Lit `prandia.db` et produit un fichier SQL applicable tel quel :
+ *     npx wrangler d1 execute DB --local  --file=scripts/_dump/d1-seed.sql
+ *     npx wrangler d1 execute DB --remote --file=scripts/_dump/d1-seed.sql
  *
  * La sortie va dans scripts/_dump/, qui est git-ignore : elle contient les
  * donnees personnelles (recettes, prix payes, contenu du frigo) et le depot
@@ -46,10 +46,10 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
-const SOURCE_DB = process.env['LIVRE_DB_PATH'] ?? join(ROOT, 'livre_de_recettes.db')
+const SOURCE_DB = process.env['PRANDIA_DB_PATH'] ?? join(ROOT, 'prandia.db')
 const OUT_DIR = join(ROOT, 'scripts', '_dump')
 const OUT_FILE = join(OUT_DIR, 'd1-seed.sql')
-const PHOTO_DIR = join(process.env['USERPROFILE'] ?? process.env['HOME'] ?? '', '.livre-de-recettes', 'recipe_photos')
+const PHOTO_DIR = join(process.env['USERPROFILE'] ?? process.env['HOME'] ?? '', '.prandia', 'recipe_photos')
 
 // --- helpers ---------------------------------------------------------------
 
@@ -141,8 +141,8 @@ emit(`-- Genere par scripts/migrate-sqlite-to-d1.mjs depuis la base locale.
 -- NE PAS COMMITTER : contient des donnees personnelles (depot public).
 --
 -- A appliquer APRES les migrations de schema :
---   npx wrangler d1 migrations apply livre-de-recettes --local
---   npx wrangler d1 execute livre-de-recettes --local --file=scripts/_dump/d1-seed.sql
+--   npx wrangler d1 migrations apply DB --local
+--   npx wrangler d1 execute DB --local --file=scripts/_dump/d1-seed.sql
 
 PRAGMA defer_foreign_keys = ON;`)
 
@@ -354,7 +354,7 @@ if (photosToUpload.length > 0) {
   for (const p of photosToUpload) {
     const ok = existsSync(p.local)
     console.log(`  ${ok ? 'present ' : 'ABSENT  '} ${p.key}  <- ${p.local}`)
-    if (ok) console.log(`      npx wrangler r2 object put livre-de-recettes-media/${p.key} --file="${p.local}"`)
+    if (ok) console.log(`      npx wrangler r2 object put prandia-media/${p.key} --file="${p.local}"`)
   }
 }
 

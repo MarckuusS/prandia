@@ -14,7 +14,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
-import { photoPath } from '@livre/shared'
+import { photoPath } from '@prandia/shared'
 
 import { FieldShell, useFieldIds } from '../../components/Field.js'
 import { Icon } from '../../icons/index.js'

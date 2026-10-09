@@ -12,7 +12,7 @@
  * defaut. C'est ainsi que l'utilisateur pense sa recette — « 2 oeufs », pas
  * « 120 g d'oeufs ».
  *
- * Les facteurs de conversion viennent de @livre/shared/units, jamais d'une
+ * Les facteurs de conversion viennent de @prandia/shared/units, jamais d'une
  * table recopiee ici : le desktop en avait deux copies, une en Python et une
  * en QML, et l'import de recette par URL traitait une piece comme un gramme.
  */
@@ -26,7 +26,7 @@ import {
   isKnownUnit,
   labelFor,
   toGrams,
-} from '@livre/shared'
+} from '@prandia/shared'
 
 import { FieldShell, useDecimalInput, useFieldIds } from './Field.js'
 

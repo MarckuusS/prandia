@@ -21,7 +21,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
-const BASE = 'livre-de-recettes'
+const BASE = 'prandia'
 
 // Un nom de fichier temporaire par appel. `Date.now()` ne suffirait pas : deux
 // ecritures dans la meme milliseconde se marcheraient dessus.
@@ -54,7 +54,7 @@ export const CIBLES = {
   production: {
     drapeaux: ['--remote'],
     nom: 'production',
-    site: 'https://livre-de-recette.pages.dev',
+    site: 'https://prandia.pages.dev',
   },
   local: {
     drapeaux: ['--local', '--persist-to', `${process.env['LOCALAPPDATA']}\\Prandia\\dev-state`],

@@ -10,7 +10,7 @@
  * fige au moment des courses rend la comparaison honnete.
  */
 
-import { formatEuros } from '@livre/shared'
+import { formatEuros } from '@prandia/shared'
 
 import { Sheet } from '../../components/Sheet.js'
 import { EmptyState, ErrorState, LoadingRows } from '../../components/States.js'

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Ingredient, PantryStock, StorageSpace } from '@livre/shared'
+import type { Ingredient, PantryStock, StorageSpace } from '@prandia/shared'
 
 import { buildLots, type Lot } from './lots.js'
 import {

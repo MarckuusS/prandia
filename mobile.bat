@@ -68,7 +68,7 @@ rem base que personne ne lira. Le defaut s'est produit : l'ecran tombait en
 rem panne en local avec une colonne manquante, alors que la production l'avait.
 echo [3/5] Mise a jour de la base locale...
 if not exist "%ETAT%" mkdir "%ETAT%"
-call npx wrangler d1 migrations apply livre-de-recettes --local --persist-to "%ETAT%"
+call npx wrangler d1 migrations apply DB --local --persist-to "%ETAT%"
 if errorlevel 1 goto err_migrate
 
 rem ---- 4 bis. Le reglage local du serveur --------------------------------

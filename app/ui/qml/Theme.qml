@@ -1,4 +1,4 @@
-// Design system central pour Livre de recettes.
+// Design system central pour Prandia.
 //
 // Singleton QML enregistré côté Python via `qmlRegisterSingletonType(url, "App", 1, 0, "Theme")`.
 // Accessible depuis n'importe quel scope QML (MenuBar, Popup, Dialog inclus) via

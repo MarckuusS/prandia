@@ -25,8 +25,8 @@ def _isolate_qsettings(tmp_path, monkeypatch) -> Iterator[None]:
 
     # `QSettings()` lit les noms d'org/app depuis QCoreApplication ; on les
     # impose pour éviter une dépendance à l'ordre de création de QApplication.
-    QCoreApplication.setOrganizationName("livre-de-recettes-tests")
-    QCoreApplication.setApplicationName("Livre de recettes (tests)")
+    QCoreApplication.setOrganizationName("prandia-tests")
+    QCoreApplication.setApplicationName("Prandia (tests)")
     # IniFormat + UserScope + path = fichier .ini dans tmp_path, jeté à la fin.
     QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope, str(tmp_path))
     QSettings.setDefaultFormat(QSettings.Format.IniFormat)

@@ -27,7 +27,7 @@ import {
   normalizeName,
   type Ingredient,
   type MealSlot,
-} from '@livre/shared'
+} from '@prandia/shared'
 
 import { NumberField, SelectField, TextField } from '../../components/Field.js'
 import { Link } from 'react-router'

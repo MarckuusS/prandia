@@ -1,9 +1,9 @@
 """Centralized logging configuration.
 
 Behavior :
-  - Console (stderr) : INFO by default, DEBUG when `LIVRE_DEBUG=1`. Useful
+  - Console (stderr) : INFO by default, DEBUG when `PRANDIA_DEBUG=1`. Useful
     when running from source (`python -m app.main`).
-  - File : `~/.livre-de-recettes/logs/app.log`, rotating at 5 MB × 5 backups
+  - File : `~/.prandia/logs/app.log`, rotating at 5 MB × 5 backups
     (~25 MB max on disk). Always at INFO+ regardless of the console level —
     so a user who reports a bug always has the last few sessions captured.
   - Uncaught exceptions are logged via `sys.excepthook` then re-raised so the
@@ -24,11 +24,11 @@ from pathlib import Path
 
 
 def default_log_dir() -> Path:
-    """Where the rotating log files live. Override with `LIVRE_LOG_DIR`."""
-    override = os.environ.get("LIVRE_LOG_DIR")
+    """Where the rotating log files live. Override with `PRANDIA_LOG_DIR`."""
+    override = os.environ.get("PRANDIA_LOG_DIR")
     if override:
         return Path(override)
-    return Path.home() / ".livre-de-recettes" / "logs"
+    return Path.home() / ".prandia" / "logs"
 
 
 _FORMAT = "%(asctime)s %(levelname)-8s %(name)s: %(message)s"
@@ -50,7 +50,7 @@ def setup_logging(log_dir: Path | None = None) -> Path:
         print(f"[logging] Could not create log dir {log_dir}: {exc}", file=sys.stderr)
         log_dir = None  # type: ignore[assignment]
 
-    debug = os.environ.get("LIVRE_DEBUG") == "1"
+    debug = os.environ.get("PRANDIA_DEBUG") == "1"
     console_level = logging.DEBUG if debug else logging.INFO
     file_level = logging.INFO  # always at least INFO in file
 
@@ -87,8 +87,8 @@ def setup_logging(log_dir: Path | None = None) -> Path:
             log_path = None
 
     # Tame the noisy third-party loggers — we don't want SQLAlchemy DEBUG
-    # spamming our log (use LIVRE_DEBUG=1 + LIVRE_DEBUG_SQL=1 to enable).
-    if not (debug and os.environ.get("LIVRE_DEBUG_SQL") == "1"):
+    # spamming our log (use PRANDIA_DEBUG=1 + PRANDIA_DEBUG_SQL=1 to enable).
+    if not (debug and os.environ.get("PRANDIA_DEBUG_SQL") == "1"):
         logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
         logging.getLogger("PIL").setLevel(logging.WARNING)
         logging.getLogger("httpx").setLevel(logging.WARNING)

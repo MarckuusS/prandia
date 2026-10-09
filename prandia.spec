@@ -1,13 +1,13 @@
 # -*- mode: python ; coding: utf-8 -*-
 """
-PyInstaller spec — Livre de recettes (D1, Phase 2).
+PyInstaller spec — Prandia (D1, Phase 2).
 
-Mode `--onedir` : sortie = `dist/livre-de-recettes/` avec l'exe + ses dlls/QML.
+Mode `--onedir` : sortie = `dist/prandia/` avec l'exe + ses dlls/QML.
 Démarrage instantané (pas d'extraction tmpdir comme `--onefile`). L'utilisateur
 peut zipper le dossier pour le transporter.
 
 Lancer :
-    .venv\\Scripts\\python.exe -m pyinstaller livre-de-recettes.spec --noconfirm
+    .venv\\Scripts\\python.exe -m pyinstaller prandia.spec --noconfirm
 
 Ou via `build.bat` à la racine.
 
@@ -82,7 +82,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name="livre-de-recettes",
+    name="prandia",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -104,5 +104,5 @@ coll = COLLECT(
     strip=False,
     upx=False,
     upx_exclude=[],
-    name="livre-de-recettes",
+    name="prandia",
 )

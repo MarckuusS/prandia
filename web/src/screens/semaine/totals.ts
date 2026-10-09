@@ -1,7 +1,7 @@
 /**
  * Derives de la semaine : ce que designe une entree, ses apports, son cout.
  *
- * Aucun calcul n'est invente ici. Tout vient de @livre/shared ; ce module se
+ * Aucun calcul n'est invente ici. Tout vient de @prandia/shared ; ce module se
  * contente de resoudre les references — l'API rend les recettes et les
  * ingredients a part, indexes par identifiant — puis d'appliquer les formules
  * a un jour ou a une semaine.
@@ -26,14 +26,14 @@ import {
   type NutritionTotal,
   type Recipe,
   massBreakdown,
-} from '@livre/shared'
+} from '@prandia/shared'
 
 import type { CalendarResponse } from '../../lib/queries.js'
 
 /**
  * Un montant, sans importer decimal.js.
  *
- * La bibliotheque est une dependance de @livre/shared, pas du front : la
+ * La bibliotheque est une dependance de @prandia/shared, pas du front : la
  * declarer ici pour un simple type creerait une dependance non declaree dans
  * web/package.json. Le type de retour de `mealPlanEntryCost` la nomme deja.
  */

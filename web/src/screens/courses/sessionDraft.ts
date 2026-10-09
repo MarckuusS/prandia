@@ -9,7 +9,7 @@
  * flottant la ou le serveur attend une chaine decimale.
  */
 
-import type { Ingredient, SessionItem } from '@livre/shared'
+import type { Ingredient, SessionItem } from '@prandia/shared'
 
 import type { SessionItemWrite } from '../../lib/queries.js'
 

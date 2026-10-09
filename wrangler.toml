@@ -1,10 +1,10 @@
 # =============================================================================
-# Cloudflare Pages — site + API du Livre de recettes.
+# Cloudflare Pages : site + API de Prandia.
 #
 # C'est une configuration PAGES, pas WORKER. La distinction est structurante :
 #
 # Un Worker separe aurait besoin d'une route du type
-# `livre-de-recette.pages.dev/api/*` — impossible, les routes Worker exigent un
+# `prandia.pages.dev/api/*` — impossible, les routes Worker exigent un
 # domaine qu'on possede, et `pages.dev` appartient a Cloudflare. Sans domaine
 # personnalise, l'API doit donc etre livree AVEC le site.
 #
@@ -20,7 +20,7 @@
 # depot, qui est public.
 # =============================================================================
 
-name = "livre-de-recette"
+name = "prandia"
 pages_build_output_dir = "web/dist"
 compatibility_date = "2025-01-15"
 compatibility_flags = ["nodejs_compat"]
@@ -30,8 +30,8 @@ compatibility_flags = ["nodejs_compat"]
 # identifiants du compte. Region WEUR (Europe de l'Ouest).
 [[d1_databases]]
 binding = "DB"
-database_name = "livre-de-recettes"
-database_id = "e4eef775-ab49-4585-a57e-f64d49899145"
+database_name = "prandia"
+database_id = "b8a05209-f6d0-4cbb-84e8-2fea44cf7e87"
 migrations_dir = "migrations"
 
 [vars]
@@ -41,7 +41,7 @@ migrations_dir = "migrations"
 # DEPOT PUBLIC — pas d'adresse mail ici. OFF accepte tres bien une URL de
 # projet comme moyen de contact, ce qui evite d'exposer une adresse aux
 # moissonneurs de spam.
-OFF_USER_AGENT = "livre-de-recettes/0.2.0 (+https://github.com/MarckuusS/livre-de-recette)"
+OFF_USER_AGENT = "prandia/0.2.0 (+https://github.com/MarckuusS/prandia)"
 ENVIRONMENT = "production"
 
 # --- Stockage d'objets -------------------------------------------------------
@@ -73,5 +73,5 @@ ENVIRONMENT = "production"
 # juridiction apres coup, il faudrait recopier chaque objet.
 [[r2_buckets]]
 binding = "MEDIA"
-bucket_name = "livre-de-recettes-media"
+bucket_name = "prandia-media"
 jurisdiction = "eu"

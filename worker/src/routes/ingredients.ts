@@ -13,7 +13,7 @@ import {
   parseCriteria,
   parseQuantityToGrams,
   priceHistoryEntrySchema,
-} from '@livre/shared'
+} from '@prandia/shared'
 
 import { logActivity } from '../activity.js'
 import { badRequest, HttpError, intParam, json, notFound, parseOrThrow, readJson, route } from '../http.js'

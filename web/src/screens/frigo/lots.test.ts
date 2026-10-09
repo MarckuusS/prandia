@@ -11,7 +11,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import type { Ingredient, PantryStock } from '@livre/shared'
+import type { Ingredient, PantryStock } from '@prandia/shared'
 
 import {
   ORPHAN_NAME,

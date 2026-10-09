@@ -25,7 +25,7 @@ import {
   type Ingredient,
   type Source,
   type Criterion as SharedCriterion,
-} from '@livre/shared'
+} from '@prandia/shared'
 
 import type { IconName } from '../../icons/index.js'
 

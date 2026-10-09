@@ -20,6 +20,11 @@ Consequences:
   parts meant to survive. `app/ui/` is not portable and will be rewritten for the web.
 - **Cloudflare D1 is SQLite**, so the schema, the FTS5 virtual table and the triggers port over
   essentially unchanged. Keep that in mind before proposing anything Postgres-flavoured.
+- **The project is named Prandia** (Latin *prandium*, the meal). The web app took the name on
+  2026-08-12; on 2026-10-09 the repo, npm scope (`@prandia/*`), env vars (`PRANDIA_*`), local DB
+  (`prandia.db`), data dir (`~/.prandia/`) and the Cloudflare resources followed. The former name
+  must not reappear in new code or docs. Only the project folder and the `id` in `FICHE.md` (which
+  never changes) still carry it.
 
 ## Stack & key choices
 
@@ -632,7 +637,7 @@ ruff format app tests
 python -m app.data.seeds.ciqual_loader
 ```
 
-The SQLite DB lives at `livre_de_recettes.db` at the repo root by default (override via `LIVRE_DB_PATH` env var). It is git-ignored — every dev gets a fresh empty DB and seeds CIQUAL on first launch.
+The SQLite DB lives at `prandia.db` at the repo root by default (override via `PRANDIA_DB_PATH` env var). It is git-ignored — every dev gets a fresh empty DB and seeds CIQUAL on first launch.
 
 ## Architecture — the 4 layers, in dependency order
 
@@ -777,7 +782,7 @@ CIQUAL header normalization (`_norm`): the 2025 .xls headers contain `\n` charac
 
 Empty query AND no filters → return `([], 0)` without hitting the API (avoids `*:*` paging through OFF's millions of products).
 
-Both functions return Pydantic `Ingredient` models. The HTTP client sends `User-Agent: livre-de-recettes/0.1.0 (+https://github.com/MarckuusS/livre-de-recette)` — OFF rate-limits anonymous clients harder. `langs=fr,en` is always passed for French support.
+Both functions return Pydantic `Ingredient` models. The HTTP client sends `User-Agent: prandia/0.1.0 (+https://github.com/MarckuusS/prandia)` — OFF rate-limits anonymous clients harder. `langs=fr,en` is always passed for French support.
 
 ## Testing conventions
 
@@ -823,3 +828,27 @@ A barcode scanner gun (HID) the user may eventually plug in behaves as a keyboar
 - Check `architecture.md` for the bigger picture and current state of evolution.
 - French is the user-facing language. Code, comments, and tests are in English.
 - Phases of the QML migration (Foundation → ViewModels → Pages → Polish) are documented in `architecture.md` under "QML migration history" if you need to understand why a given decision was made.
+
+---
+
+<!-- Consigne commune ajoutée le 2026-08-18 par l'installation du catalogue. Tout ce qui précède est d'origine. -->
+
+# Consignes communes du catalogue (FICHE.md et JOURNAL.md)
+
+Modèle : application. Ce projet suit la convention commune de `_modele/` : une fiche `FICHE.md`, un journal `JOURNAL.md`, et c'est toi qui les tiens à jour.
+
+## Au début de chaque session
+1. Lire `FICHE.md` (fiche d'identité) puis `JOURNAL.md` (historique, dernière entrée en haut).
+2. Si des champs de `FICHE.md` sont vides ou valent `AAAA-MM-JJ`, les renseigner : déduire ce qui peut l'être, demander le reste. Pour `id`, proposer une valeur au format `AAAA-MM-JJ-slug` et attendre validation avant de l'écrire.
+
+## En fin de session
+1. Ajouter une entrée datée en haut de `JOURNAL.md` : ce qui a été fait, les décisions prises, ce qui reste à faire.
+2. Mettre `maj` à jour dans `FICHE.md` avec la date du jour.
+3. Si l'état ou la prochaine étape a changé, mettre à jour les sections `État actuel` et `Prochaine étape`. Si le statut a changé, mettre à jour `statut`.
+
+## Règles
+- `id` ne se modifie jamais, même si le dossier est renommé, déplacé ou archivé.
+- L'en-tête YAML de `FICHE.md` reste simple : une valeur par ligne, listes entre crochets, pas de bloc multi-lignes. Les noms de champs et les valeurs d'énumération restent en ASCII sans accent.
+- Pas d'autre fichier de métadonnées (pas de NOTES.md, pas de README parallèle) : tout passe par `FICHE.md` et `JOURNAL.md`. Si un `README.md` est nécessaire (dépôt publié), il reste court et ne remplace pas `FICHE.md`.
+- Dans les fichiers Markdown, écrire en français accentué. Une phrase ou un paragraphe tient sur une seule ligne, sans retour à la ligne intermédiaire.
+- Dossiers : `src/` pour le code, `tests/` pour les tests, `docs/` pour la documentation. Aucun dossier protégé.

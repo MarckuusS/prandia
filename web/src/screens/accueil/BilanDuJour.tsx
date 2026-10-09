@@ -24,7 +24,7 @@
  */
 
 import { Link } from 'react-router'
-import { perEater, progressToward, type NutritionTotal } from '@livre/shared'
+import { perEater, progressToward, type NutritionTotal } from '@prandia/shared'
 
 import { useDailyTargets } from '../../lib/useDailyTargets.js'
 import '../../styles/accueil.css'

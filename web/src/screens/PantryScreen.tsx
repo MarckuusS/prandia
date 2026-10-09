@@ -37,7 +37,7 @@ import {
   formatGrams,
   restockRatio,
   type StorageSpace,
-} from '@livre/shared'
+} from '@prandia/shared'
 
 import { SelectField } from '../components/Field.js'
 import { EmptyState, ErrorState, LoadingRows } from '../components/States.js'

@@ -29,7 +29,7 @@
  * qui n'existe pas. Les sources sont nommees en toutes lettres.
  */
 
-import { MAX_ADJUST, MIN_SAFE_KCAL, PACE_BOUNDS } from '@livre/shared'
+import { MAX_ADJUST, MIN_SAFE_KCAL, PACE_BOUNDS } from '@prandia/shared'
 
 import { Icon } from '../../icons/index.js'
 

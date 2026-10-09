@@ -24,7 +24,7 @@ import {
   dailyLimits,
   saturatedAnsesG,
   type DailyLimit,
-} from '@livre/shared'
+} from '@prandia/shared'
 
 import { NutrientLabel } from '../../components/NutrientLabel.js'
 

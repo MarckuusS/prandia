@@ -17,11 +17,11 @@
  * (`portions / max(defaultPortions, 1)`) est celle de `aggregateShoppingList`
  * dans shared/src/shopping.ts. Elle est recopiee ici parce que la fonction
  * partagee ne rend que des totaux, sans leur origine. A terme c'est a
- * `@livre/shared` d'exposer cette decomposition — voir le rapport de portage —
+ * `@prandia/shared` d'exposer cette decomposition — voir le rapport de portage —
  * pour qu'une seule definition du ratio subsiste.
  */
 
-import { DAY_LABELS, MEAL_SLOTS, MEAL_SLOT_LABELS } from '@livre/shared'
+import { DAY_LABELS, MEAL_SLOTS, MEAL_SLOT_LABELS } from '@prandia/shared'
 
 import type { CalendarResponse } from '../../lib/queries.js'
 

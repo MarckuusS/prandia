@@ -8,7 +8,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import type { Ingredient } from '@livre/shared'
+import type { Ingredient } from '@prandia/shared'
 
 import {
   NO_FILTERS,

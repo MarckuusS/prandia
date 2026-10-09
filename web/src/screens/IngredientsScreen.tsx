@@ -26,7 +26,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
-import { formatGrams, isInSeasonNow, type Ingredient } from '@livre/shared'
+import { formatGrams, isInSeasonNow, type Ingredient } from '@prandia/shared'
 
 import { Sheet } from '../components/Sheet.js'
 import { EmptyState, ErrorState, LoadingRows, SourceBadge } from '../components/States.js'

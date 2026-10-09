@@ -22,7 +22,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import type { UseQueryResult } from '@tanstack/react-query'
-import type { Criterion, Ingredient } from '@livre/shared'
+import type { Criterion, Ingredient } from '@prandia/shared'
 
 import { BarcodeScanner } from '../../components/BarcodeScanner.js'
 import { SelectField } from '../../components/Field.js'

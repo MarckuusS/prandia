@@ -1,7 +1,7 @@
 @echo off
 setlocal
 
-rem Build le .exe Windows portable. Sortie : dist\livre-de-recettes\
+rem Build le .exe Windows portable. Sortie : dist\prandia\
 rem Premiere compilation : ~2-3 min. Compilations suivantes : ~1 min (cache PyInstaller).
 
 cd /d "%~dp0"
@@ -30,18 +30,18 @@ if exist dist rmdir /S /Q dist
 
 rem ---- 4. Compile ----
 echo [build] Compilation en cours (1-3 min selon la machine)...
-"%VENV_PY%" -m PyInstaller livre-de-recettes.spec --noconfirm
+"%VENV_PY%" -m PyInstaller prandia.spec --noconfirm
 if errorlevel 1 goto err_build
 
 rem ---- 5. Resume ----
 echo.
-echo [ok] Compile dans dist\livre-de-recettes\
-echo      Lance dist\livre-de-recettes\livre-de-recettes.exe
+echo [ok] Compile dans dist\prandia\
+echo      Lance dist\prandia\prandia.exe
 echo.
-echo Le dossier dist\livre-de-recettes\ est portable :
+echo Le dossier dist\prandia\ est portable :
 echo   - copie-le sur une cle USB ou une autre machine Windows
-echo   - double-clique livre-de-recettes.exe (pas besoin d'installer Python)
-echo   - la DB sera creee a cote de l'exe (livre_de_recettes.db)
+echo   - double-clique prandia.exe (pas besoin d'installer Python)
+echo   - la DB sera creee a cote de l'exe (prandia.db)
 echo.
 goto end
 

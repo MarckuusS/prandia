@@ -23,7 +23,7 @@ import {
   type MacroCle,
   type SplitCode,
   type Targets,
-} from '@livre/shared'
+} from '@prandia/shared'
 
 import { NumberField, SelectField } from '../../components/Field.js'
 import { NutrientLabel } from '../../components/NutrientLabel.js'

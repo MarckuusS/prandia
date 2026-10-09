@@ -15,7 +15,7 @@
  */
 
 import { useSearchParams } from 'react-router'
-import { currentIsoWeek, isValidIsoWeek } from '@livre/shared'
+import { currentIsoWeek, isValidIsoWeek } from '@prandia/shared'
 
 export interface IsoWeekParam {
   /** Semaine affichee. Toujours valide : une valeur douteuse retombe sur la semaine courante. */

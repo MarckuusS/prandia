@@ -1,4 +1,4 @@
-/* Livre de recettes — global stylesheet.
+/* Prandia, global stylesheet.
  * Discreet palette, comfortable spacing, focus rings consistent across widgets. */
 
 QWidget {

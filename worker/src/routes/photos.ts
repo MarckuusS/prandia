@@ -37,7 +37,7 @@ import {
   nameRefusedFormat,
   photoPrefix,
   vignetteKey,
-} from '@livre/shared'
+} from '@prandia/shared'
 
 import { logActivity } from '../activity.js'
 import { HttpError, type Env, intParam, json, notFound, route } from '../http.js'

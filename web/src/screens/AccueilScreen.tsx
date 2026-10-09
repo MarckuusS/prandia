@@ -19,7 +19,7 @@
 
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router'
-import { currentIsoWeek, datesOfIsoWeek } from '@livre/shared'
+import { currentIsoWeek, datesOfIsoWeek } from '@prandia/shared'
 
 import { EmptyState, ErrorState, LoadingRows } from '../components/States.js'
 import { useToast } from '../components/Toast.js'

@@ -39,7 +39,7 @@
  * production est explique la-bas. Lire cette section avant d'y toucher.
  */
 
-import { DEFAULT_ITERATIONS, verifyPassword, type PasswordRecord } from '@livre/shared'
+import { DEFAULT_ITERATIONS, verifyPassword, type PasswordRecord } from '@prandia/shared'
 
 const COOKIE_NAME = 'lr_session'
 const SESSION_DAYS = 90

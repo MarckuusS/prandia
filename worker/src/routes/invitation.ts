@@ -25,7 +25,7 @@
  * pour le confort d'un seul appel.
  */
 
-import { hashPassword, MIN_PASSWORD_LENGTH } from '@livre/shared'
+import { hashPassword, MIN_PASSWORD_LENGTH } from '@prandia/shared'
 
 import { issueSession } from '../auth.js'
 import { badRequest, HttpError, json, readJson, route } from '../http.js'

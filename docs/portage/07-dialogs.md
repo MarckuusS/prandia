@@ -31,7 +31,7 @@ restent en anglais.
 
 ### 1.1 Dialogues instanciés globalement dans `Main.qml`
 
-`Main.qml` est un `ApplicationWindow` (1280×800, min 980×600, titre « Livre de recettes »). Il expose
+`Main.qml` est un `ApplicationWindow` (1280×800, min 980×600, titre "Prandia"). Il expose
 quatre alias pour que les pages enfants puissent atteindre des dialogues qui vivent au niveau global
 (les `id` QML sont scopés par fichier) :
 
@@ -1615,8 +1615,8 @@ Ingrédients, une nouvelle recette sur l'onglet Recettes. »
 | | Ctrl+→ | Semaine suivante |
 | | Ctrl+T | Aller à la semaine courante (today) |
 | **Affichage** | Ctrl+Shift+D | Basculer mode clair / sombre |
-| **Diagnostic** | Menu Aide | Ouvrir le dossier de logs (~/.livre-de-recettes/logs/) |
-| | LIVRE_DEBUG=1 | Activer DEBUG en variable d'env (relance requise) |
+| **Diagnostic** | Menu Aide | Ouvrir le dossier de logs (~/.prandia/logs/) |
+| | PRANDIA_DEBUG=1 | Activer DEBUG en variable d'env (relance requise) |
 
 Rendu : titre de catégorie en **majuscules**, `colorPrimary`, `fontSizeXs` semi-bold,
 `letterSpacing 0.8`. Chaque ligne : « keycap » (rectangle 130×24, fond `colorSurfaceHover`, bordure

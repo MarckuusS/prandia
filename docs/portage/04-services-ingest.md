@@ -43,7 +43,7 @@ Il y a **quatre pipelines d'ingestion** indépendants, qui convergent tous vers 
 (D) PHOTOS DE RECETTE
     photo_service.py — fichier local (FileDialog / drag-drop) ou URL HTTP
       → Pillow : EXIF transpose + thumbnail 1024 + RGB + JPEG q85
-      → ~/.livre-de-recettes/recipe_photos/<recipe_id>.jpg
+      → ~/.prandia/recipe_photos/<recipe_id>.jpg
 ```
 
 ---
@@ -322,7 +322,7 @@ l'utilisateur (ou un outil externe). **Ambiguïté à lever avant portage.**
 ### 5.2 Stockage des secrets
 
 ```python
-_KEYRING_SERVICE  = "livre-de-recettes/lidl-plus"
+_KEYRING_SERVICE  = "prandia/lidl-plus"
 _KEY_REFRESH_TOKEN = "refresh_token"
 _KEY_EMAIL         = "email"
 ```
@@ -431,7 +431,7 @@ indépendamment de l'origine du dict.
 _VALID_EXTENSIONS = {".pdf", ".html", ".htm"}
 
 def default_receipt_dir() -> Path:
-    override = os.environ.get("LIVRE_RECEIPT_DIR")
+    override = os.environ.get("PRANDIA_RECEIPT_DIR")
     if override:
         return Path(override)
     return Path.home() / "Downloads" / "Tickets de caisse"
@@ -717,13 +717,13 @@ sans EAN → `Source.MANUAL` + création d'alias).
 
 **Constantes**
 ```python
-_USER_AGENT = "livre-de-recettes/0.1.0 (+https://github.com/MarckuusS/livre-de-recette)"
+_USER_AGENT = "prandia/0.1.0 (+https://github.com/MarckuusS/prandia)"
 _TIMEOUT    = httpx.Timeout(15.0, connect=5.0)     # 15 s total, 5 s connexion
 ```
 
 **Client HTTP** (`_make_client`) : `follow_redirects=True` et en-têtes
 ```
-User-Agent: livre-de-recettes/0.1.0 (+https://github.com/MarckuusS/livre-de-recette)
+User-Agent: prandia/0.1.0 (+https://github.com/MarckuusS/prandia)
 Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
 Accept-Language: fr-FR,fr;q=0.9,en;q=0.8
 ```
@@ -1059,10 +1059,10 @@ Jamais de réseau ; l'appel OFF est explicite (`searchOnlineForLine`).
 
 ```python
 def default_photo_dir() -> Path:
-    override = os.environ.get("LIVRE_PHOTO_DIR")
+    override = os.environ.get("PRANDIA_PHOTO_DIR")
     if override:
         return Path(override)
-    return Path.home() / ".livre-de-recettes" / "recipe_photos"
+    return Path.home() / ".prandia" / "recipe_photos"
 ```
 
 - Un fichier par recette : **`<recipe_id>.jpg`** (⇒ **une seule photo par recette**, écrasée à
@@ -1080,7 +1080,7 @@ def default_photo_dir() -> Path:
 _MAX_DIMENSION = 1024          # px, côté le plus long
 _JPEG_QUALITY  = 85
 _DOWNLOAD_TIMEOUT    = httpx.Timeout(15.0, connect=5.0)
-_DOWNLOAD_USER_AGENT = "livre-de-recettes/0.1.0 (+https://github.com/MarckuusS/livre-de-recette)"
+_DOWNLOAD_USER_AGENT = "prandia/0.1.0 (+https://github.com/MarckuusS/prandia)"
 _MAX_DOWNLOAD_BYTES  = 20 * 1024 * 1024      # 20 Mo
 ```
 
@@ -1136,12 +1136,12 @@ avalé → `False`. Idempotent.
 |---|---|
 | Pillow resize/recompress | **Redimensionnement navigateur** avant envoi : `createImageBitmap(file, { imageOrientation: "from-image" })` (applique l'EXIF nativement) → `OffscreenCanvas` dimensionné pour que `max(w,h) ≤ 1024` en conservant le ratio → `canvas.convertToBlob({ type: "image/jpeg", quality: 0.85 })`. **Reproduit exactement** la spec actuelle (1024 / q85 / EXIF appliqué). ⚠️ Pillow n'agrandit jamais : reproduire `scale = min(1, 1024 / max(w,h))`. |
 | Aplatissement alpha sur blanc | `ctx.fillStyle = "#fff"; ctx.fillRect(...)` avant `drawImage` — indispensable, le JPEG n'a pas d'alpha. |
-| `~/.livre-de-recettes/recipe_photos/<id>.jpg` | Bucket **R2**, clé `recipes/<recipe_id>.jpg` (même convention « une photo par recette, écrasée »). `recipe.image_path` en D1 garde la **clé relative**, pas l'URL absolue — même raisonnement de portabilité. |
+| `~/.prandia/recipe_photos/<id>.jpg` | Bucket **R2**, clé `recipes/<recipe_id>.jpg` (même convention « une photo par recette, écrasée »). `recipe.image_path` en D1 garde la **clé relative**, pas l'URL absolue — même raisonnement de portabilité. |
 | Lecture / affichage | URL signée R2, ou route Worker `GET /api/recipes/:id/photo` qui proxie depuis R2 (permet le cache et le contrôle d'accès). |
 | `absolute_photo_path` renvoyant `None` + warning | `HEAD` R2 (`env.BUCKET.head(key)`) → 404 → placeholder côté UI ; loguer l'incohérence. |
 | Téléchargement d'image distante (import URL) | `fetch()` dans le Worker, garde-fou de taille **en streaming** via `Content-Length` puis lecture bornée (mieux que l'actuel : ne pas charger 20 Mo avant de refuser). Puis, faute de Pillow : soit **Cloudflare Images** / `cf.image` resizing, soit stocker l'original et redimensionner à la volée, soit renvoyer l'URL au client pour qu'il fasse le canvas. |
 | Fichier temporaire + cleanup | Disparaît : `ArrayBuffer` → `env.BUCKET.put(key, buffer)`. |
-| `LIVRE_PHOTO_DIR` (surcharge par env) | Binding R2 + préfixe de clé configurable. |
+| `PRANDIA_PHOTO_DIR` (surcharge par env) | Binding R2 + préfixe de clé configurable. |
 | Suppression | `env.BUCKET.delete(key)`, idempotent. |
 
 ---
@@ -1184,7 +1184,7 @@ avalé → `False`. Idempotent.
 7. **Threads → async** : les 3 usages (`ReceiptWatcher._schedule`, `LidlPlusViewModel._sync_worker`,
    `RecipeUrlImportViewModel._do_extract`) sont de simples « ne pas bloquer l'UI » → `await` +
    état de chargement ; le polling Lidl → **Cron Trigger**.
-8. **Chemins de fichiers** : `LIVRE_RECEIPT_DIR`, `LIVRE_PHOTO_DIR`, `file:///` → tout disparaît.
+8. **Chemins de fichiers** : `PRANDIA_RECEIPT_DIR`, `PRANDIA_PHOTO_DIR`, `file:///` → tout disparaît.
    Attention au décodage `file:///C:/…` codé en dur dans `recipe_vm.setPhotoFromUrl` (spécifique Windows).
 9. **Garde-fou de taille d'image** appliqué après téléchargement complet (20 Mo en RAM) — à
    corriger en streaming côté Worker.

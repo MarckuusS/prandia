@@ -6,7 +6,7 @@
  * Les totaux par ingredient (pour la liste de courses) agregent donc les lots.
  */
 
-import type { PantryMovementReason, PantryStock, StorageSpace } from '@livre/shared'
+import type { PantryMovementReason, PantryStock, StorageSpace } from '@prandia/shared'
 
 import { toPantryStock, type PantryStockRow } from '../rows.js'
 import { NOW_SQL } from './sql.js'

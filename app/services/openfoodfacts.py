@@ -21,7 +21,7 @@ _BASE_URL = "https://world.openfoodfacts.org"
 # and frequently return 503 — Search-a-licious is the supported way to do free-text
 # search now. See https://search.openfoodfacts.org/docs.
 _SEARCH_BASE_URL = "https://search.openfoodfacts.org"
-_USER_AGENT = "livre-de-recettes/0.1.0 (+https://github.com/MarckuusS/livre-de-recette)"
+_USER_AGENT = "prandia/0.1.0 (+https://github.com/MarckuusS/prandia)"
 _TIMEOUT = httpx.Timeout(10.0, connect=5.0)
 
 # Fields we ask for — keeps the response small.

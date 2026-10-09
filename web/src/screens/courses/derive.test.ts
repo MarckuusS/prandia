@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import type { ShoppingItem } from '@livre/shared'
+import type { ShoppingItem } from '@prandia/shared'
 
 import {
   cents,

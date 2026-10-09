@@ -34,7 +34,7 @@
  * format des nombres, le seuil des traces ou la regle des parts.
  */
 
-import type { NutritionTotal } from '@livre/shared'
+import type { NutritionTotal } from '@prandia/shared'
 
 import { NutrientLabel } from './NutrientLabel.js'
 import { NUTRIENT_ROWS, massShare, formatNutrient } from '../screens/semaine/totals.js'

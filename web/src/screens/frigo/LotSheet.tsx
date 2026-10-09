@@ -22,7 +22,7 @@
 
 import { useState } from 'react'
 import { Link } from 'react-router'
-import { formatEuros, formatGrams, type PantryMovementReason } from '@livre/shared'
+import { formatEuros, formatGrams, type PantryMovementReason } from '@prandia/shared'
 
 import { DateField, TextField } from '../../components/Field.js'
 import { QuantityField } from '../../components/QuantityField.js'

@@ -84,7 +84,7 @@ import.
 
 1. Ajouter la ligne dans `MAP`, dans `scripts/import-lucide.mjs`.
 2. `node scripts/import-lucide.mjs` — il récupère, filtre et réécrit.
-3. `npm --workspace @livre/web run test`.
+3. `npm --workspace @prandia/web run test`.
 
 Le script passe chaque SVG par `sanitizeSvg`, l'assainisseur écrit pour les
 icônes collées par l'utilisateur. Même besoin, même code : retirer la balise

@@ -11,7 +11,7 @@
  * Pur : ni requete, ni composant, ni etat. C'est ce qui les rend testables.
  */
 
-import type { ShoppingItem } from '@livre/shared'
+import type { ShoppingItem } from '@prandia/shared'
 
 /**
  * Montant en centimes ENTIERS.

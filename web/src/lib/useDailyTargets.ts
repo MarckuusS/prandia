@@ -22,7 +22,7 @@ import {
   type GoalCode,
   type SplitCode,
   type Targets,
-} from '@livre/shared'
+} from '@prandia/shared'
 
 import { useProfile } from './queries.js'
 

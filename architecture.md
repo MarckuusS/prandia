@@ -1,4 +1,4 @@
-# Architecture — Livre de recettes numerique
+# Architecture : Prandia
 
 > Memoire de travail persistante du projet. Ce fichier doit etre lu en premier pour reprendre le contexte sans relire tout le codebase.
 
@@ -19,7 +19,7 @@ Ce qui est en place :
 - Loader CIQUAL idempotent acceptant `.xls` / `.xlsx` / `.csv`.
 - Client OpenFoodFacts `httpx` : `lookup_barcode` sur `world.openfoodfacts.org`, `search_by_name` sur `search.openfoodfacts.org`, `is_off_alive` (GET sur `/`, retourne 302 = alive — patche du HEAD initial qui recevait 405).
 - Backup automatique de la DB au demarrage (rotation 7 jours + 1/mois sur 6 mois).
-- Logging structure rotatif (`~/.livre-de-recettes/logs/app.log`, 5 MB × 5 fichiers) + excepthook.
+- Logging structure rotatif (`~/.prandia/logs/app.log`, 5 MB × 5 fichiers) + excepthook.
 
 **Donnees & recherche enrichie** :
 - Separation **bibliotheque personnelle** vs **catalogues sources** via `ingredient.in_personal_library`.
@@ -29,7 +29,7 @@ Ce qui est en place :
 - **`Ingredient.season_months`** (C3) : CSV de mois 1-12 ("6,7,8,9" pour ete). ~50 ingredients FR seedes via `app/data/seeds/seasons.py`. Badge "🌱 saison" + filtre "De saison uniquement" cote QML.
 - **Tags** : table `tag` + jointure `recipe_tag`. 10 tags pre-seedes.
 - **Historique des couts** : table `weekly_cost_snapshot`. Auto-archive a chaque refresh du calendrier.
-- **Photos** : `recipe.image_path` → `~/.livre-de-recettes/recipe_photos/<id>.jpg` (Pillow 1024×1024 + JPEG 85).
+- **Photos** : `recipe.image_path` → `~/.prandia/recipe_photos/<id>.jpg` (Pillow 1024×1024 + JPEG 85).
 - **Frigo / Cellier** (F1, plan v2) : table `pantry_stock` (id, ingredient_id, quantity_g, expiry_date, notes). 5e onglet, 3 sections d'urgence, lien automatique avec liste de courses.
 - **Templates de semaine NOMMES** (C1, plan v2) : table `meal_plan_template` (snapshot JSON). Save/apply/delete depuis CalendarPage.
 - **Journal de cuisson** (C2, plan v2) : table `recipe_cooking_log` (recipe_id FK CASCADE, cooked_at, rating 1-5, notes). Stat "cuisinee X× ce mois" + bouton "✓ Cuisinee aujourd'hui" + dialog d'historique detache.
@@ -55,13 +55,13 @@ Ce qui est en place :
 
 **Distribution** :
 - Personnelle / Windows. Style `Basic` force au demarrage.
-- Packaging PyInstaller en `.exe` autonome (`livre-de-recettes.spec` + `build.bat`). `--onedir`, ~80 MB. Resolution du chemin QML via `sys._MEIPASS` quand `sys.frozen`.
+- Packaging PyInstaller en `.exe` autonome (`prandia.spec` + `build.bat`). `--onedir`, ~80 MB. Resolution du chemin QML via `sys._MEIPASS` quand `sys.frozen`.
 
 ## Vue d'ensemble (5 onglets + status bar)
 
 ```
 +-------------------------------------------------------------------------+
-| Livre de recettes numerique                                             |
+| Prandia                                             |
 +-------------------------------------------------------------------------+
 | Fichier   Affichage   Navigation   Aide                                 |  <- MenuBar
 +-------------------------------------------------------------------------+
@@ -161,7 +161,7 @@ Recherche unifiee globale **Ctrl+K** (B6) : popup centre 3 sections (Ingredients
 | Fichier | Contenu |
 |---|---|
 | `main.py` | Bootstrap : logging FIRST, QApplication, force `Basic` style, backup_on_startup, AppContext, registration Theme singleton, instanciation des **9 VMs** en context properties (incl. `pantryVM`), load Main.qml. **`_resolve_qml_dir`** gere `sys._MEIPASS` pour PyInstaller. |
-| `logging_setup.py` | **D2**. `setup_logging(log_dir=None)` (RotatingFileHandler 5MB×5, console DEBUG si `LIVRE_DEBUG=1`), `install_excepthook()`, `default_log_dir()`. |
+| `logging_setup.py` | **D2**. `setup_logging(log_dir=None)` (RotatingFileHandler 5MB×5, console DEBUG si `PRANDIA_DEBUG=1`), `install_excepthook()`, `default_log_dir()`. |
 
 ### `app/ui/`
 
@@ -289,7 +289,7 @@ ingredient_fts (FTS5 virtual, content='ingredient', tokenize='unicode61 remove_d
 
 recipe (
   id PK, name, instructions, default_portions,
-  image_path,           -- chemin relatif vers ~/.livre-de-recettes/recipe_photos/<id>.jpg
+  image_path,           -- chemin relatif vers ~/.prandia/recipe_photos/<id>.jpg
   created_at, updated_at
 )
 

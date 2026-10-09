@@ -11,8 +11,8 @@
  * passer — toute requete de ce fichier se filtre sur le foyer, sans exception.
  */
 
-import type { Criterion, Ingredient } from '@livre/shared'
-import { escapeLike, normalizeName, toFtsQuery } from '@livre/shared'
+import type { Criterion, Ingredient } from '@prandia/shared'
+import { escapeLike, normalizeName, toFtsQuery } from '@prandia/shared'
 
 import { toIngredient, type IngredientRow } from '../rows.js'
 import { buildSet, NOW_SQL, placeholders, toInt } from './sql.js'

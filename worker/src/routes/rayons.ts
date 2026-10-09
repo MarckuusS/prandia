@@ -8,7 +8,7 @@
  * recevrait « UNIQUE constraint failed » en pleine figure.
  */
 
-import { rayonWriteSchema } from '@livre/shared'
+import { rayonWriteSchema } from '@prandia/shared'
 
 import { logActivity } from '../activity.js'
 import { HttpError, intParam, json, notFound, parseOrThrow, readJson, route } from '../http.js'

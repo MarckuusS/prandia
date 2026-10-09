@@ -1,7 +1,7 @@
 /**
  * Formatage d'affichage propre au front.
  *
- * Ce qui touche au DOMAINE (euros, masses, unites) vit dans @livre/shared et
+ * Ce qui touche au DOMAINE (euros, masses, unites) vit dans @prandia/shared et
  * doit y rester : le Worker s'en sert aussi. Ici on ne garde que ce qui n'a de
  * sens qu'a l'ecran.
  *

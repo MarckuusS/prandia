@@ -22,7 +22,7 @@
  */
 
 import { useState, type FormEvent } from 'react'
-import { formatEuros, formatGrams, pricePerG, todayLocalIsoDate, type Ingredient } from '@livre/shared'
+import { formatEuros, formatGrams, pricePerG, todayLocalIsoDate, type Ingredient } from '@prandia/shared'
 
 import { DateField, NumberField, TextField } from '../../components/Field.js'
 import { Icon } from '../../icons/index.js'

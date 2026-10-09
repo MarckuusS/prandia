@@ -25,13 +25,13 @@ from app.services.receipt_watcher import (
 
 
 def test_default_receipt_dir_uses_env_override(monkeypatch, tmp_path: Path) -> None:
-    """Quand `LIVRE_RECEIPT_DIR` est défini, il prime sur le defaut Downloads."""
-    monkeypatch.setenv("LIVRE_RECEIPT_DIR", str(tmp_path / "custom"))
+    """Quand `PRANDIA_RECEIPT_DIR` est défini, il prime sur le defaut Downloads."""
+    monkeypatch.setenv("PRANDIA_RECEIPT_DIR", str(tmp_path / "custom"))
     assert default_receipt_dir() == tmp_path / "custom"
 
 
 def test_default_receipt_dir_fallback_downloads(monkeypatch) -> None:
-    monkeypatch.delenv("LIVRE_RECEIPT_DIR", raising=False)
+    monkeypatch.delenv("PRANDIA_RECEIPT_DIR", raising=False)
     p = default_receipt_dir()
     # Attendu : ~/Downloads/Tickets de caisse/
     assert p.name == "Tickets de caisse"
@@ -204,7 +204,7 @@ def test_vm_rescan_pending_picks_up_existing_files(
     from app.ui.viewmodels.receipt_import_vm import ReceiptImportViewModel
 
     # Override du dossier pour pointer vers tmp_path
-    monkeypatch.setenv("LIVRE_RECEIPT_DIR", str(tmp_path))
+    monkeypatch.setenv("PRANDIA_RECEIPT_DIR", str(tmp_path))
     (tmp_path / "old1.pdf").write_bytes(b"x")
     (tmp_path / "old2.html").write_bytes(b"x")
     (tmp_path / "ignore.txt").write_text("...")
@@ -263,16 +263,16 @@ def test_vm_load_next_pending_skips_missing_file(app_ctx, tmp_path: Path) -> Non
 
 
 # Voir tests/test_receipt_parser_intermarche.py : le PDF d'exemple contient des
-# données personnelles et reste hors du dépôt. Défini LIVRE_SAMPLE_RECEIPT_PDF
+# données personnelles et reste hors du dépôt. Défini PRANDIA_SAMPLE_RECEIPT_PDF
 # pour activer ce test.
 _SAMPLE_PDF = Path(
-    os.environ.get("LIVRE_SAMPLE_RECEIPT_PDF", "tests/fixtures/intermarche-sample.pdf")
+    os.environ.get("PRANDIA_SAMPLE_RECEIPT_PDF", "tests/fixtures/intermarche-sample.pdf")
 )
 
 
 @pytest.mark.skipif(
     not _SAMPLE_PDF.exists(),
-    reason="Sample PDF Intermarché absent (définir LIVRE_SAMPLE_RECEIPT_PDF)",
+    reason="Sample PDF Intermarché absent (définir PRANDIA_SAMPLE_RECEIPT_PDF)",
 )
 def test_vm_cleanup_deletes_only_inside_dedicated_dir(
     app_ctx, tmp_path: Path, monkeypatch,
@@ -282,7 +282,7 @@ def test_vm_cleanup_deletes_only_inside_dedicated_dir(
     file picker pointant vers le bureau) doit être préservé."""
     from app.ui.viewmodels.receipt_import_vm import ReceiptImportViewModel
 
-    monkeypatch.setenv("LIVRE_RECEIPT_DIR", str(tmp_path))
+    monkeypatch.setenv("PRANDIA_RECEIPT_DIR", str(tmp_path))
     sample = _SAMPLE_PDF
 
     # Cas A : fichier hors du dossier dédié → on charge et commit, le fichier reste.

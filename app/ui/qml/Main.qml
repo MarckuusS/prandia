@@ -19,7 +19,7 @@ ApplicationWindow {
     height: 800
     minimumWidth: 980
     minimumHeight: 600
-    title: qsTr("Livre de recettes")
+    title: qsTr("Prandia")
 
     color: Theme.colorBackground
 

@@ -37,7 +37,7 @@
  * Pas de survol : il n'existe pas au doigt.
  */
 
-import { massBreakdown, type NutritionTotal } from '@livre/shared'
+import { massBreakdown, type NutritionTotal } from '@prandia/shared'
 
 import { formatNumber } from '../lib/format.js'
 

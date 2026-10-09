@@ -21,7 +21,7 @@ import { TextField } from '../components/Field.js'
 import { ConfirmDialog, Sheet } from '../components/Sheet.js'
 import { EmptyState, ErrorState, LoadingRows } from '../components/States.js'
 import { useToast } from '../components/Toast.js'
-import { sanitizeSvg } from '@livre/shared'
+import { sanitizeSvg } from '@prandia/shared'
 import { Icon, RayonIcon } from '../icons/index.js'
 import {
   useCreateIcon,

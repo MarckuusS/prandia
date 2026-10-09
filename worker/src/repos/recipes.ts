@@ -16,7 +16,7 @@
  * household_id = ?)` plutot que par les identifiants bruts de l'appelant.
  */
 
-import { ZERO_NUTRITION, aggregateRecipe, type NutritionTotal, type Recipe, type RecipeWrite } from '@livre/shared'
+import { ZERO_NUTRITION, aggregateRecipe, type NutritionTotal, type Recipe, type RecipeWrite } from '@prandia/shared'
 
 import { toRecipeShell, toTag, type RecipeRow, type TagRow } from '../rows.js'
 import { IngredientRepo } from './ingredients.js'
@@ -24,7 +24,7 @@ import { NOW_SQL, placeholders } from './sql.js'
 
 // La charge utile d'ecriture est definie dans `shared/src/models.ts`, aux
 // cotes du schema Zod qui la valide : un seul endroit ou la faire evoluer.
-export type { RecipeLineWrite, RecipeWrite } from '@livre/shared'
+export type { RecipeLineWrite, RecipeWrite } from '@prandia/shared'
 
 export interface RecipeSummary {
   readonly id: number

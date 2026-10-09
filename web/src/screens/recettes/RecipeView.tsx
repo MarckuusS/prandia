@@ -45,7 +45,7 @@ import {
   photoPath,
   type NutritionTotal,
   type Recipe,
-} from '@livre/shared'
+} from '@prandia/shared'
 
 import { MacrosRing } from '../../components/MacrosDonut.js'
 import { TableauNutriments } from '../../components/TableauNutriments.js'

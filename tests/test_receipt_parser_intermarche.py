@@ -19,12 +19,12 @@ from app.services.receipt_parser.intermarche_parser import parse_intermarche_pdf
 
 # Un vrai ticket Intermarché contient des données personnelles (magasin, date,
 # achats) : il n'a pas sa place dans un dépôt public. Le test s'active en
-# pointant LIVRE_SAMPLE_RECEIPT_PDF vers un PDF local, sinon il est ignoré.
+# pointant PRANDIA_SAMPLE_RECEIPT_PDF vers un PDF local, sinon il est ignoré.
 #
 # Les valeurs attendues plus bas décrivent le sample d'origine : 5 articles,
 # 43,13 € TTC, ticket du 02/05/2026. Un autre PDF fera échouer les assertions
 # — c'est voulu, elles documentent un cas précis.
-SAMPLE_PDF = Path(os.environ.get("LIVRE_SAMPLE_RECEIPT_PDF", "tests/fixtures/intermarche-sample.pdf"))
+SAMPLE_PDF = Path(os.environ.get("PRANDIA_SAMPLE_RECEIPT_PDF", "tests/fixtures/intermarche-sample.pdf"))
 
 
 @pytest.mark.skipif(

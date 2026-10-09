@@ -14,7 +14,7 @@ import {
   mealPlanMoveSchema,
   MEAL_SLOT_LABELS,
   DAY_LABELS,
-} from '@livre/shared'
+} from '@prandia/shared'
 
 import { logActivity } from '../activity.js'
 import { badWeek, HttpError, intParam, json, notFound, parseOrThrow, readJson, route } from '../http.js'

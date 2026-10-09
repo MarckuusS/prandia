@@ -295,8 +295,8 @@ class IngredientViewModel(QObject):
     GROUP_FIELDS = ("none", "source", "rayon", "season", "kcal_range")
 
     # Préfixe QSettings pour persister les options de vue (tri / groupement /
-    # filtres) entre sessions. QSettings utilise org=`livre-de-recettes`,
-    # app=`Livre de recettes` (cf. `app/main.py`) → registre Windows ou ~/.config.
+    # filtres) entre sessions. QSettings utilise org=`prandia`,
+    # app=`Prandia` (cf. `app/main.py`) → registre Windows ou ~/.config.
     _QS_PREFIX = "view_options/ingredients"
     _MACRO_NAMES = ("kcal", "proteins", "carbs", "fats", "fiber", "salt")
 

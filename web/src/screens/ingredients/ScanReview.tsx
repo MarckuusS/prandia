@@ -18,7 +18,7 @@
  */
 
 import { useState } from 'react'
-import { formatEuros, type Ingredient } from '@livre/shared'
+import { formatEuros, type Ingredient } from '@prandia/shared'
 
 import { NumberField, TextField } from '../../components/Field.js'
 import { MacroCells } from '../../components/MacrosDonut.js'

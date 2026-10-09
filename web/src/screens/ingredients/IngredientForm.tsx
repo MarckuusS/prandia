@@ -35,7 +35,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
-import { SOURCE_LABELS, formatEuros, formatGrams, type Ingredient, type Source } from '@livre/shared'
+import { SOURCE_LABELS, formatEuros, formatGrams, type Ingredient, type Source } from '@prandia/shared'
 
 import { BarcodeScanner, isValidEan } from '../../components/BarcodeScanner.js'
 import {

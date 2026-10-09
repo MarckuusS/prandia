@@ -14,7 +14,7 @@
  * la saisie decimale exige un hook par ligne (voir `CriterionRow`).
  */
 
-import type { Criterion } from '@livre/shared'
+import type { Criterion } from '@prandia/shared'
 
 import { useDecimalInput } from '../../components/Field.js'
 import { Icon } from '../../icons/index.js'

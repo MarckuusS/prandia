@@ -39,7 +39,7 @@
  * n'ont ou aller.
  */
 
-import { sessionItemWriteSchema, sessionStartSchema, type ShoppingSession } from '@livre/shared'
+import { sessionItemWriteSchema, sessionStartSchema, type ShoppingSession } from '@prandia/shared'
 
 import { logActivity } from '../activity.js'
 import { HttpError, json, notFound, parseOrThrow, readJson, route } from '../http.js'

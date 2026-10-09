@@ -18,7 +18,7 @@ import {
   formatShoppingQuantity,
   todayLocalIsoDate,
   type ShoppingItem,
-} from '@livre/shared'
+} from '@prandia/shared'
 
 import { NumberField, TextField } from '../../components/Field.js'
 import { QuantityField } from '../../components/QuantityField.js'

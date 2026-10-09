@@ -263,7 +263,7 @@ Chantier choisi. Le socle est presque entièrement prévu, mais **le premier pas
 
 ### 2.0 Prérequis : levé le 2026-08-10
 
-> **Fait.** R2 activé sur le compte, bucket `livre-de-recettes-media`, binding `MEDIA` déclaré
+> **Fait.** R2 activé sur le compte, bucket `prandia-media`, binding `MEDIA` déclaré
 > dans `wrangler.toml` et dans `Env` (`worker/src/http.ts`).
 > Le repli KV du 2.0 bis n'a plus lieu d'être, il reste documenté pour mémoire.
 >
@@ -304,7 +304,7 @@ C'est la seule décision à prendre, et elle est d'ordre financier, pas techniqu
 **Étape 2**, une fois R2 actif :
 
 ```bash
-npx wrangler r2 bucket create livre-de-recettes-media
+npx wrangler r2 bucket create prandia-media --jurisdiction eu
 ```
 
 Puis décommenter le bloc `[[r2_buckets]]` de `wrangler.toml` (binding `MEDIA`).
@@ -313,7 +313,7 @@ Puis décommenter le bloc `[[r2_buckets]]` de `wrangler.toml` (binding `MEDIA`).
 
 **Workers KV**, déjà inclus dans le plan gratuit sans aucun moyen de paiement, convient à cet usage :
 1 Go stocké, 100 000 lectures et 1 000 écritures par jour, valeur unitaire très au-dessus d'une photo
-de 200 Ko. Pour un livre de recettes personnel, ces plafonds ne seront jamais approchés.
+de 200 Ko. Pour une application personnelle comme Prandia, ces plafonds ne seront jamais approchés.
 
 Ce que le repli change dans le plan : une seule ligne. La clé `recipes/<id>.jpg` devient une clé KV
 au lieu d'une clé d'objet, le binding s'appelle `MEDIA` de la même façon, et `env.MEDIA.put` /

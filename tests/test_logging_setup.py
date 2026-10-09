@@ -30,15 +30,15 @@ def _reset_logging():
 
 
 def test_default_log_dir_default_location() -> None:
-    expected = Path.home() / ".livre-de-recettes" / "logs"
-    # Drop any LIVRE_LOG_DIR env that the test runner might have set
-    if "LIVRE_LOG_DIR" in os.environ:
-        del os.environ["LIVRE_LOG_DIR"]
+    expected = Path.home() / ".prandia" / "logs"
+    # Drop any PRANDIA_LOG_DIR env that the test runner might have set
+    if "PRANDIA_LOG_DIR" in os.environ:
+        del os.environ["PRANDIA_LOG_DIR"]
     assert default_log_dir() == expected
 
 
 def test_default_log_dir_respects_env_override(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    monkeypatch.setenv("LIVRE_LOG_DIR", str(tmp_path / "custom"))
+    monkeypatch.setenv("PRANDIA_LOG_DIR", str(tmp_path / "custom"))
     assert default_log_dir() == tmp_path / "custom"
 
 
@@ -68,7 +68,7 @@ def test_setup_logging_idempotent(tmp_path: Path) -> None:
 
 
 def test_setup_logging_debug_level_via_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    monkeypatch.setenv("LIVRE_DEBUG", "1")
+    monkeypatch.setenv("PRANDIA_DEBUG", "1")
     setup_logging(log_dir=tmp_path)
     # Console handler should be DEBUG
     root = logging.getLogger()
@@ -81,7 +81,7 @@ def test_setup_logging_debug_level_via_env(monkeypatch: pytest.MonkeyPatch, tmp_
 
 
 def test_setup_logging_info_level_default(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    monkeypatch.delenv("LIVRE_DEBUG", raising=False)
+    monkeypatch.delenv("PRANDIA_DEBUG", raising=False)
     setup_logging(log_dir=tmp_path)
     root = logging.getLogger()
     console = next(

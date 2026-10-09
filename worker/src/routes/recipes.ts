@@ -2,7 +2,7 @@
  * Recettes, tags et journal de cuisson.
  */
 
-import { cookingLogWriteSchema, recipeWriteSchema, tagWriteSchema } from '@livre/shared'
+import { cookingLogWriteSchema, recipeWriteSchema, tagWriteSchema } from '@prandia/shared'
 
 import { logActivity } from '../activity.js'
 import { balayer } from './photos.js'

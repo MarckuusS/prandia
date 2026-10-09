@@ -7,7 +7,7 @@
  * la liste suit le calendrier, y compris quand l'autre telephone le modifie.
  */
 
-import { aggregateShoppingList, isValidIsoWeek, currentIsoWeek, type ShoppingList } from '@livre/shared'
+import { aggregateShoppingList, isValidIsoWeek, currentIsoWeek, type ShoppingList } from '@prandia/shared'
 
 import { logActivity } from '../activity.js'
 import { badRequest, badWeek, json, route } from '../http.js'

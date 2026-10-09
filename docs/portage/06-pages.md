@@ -22,7 +22,7 @@ Convention de lecture :
 
 | Propriété | Valeur |
 |---|---|
-| Titre | `Livre de recettes` |
+| Titre | `Prandia` |
 | Taille initiale | 1280 × 800 |
 | Taille minimale | 980 × 600 |
 | Fond | `Theme.colorBackground` (#f8fafc clair / #0f172a sombre) |
@@ -82,7 +82,7 @@ C'est la **seule** entrée du menu. Un ancien toggle « afficher/masquer les en-
 |---|---|---|
 | `Raccourcis clavier` | `Ctrl+/` | ouvre `ShortcutsDialog` |
 | *(séparateur)* | | |
-| `Ouvrir le dossier de logs` | — | `Qt.openUrlExternally("file:///" + logDirPath)` (chemin injecté par Python, `~/.livre-de-recettes/logs/`) |
+| `Ouvrir le dossier de logs` | — | `Qt.openUrlExternally("file:///" + logDirPath)` (chemin injecté par Python, `~/.prandia/logs/`) |
 
 ### 1.3 Barre d'onglets
 
@@ -198,7 +198,7 @@ Ingrédients, une nouvelle recette sur l'onglet Recettes. »
 | ACTIONS GLOBALES | `Ctrl+N` → Créer ; `Ctrl+S` → Enregistrer ; `Suppr` → Retirer l'élément sélectionné ; `Ctrl+F` → Focus recherche |
 | CALENDRIER | `Ctrl+←` / `Ctrl+→` → semaine précédente / suivante ; `Ctrl+T` → semaine courante |
 | AFFICHAGE | `Ctrl+Shift+D` → clair / sombre |
-| DIAGNOSTIC | `Menu Aide` → dossier de logs ; `LIVRE_DEBUG=1` → activer DEBUG (relance requise) |
+| DIAGNOSTIC | `Menu Aide` → dossier de logs ; `PRANDIA_DEBUG=1` → activer DEBUG (relance requise) |
 
 ---
 

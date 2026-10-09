@@ -23,7 +23,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
-import { formatGrams, type Ingredient } from '@livre/shared'
+import { formatGrams, type Ingredient } from '@prandia/shared'
 
 import { useIngredients } from '../lib/queries.js'
 import { FieldShell, useFieldIds } from './Field.js'

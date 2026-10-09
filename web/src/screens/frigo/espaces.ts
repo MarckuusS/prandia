@@ -23,7 +23,7 @@
  * retour au premier plan sans rien redemander au reseau.
  */
 
-import { STORAGE_LABELS, UNSTORED_LABEL, type StorageSpace } from '@livre/shared'
+import { STORAGE_LABELS, UNSTORED_LABEL, type StorageSpace } from '@prandia/shared'
 
 import type { Lot } from './lots.js'
 

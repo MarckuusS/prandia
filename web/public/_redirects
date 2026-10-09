@@ -6,7 +6,7 @@
 # l'URL, et le routeur prend le relais cote client.
 #
 # Aucune regle pour /api/* ici, volontairement : la route du Worker
-# (livre-de-recette.pages.dev/api/*) est evaluee AVANT les regles de Pages.
+# (prandia.pages.dev/api/*) est evaluee AVANT les regles de Pages.
 # Une regle /api/* /api/:splat 200 serait une reecriture sur elle-meme, sans
 # effet — elle retomberait sur la ligne suivante et servirait index.html.
 #

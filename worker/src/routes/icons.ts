@@ -11,7 +11,7 @@
  * qu'il veut.
  */
 
-import { sanitizeSvg } from '@livre/shared'
+import { sanitizeSvg } from '@prandia/shared'
 import { z } from 'zod'
 
 import { logActivity } from '../activity.js'

@@ -1,7 +1,7 @@
 """Watcher du sous-dossier de tickets (Plan v3, Phase 2).
 
 Surveille `~/Downloads/Tickets de caisse/` (ou un dossier configurable via
-`LIVRE_RECEIPT_DIR`) et émet un signal Qt quand un nouveau fichier ticket
+`PRANDIA_RECEIPT_DIR`) et émet un signal Qt quand un nouveau fichier ticket
 y atterrit. L'app écoute le signal pour proposer l'import en 1 clic.
 
 Le watcher utilise `watchdog` (FSEvents/inotify/ReadDirectoryChangesW selon
@@ -35,11 +35,11 @@ _VALID_EXTENSIONS = {".pdf", ".html", ".htm"}
 def default_receipt_dir() -> Path:
     """Sous-dossier dédié `~/Downloads/Tickets de caisse/`.
 
-    Override via la variable d'env `LIVRE_RECEIPT_DIR`. Le dossier est créé
+    Override via la variable d'env `PRANDIA_RECEIPT_DIR`. Le dossier est créé
     automatiquement par `ensure_receipt_dir()` au démarrage de l'app si
     absent.
     """
-    override = os.environ.get("LIVRE_RECEIPT_DIR")
+    override = os.environ.get("PRANDIA_RECEIPT_DIR")
     if override:
         return Path(override)
     return Path.home() / "Downloads" / "Tickets de caisse"

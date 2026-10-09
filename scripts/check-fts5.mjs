@@ -11,7 +11,7 @@
  * Ce script s'execute contre le SQLite embarque dans Node, qui n'est pas le
  * meme binaire que celui de D1 : il valide la SYNTAXE et le COMPORTEMENT
  * attendus. La validation sur un vrai D1 se fait avec :
- *     npx wrangler d1 execute livre-de-recettes --local --file=migrations/0001_core.sql
+ *     npx wrangler d1 execute DB --local --file=migrations/0001_core.sql
  *
  * Usage : node scripts/check-fts5.mjs
  */

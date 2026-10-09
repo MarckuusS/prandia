@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
 
-import { MIN_PASSWORD_LENGTH } from '@livre/shared'
+import { MIN_PASSWORD_LENGTH } from '@prandia/shared'
 
 import {
   ApiError,

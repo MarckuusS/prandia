@@ -1,11 +1,11 @@
 # Spécification de portage — 02. Couche DONNÉES
 
 Source : `app/data/` (db.py, orm.py, repositories/, seeds/) de l'app desktop
-« Livre de recettes » (Python 3.11+ / SQLAlchemy 2.x / SQLite).
+"Prandia" (Python 3.11+ / SQLAlchemy 2.x / SQLite).
 Cible : Cloudflare Worker + D1 (SQLite managé) + front TypeScript.
 
 Ce document est écrit à partir du **code réel** et vérifié contre le **schéma
-effectivement présent** dans `livre_de_recettes.db` (dump `sqlite_master`) ainsi
+effectivement présent** dans `prandia.db` (dump `sqlite_master`) ainsi
 que contre un schéma **régénéré à neuf** par `init_schema()` dans le venv du
 projet. Les fichiers `CLAUDE.md` / `architecture.md` du dépôt sont périmés et
 n'ont pas été utilisés comme source (les écarts constatés sont signalés au § 9).
@@ -61,10 +61,10 @@ détectées par introspection, cf. § 4).
 ### 1.1 Emplacement de la base
 
 ```python
-_DEFAULT_DB_FILENAME = "livre_de_recettes.db"
+_DEFAULT_DB_FILENAME = "prandia.db"
 
 def default_db_path() -> Path:
-    override = os.environ.get("LIVRE_DB_PATH")
+    override = os.environ.get("PRANDIA_DB_PATH")
     if override: return Path(override)
     return Path.cwd() / _DEFAULT_DB_FILENAME
 ```
@@ -133,7 +133,7 @@ Bloc entier `backup_on_startup` / `_sqlite_backup` / `_rotate_backups` /
 `list_backups` / `restore_from_backup`. Appelé depuis `app/main.py:67`
 (`backup_on_startup()`), avant l'ouverture de la fenêtre.
 
-- Répertoire : `LIVRE_BACKUP_DIR` sinon `~/.livre-de-recettes/backups/`.
+- Répertoire : `PRANDIA_BACKUP_DIR` sinon `~/.prandia/backups/`.
 - Nom de fichier : `db-%Y-%m-%d_%H%M%S.db` (constante `_BACKUP_TIMESTAMP_FORMAT`).
 - Copie via l'API `sqlite3.Connection.backup()` (snapshot cohérent avec WAL), pas
   un `copy` brut.
@@ -1432,7 +1432,7 @@ tables isolées → `rebuild` FTS.
 | 11 | **Index redondants** | 4 index dupliqués (`index=True` + `Index(...)`). | Ne pas les recréer. |
 | 12 | **`VARCHAR(10)` trop court pour `slot`** | `'snack_afternoon'` fait 15 caractères. | `TEXT` + `CHECK (slot IN (...))`. |
 | 13 | **Tri de `slot` alphabétique en base** | `list_by_week` renvoie `evening, morning, noon, snack_afternoon, snack_morning` ; l'ordre chronologique est reconstruit par l'UI. | Trier avec un `CASE` explicite côté API, plus robuste. |
-| 14 | **Sauvegardes fichier + restauration** | API `sqlite3.backup`, rotation 7 j + 6 mois, `shutil.copy2`, chemins `~/.livre-de-recettes/`. | D1 Time Travel + export cron vers R2. Retirer l'écran de restauration ou le brancher sur l'API D1. |
+| 14 | **Sauvegardes fichier + restauration** | API `sqlite3.backup`, rotation 7 j + 6 mois, `shutil.copy2`, chemins `~/.prandia/`. | D1 Time Travel + export cron vers R2. Retirer l'écran de restauration ou le brancher sur l'API D1. |
 | 15 | **Lecture .xls / .xlsx** | `xlrd<2.0` / `openpyxl`, système de fichiers local. | Conversion hors ligne en SQL/NDJSON, chargé via `wrangler d1 execute --file`. Ou export direct depuis la base actuelle. |
 | 16 | **Secrets Lidl** | Hors base, dans le Windows Credential Manager (`keyring`). | Cloudflare Secrets / Secrets Store ; jamais en D1. |
 | 17 | **`ORDER BY` avec ids `IN (...)`** | L'ordre est reconstitué en Python après hydratation. | Idem en TS, ou une seule requête avec `JOIN` et `ORDER BY` conservé. |

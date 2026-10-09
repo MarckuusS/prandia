@@ -11,7 +11,7 @@
     "declaration": false,
     "declarationMap": false,
     "paths": {
-      "@livre/shared": ["../shared/src/index.ts"]
+      "@prandia/shared": ["../shared/src/index.ts"]
     }
   },
   "include": ["src/**/*.ts"]

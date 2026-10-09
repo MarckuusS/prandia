@@ -649,7 +649,7 @@ export function DateField({
           d'echange reste 'AAAA-MM-JJ' quelle que soit la langue de l'appareil,
           ce qui correspond exactement a ce que stocke la base.
           Pre-remplir avec la date du jour : `todayLocalIsoDate()` de
-          @livre/shared, JAMAIS `toISOString()` qui propose la veille en
+          @prandia/shared, JAMAIS `toISOString()` qui propose la veille en
           soiree francaise. */}
       <input
         id={ids.controlId}

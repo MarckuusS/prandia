@@ -12,7 +12,7 @@
  * cloisonnes de la meme facon.
  */
 
-import { profileWriteSchema } from '@livre/shared'
+import { profileWriteSchema } from '@prandia/shared'
 
 import { json, parseOrThrow, readJson, requireUser, route } from '../http.js'
 import { ProfileRepo } from '../repos/profile.js'

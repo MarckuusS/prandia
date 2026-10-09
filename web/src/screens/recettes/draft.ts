@@ -16,7 +16,7 @@
  * `draftProblem` refuse d'enregistrer une ligne restee vide.
  */
 
-import type { Ingredient, Recipe, RecipeLine, RecipeWrite } from '@livre/shared'
+import type { Ingredient, Recipe, RecipeLine, RecipeWrite } from '@prandia/shared'
 
 export interface DraftLine {
   /**
@@ -110,7 +110,7 @@ export function newLine(ingredient: Ingredient, ordinal: number): DraftLine {
 }
 
 /**
- * Lignes utilisables par @livre/shared : une quantite en attente de saisie vaut
+ * Lignes utilisables par @prandia/shared : une quantite en attente de saisie vaut
  * 0, ce qui la fait simplement compter pour rien dans les agregats.
  */
 export function toRecipeLines(lines: readonly DraftLine[]): RecipeLine[] {

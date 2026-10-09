@@ -12,7 +12,7 @@
  * exprimees en unites de la viewBox et non en pixels.
  */
 
-import { daysBetween, type TrendPoint } from '@livre/shared'
+import { daysBetween, type TrendPoint } from '@prandia/shared'
 
 const L = 320
 const H = 120

@@ -1,7 +1,7 @@
 @echo off
 setlocal
 
-rem Lance Livre de recettes. Cree le venv et installe les deps si besoin,
+rem Lance Prandia. Cree le venv et installe les deps si besoin,
 rem puis demarre l'app. Idempotent : sur les lancements suivants on saute
 rem directement au demarrage.
 

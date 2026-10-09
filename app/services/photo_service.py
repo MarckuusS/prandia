@@ -1,6 +1,6 @@
 """Recipe photo storage service.
 
-Photos sont stockées sous `~/.livre-de-recettes/recipe_photos/<recipe_id>.jpg`.
+Photos sont stockées sous `~/.prandia/recipe_photos/<recipe_id>.jpg`.
 Le `image_path` en DB est le **nom de fichier seulement** (chemin relatif au
 dossier de photos) — ça permet de déplacer le projet sans casser les liens.
 
@@ -28,7 +28,7 @@ _JPEG_QUALITY = 85
 # Téléchargements distants : le User-Agent identifie l'app, et le timeout est
 # court pour ne pas bloquer un import URL si l'image est lente.
 _DOWNLOAD_TIMEOUT = httpx.Timeout(15.0, connect=5.0)
-_DOWNLOAD_USER_AGENT = "livre-de-recettes/0.1.0 (+https://github.com/MarckuusS/livre-de-recette)"
+_DOWNLOAD_USER_AGENT = "prandia/0.1.0 (+https://github.com/MarckuusS/prandia)"
 # Garde-fou anti-fichier énorme — on stoppe au-delà de 20 Mo (Pillow gère
 # bien jusqu'à plusieurs centaines de Mo mais ça consommerait de la RAM
 # inutilement pour une photo de recette).
@@ -36,14 +36,14 @@ _MAX_DOWNLOAD_BYTES = 20 * 1024 * 1024
 
 
 def default_photo_dir() -> Path:
-    """Where recipe photos live. Override with LIVRE_PHOTO_DIR.
+    """Where recipe photos live. Override with PRANDIA_PHOTO_DIR.
 
-    Default: `~/.livre-de-recettes/recipe_photos/`. Created on demand.
+    Default: `~/.prandia/recipe_photos/`. Created on demand.
     """
-    override = os.environ.get("LIVRE_PHOTO_DIR")
+    override = os.environ.get("PRANDIA_PHOTO_DIR")
     if override:
         return Path(override)
-    return Path.home() / ".livre-de-recettes" / "recipe_photos"
+    return Path.home() / ".prandia" / "recipe_photos"
 
 
 def absolute_photo_path(image_path: str | None, photo_dir: Path | None = None) -> Path | None:
@@ -52,7 +52,7 @@ def absolute_photo_path(image_path: str | None, photo_dir: Path | None = None) -
 
     A2 : when `image_path` is set but the file is missing (user deleted it
     accidentally from disk), we log a warning the first time so the issue
-    is diagnosable from `~/.livre-de-recettes/logs/app.log`. The QML side
+    is diagnosable from `~/.prandia/logs/app.log`. The QML side
     falls back to a placeholder ("🍽 Aucune photo")."""
     if not image_path:
         return None

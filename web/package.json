@@ -1,5 +1,5 @@
 {
-  "name": "@livre/web",
+  "name": "@prandia/web",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -14,7 +14,7 @@
   "dependencies": {
     "@fontsource-variable/bricolage-grotesque": "^5.3.0",
     "@fontsource-variable/instrument-sans": "^5.3.0",
-    "@livre/shared": "*",
+    "@prandia/shared": "*",
     "@tanstack/react-query": "^5.64.2",
     "@zxing/browser": "^0.1.5",
     "@zxing/library": "^0.21.3",

@@ -5,7 +5,7 @@
     {
       "id": "shell-fenetre-principale",
       "title": "Fenêtre principale de l'application",
-      "userAction": "L'utilisateur lance l'app ; une fenêtre unique s'ouvre, titrée « Livre de recettes », redimensionnable, avec barre de menus en haut, onglets sous le menu, contenu au centre et barre de statut en bas.",
+      "userAction": "L'utilisateur lance l'app ; une fenêtre unique s'ouvre, titrée \"Prandia\", redimensionnable, avec barre de menus en haut, onglets sous le menu, contenu au centre et barre de statut en bas.",
       "behaviourDetails": "Taille initiale 1280×800, taille minimale imposée 980×600 (en dessous, Qt refuse le redimensionnement). Fond = Theme.colorBackground (clair #f8fafc / sombre #0f172a). Une seule fenêtre principale : pas de multi-fenêtres de document. Le style Qt Quick est forcé sur `Basic` au démarrage car le style natif Windows FluentWinUI3 refuse la personnalisation.",
       "sourceRefs": [
         "app/ui/qml/Main.qml:15-24",
@@ -88,7 +88,7 @@
       "id": "shell-menu-aide",
       "title": "Menu Aide (raccourcis + dossier de logs)",
       "userAction": "L'utilisateur ouvre « Aide » et clique soit « Raccourcis clavier » (ou tape Ctrl+/), soit « Ouvrir le dossier de logs ».",
-      "behaviourDetails": "« Ouvrir le dossier de logs » appelle Qt.openUrlExternally sur `file:///` + le chemin exposé par Python en propriété de contexte `logDirPath` (chemin normalisé, antislashs → slashs). Les logs vivent dans `~/.livre-de-recettes/logs/app.log`, rotation à 5 Mo × 5 sauvegardes (~25 Mo max). Console en INFO, ou DEBUG si la variable d'environnement LIVRE_DEBUG=1. Un excepthook capture toute exception non rattrapée avec traceback complet avant de laisser le processus mourir.",
+      "behaviourDetails": "« Ouvrir le dossier de logs » appelle Qt.openUrlExternally sur `file:///` + le chemin exposé par Python en propriété de contexte `logDirPath` (chemin normalisé, antislashs → slashs). Les logs vivent dans `~/.prandia/logs/app.log`, rotation à 5 Mo × 5 sauvegardes (~25 Mo max). Console en INFO, ou DEBUG si la variable d'environnement PRANDIA_DEBUG=1. Un excepthook capture toute exception non rattrapée avec traceback complet avant de laisser le processus mourir.",
       "sourceRefs": [
         "app/ui/qml/Main.qml:163-179",
         "app/main.py:140",
@@ -337,7 +337,7 @@
       "id": "dialog-raccourcis-clavier",
       "title": "Fenêtre de référence des raccourcis clavier",
       "userAction": "L'utilisateur tape Ctrl+/ ou passe par Aide → « Raccourcis clavier » ; une fenêtre détachable de 540×580 s'ouvre, centrée sur la fenêtre principale, listant les raccourcis groupés par catégorie avec des touches stylisées.",
-      "behaviourDetails": "Vraie fenêtre système (non modale, détachable, déplaçable hors de l'app), taille minimale 420×400, défilement vertical. Contenu **statique et codé en dur** dans le QML — il doit être tenu synchrone à la main avec les vrais raccourcis. 5 catégories : Navigation (Ctrl+1..5, Ctrl+K, Ctrl+/, Échap), Actions globales (Ctrl+N, Ctrl+S, Suppr, Ctrl+F), Calendrier (Ctrl+←, Ctrl+→, Ctrl+T), Affichage (Ctrl+Shift+D), Diagnostic (Menu Aide → dossier de logs, variable d'environnement LIVRE_DEBUG=1). Chaque raccourci est présenté dans une pastille de 130×24 px en police à chasse fixe. Un texte d'introduction explique que les raccourcis sont contextuels (Ctrl+N crée un ingrédient sur l'onglet Ingrédients, une recette sur l'onglet Recettes). **Incohérence réelle du code** : Ctrl+F n'existe QUE sur la page Ingrédients, pas sur Recettes ni ailleurs, alors que la liste le présente comme global.",
+      "behaviourDetails": "Vraie fenêtre système (non modale, détachable, déplaçable hors de l'app), taille minimale 420×400, défilement vertical. Contenu **statique et codé en dur** dans le QML — il doit être tenu synchrone à la main avec les vrais raccourcis. 5 catégories : Navigation (Ctrl+1..5, Ctrl+K, Ctrl+/, Échap), Actions globales (Ctrl+N, Ctrl+S, Suppr, Ctrl+F), Calendrier (Ctrl+←, Ctrl+→, Ctrl+T), Affichage (Ctrl+Shift+D), Diagnostic (Menu Aide → dossier de logs, variable d'environnement PRANDIA_DEBUG=1). Chaque raccourci est présenté dans une pastille de 130×24 px en police à chasse fixe. Un texte d'introduction explique que les raccourcis sont contextuels (Ctrl+N crée un ingrédient sur l'onglet Ingrédients, une recette sur l'onglet Recettes). **Incohérence réelle du code** : Ctrl+F n'existe QUE sur la page Ingrédients, pas sur Recettes ni ailleurs, alors que la liste le présente comme global.",
       "sourceRefs": [
         "app/ui/qml/dialogs/ShortcutsDialog.qml:14-166",
         "app/ui/qml/pages/IngredientsPage.qml:1044-1068",
@@ -356,7 +356,7 @@
       "id": "backup-automatique-au-demarrage",
       "title": "Sauvegarde automatique de la base à chaque lancement",
       "userAction": "L'utilisateur ne fait rien : à chaque démarrage, une copie horodatée de la base est créée silencieusement avant même l'ouverture de la connexion.",
-      "behaviourDetails": "Fichier créé sous `~/.livre-de-recettes/backups/db-AAAA-MM-JJ_HHMMSS.db` (surchargeable par la variable LIVRE_BACKUP_DIR ; dossier volontairement hors de l'arborescence du projet pour survivre à un déplacement/suppression). Utilise l'API de sauvegarde en ligne de SQLite (pas une copie brute de fichier) afin de gérer proprement le WAL et d'obtenir un instantané cohérent même avec des écrivains ouverts. **Sans effet au tout premier lancement** (base inexistante). Toute erreur est journalisée et avalée : une sauvegarde ratée ne doit jamais empêcher l'app de démarrer.",
+      "behaviourDetails": "Fichier créé sous `~/.prandia/backups/db-AAAA-MM-JJ_HHMMSS.db` (surchargeable par la variable PRANDIA_BACKUP_DIR ; dossier volontairement hors de l'arborescence du projet pour survivre à un déplacement/suppression). Utilise l'API de sauvegarde en ligne de SQLite (pas une copie brute de fichier) afin de gérer proprement le WAL et d'obtenir un instantané cohérent même avec des écrivains ouverts. **Sans effet au tout premier lancement** (base inexistante). Toute erreur est journalisée et avalée : une sauvegarde ratée ne doit jamais empêcher l'app de démarrer.",
       "sourceRefs": [
         "app/main.py:67",
         "app/data/db.py:58-92"
@@ -495,7 +495,7 @@
       "id": "tickets-dossier-surveille",
       "title": "Surveillance du dossier de dépôt des tickets",
       "userAction": "L'utilisateur télécharge un ticket PDF depuis le site de son enseigne dans le dossier « Tickets de caisse » ; l'app le détecte en moins d'une seconde et le badge de la barre de statut s'incrémente.",
-      "behaviourDetails": "Dossier par défaut `~/Downloads/Tickets de caisse/` (surchargeable par LIVRE_RECEIPT_DIR), créé automatiquement au démarrage de manière idempotente. Surveillance non récursive via watchdog (pas de scrutation périodique). Extensions acceptées : .pdf, .html, .htm — tout le reste est ignoré. Deux événements captés : création de fichier, ET renommage/déplacement (cas typique du téléchargement Chrome qui écrit un `.crdownload` puis renomme). Délai de stabilisation de 250 ms avant notification, pour laisser le fichier finir de s'écrire (sinon on parse un PDF incomplet). Sécurité explicite : on ne surveille jamais `~/Downloads` directement, uniquement le sous-dossier dédié. Le watcher est arrêté proprement à la fermeture de l'app (join avec timeout de 2 s).",
+      "behaviourDetails": "Dossier par défaut `~/Downloads/Tickets de caisse/` (surchargeable par PRANDIA_RECEIPT_DIR), créé automatiquement au démarrage de manière idempotente. Surveillance non récursive via watchdog (pas de scrutation périodique). Extensions acceptées : .pdf, .html, .htm — tout le reste est ignoré. Deux événements captés : création de fichier, ET renommage/déplacement (cas typique du téléchargement Chrome qui écrit un `.crdownload` puis renomme). Délai de stabilisation de 250 ms avant notification, pour laisser le fichier finir de s'écrire (sinon on parse un PDF incomplet). Sécurité explicite : on ne surveille jamais `~/Downloads` directement, uniquement le sous-dossier dédié. Le watcher est arrêté proprement à la fermeture de l'app (join avec timeout de 2 s).",
       "sourceRefs": [
         "app/services/receipt_watcher.py:32-185",
         "app/main.py:71",
@@ -1049,7 +1049,7 @@
         "app/services/lidl_plus_client.py:81-96"
       ],
       "dataOps": [
-        "écriture keyring OS (service livre-de-recettes/lidl-plus, clés email + refresh_token)"
+        "écriture keyring OS (service prandia/lidl-plus, clés email + refresh_token)"
       ],
       "proposedApi": [
         "PUT /api/lidl/credentials"

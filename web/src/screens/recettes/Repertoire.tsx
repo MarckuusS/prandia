@@ -34,7 +34,7 @@ import {
   pantryTotals,
   photoPath,
   type NutritionTotal,
-} from '@livre/shared'
+} from '@prandia/shared'
 
 import { MacroBar } from '../../components/MacrosDonut.js'
 import { EmptyState, ErrorState, LoadingRows } from '../../components/States.js'

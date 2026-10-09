@@ -28,7 +28,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { Ingredient } from '@livre/shared'
+import type { Ingredient } from '@prandia/shared'
 
 import { BarcodeScanner } from '../../components/BarcodeScanner.js'
 import { Icon } from '../../icons/index.js'

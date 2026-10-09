@@ -1,8 +1,8 @@
 {
-  "name": "livre-de-recettes",
+  "name": "prandia",
   "version": "0.1.0",
   "private": true,
-  "description": "Livre de recettes numerique — webapp PWA (Cloudflare Pages + Workers + D1 + R2)",
+  "description": "Prandia, webapp PWA (Cloudflare Pages + Workers + D1 + R2)",
   "type": "module",
   "workspaces": [
     "shared",
@@ -15,8 +15,8 @@
     "lint": "eslint .",
     "dev:worker": "npm --workspace worker run dev",
     "dev:web": "npm --workspace web run dev",
-    "db:migrate:local": "wrangler d1 migrations apply livre-de-recettes --local",
-    "db:migrate:remote": "wrangler d1 migrations apply livre-de-recettes --remote",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local",
+    "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
     "// smoke": "Eprouve l'API d'ecriture contre le Worker LOCAL. Voir l'en-tete du script : il exige SMOKE_USER / SMOKE_PASSWORD et refuse toute cible autre que localhost.",
     "smoke": "node scripts/smoke-api.mjs",
     "// smoke:courses": "Eprouve la session de courses (chariot, correspondance, validation en cinq etapes). Memes garde-fous que `smoke`.",
@@ -26,8 +26,8 @@
     "db:check": "node scripts/check-fts5.mjs",
     "db:export": "node scripts/migrate-sqlite-to-d1.mjs",
     "db:verify": "node scripts/migrate-sqlite-to-d1.mjs && node scripts/verify-migration.mjs",
-    "db:load:local": "wrangler d1 execute livre-de-recettes --local --file=scripts/_dump/d1-seed.sql",
-    "db:load:remote": "wrangler d1 execute livre-de-recettes --remote --file=scripts/_dump/d1-seed.sql"
+    "db:load:local": "wrangler d1 execute DB --local --file=scripts/_dump/d1-seed.sql",
+    "db:load:remote": "wrangler d1 execute DB --remote --file=scripts/_dump/d1-seed.sql"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250109.0",

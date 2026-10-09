@@ -1,4 +1,4 @@
-# 00 — SPÉCIFICATION DE PORTAGE — « Livre de recettes » : desktop Qt → webapp Cloudflare
+# 00 — SPÉCIFICATION DE PORTAGE — "Prandia" : desktop Qt → webapp Cloudflare
 
 Document de référence du portage. Consolide les sept inventaires détaillés :
 
@@ -847,7 +847,7 @@ représente moins de 1 000 lignes et se porte mécaniquement : c'est de loin le 
 - timeouts : OFF 10 s (connect 5) ; import URL 15 s (connect 5) ; photo 15 s, plafond **20 Mo**
 - polling Lidl : plancher **5 min**, défaut 60, première sync +15 s
 - debounces : recherche ingrédient 200 ms, CIQUAL 250 ms, Ctrl+K 200 ms
-- User-Agent : `livre-de-recettes/0.1.0 (+https://github.com/MarckuusS/livre-de-recette)`
+- User-Agent : `prandia/0.1.0 (+https://github.com/MarckuusS/prandia)`
 
 ### 4.3 Le point de fidélité le plus délicat : `token_set_ratio`
 
@@ -1250,7 +1250,7 @@ UA plus banal. `HTMLRewriter` (natif Workers, en streaming) suffit largement à 
 #### #8 — Stockage des photos
 
 **Enjeu.** Aujourd'hui : Pillow (EXIF transpose, `thumbnail(1024)` sans agrandissement, aplatissement
-de l'alpha sur blanc, JPEG q85, `optimize=True`), fichier `~/.livre-de-recettes/recipe_photos/<recipe_id>.jpg`,
+de l'alpha sur blanc, JPEG q85, `optimize=True`), fichier `~/.prandia/recipe_photos/<recipe_id>.jpg`,
 **une photo par recette**, colonne = **nom de fichier seul**. Pillow n'existe pas dans un Worker.
 
 **Recommandation.**
@@ -1345,7 +1345,7 @@ irréversibles si mal faites.
 
 **Recommandation — procédure, dans cet ordre :**
 
-1. **Figer une copie** de `livre_de_recettes.db` (l'app fait déjà un backup au démarrage ; en prendre
+1. **Figer une copie** de `prandia.db` (l'app fait déjà un backup au démarrage ; en prendre
    un manuel supplémentaire).
 2. **Appliquer les migrations D1** (`0001_core.sql`) sur une base **vierge**, sans FTS.
 3. **Générer les `INSERT` par un script de transformation** (Node ou Python jetable) lisant le SQLite

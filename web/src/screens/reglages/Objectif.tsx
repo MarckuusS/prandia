@@ -28,7 +28,7 @@ import {
   goalForDirection,
   type DirectionCode,
   type GoalCode,
-} from '@livre/shared'
+} from '@prandia/shared'
 
 import { NumberField, RadioGroupField } from '../../components/Field.js'
 import { Icon, type IconName } from '../../icons/index.js'

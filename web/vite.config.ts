@@ -70,7 +70,7 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@livre/shared': fileURLToPath(new URL('../shared/src/index.ts', import.meta.url)),
+      '@prandia/shared': fileURLToPath(new URL('../shared/src/index.ts', import.meta.url)),
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },

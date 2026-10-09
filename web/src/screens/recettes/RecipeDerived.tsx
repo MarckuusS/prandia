@@ -3,7 +3,7 @@
  * et la mise a l'echelle temporaire des portions.
  *
  * Aucune formule n'est ecrite ici. `aggregateRecipe`, `energyBreakdown`,
- * `recipeCost` et `cookedWeightG` viennent de @livre/shared, ou le Worker les
+ * `recipeCost` et `cookedWeightG` viennent de @prandia/shared, ou le Worker les
  * lit aussi : c'est ce qui garantit que le total affiche sur le telephone et
  * celui calcule pour la liste de courses ne peuvent pas diverger. Le desktop
  * avait la meme regle et la meme raison.
@@ -27,7 +27,7 @@ import {
   type NutritionTotal,
   type RecipeCost,
   type RecipeLine,
-} from '@livre/shared'
+} from '@prandia/shared'
 
 import { MacrosRing } from '../../components/MacrosDonut.js'
 import { NutrientLabel } from '../../components/NutrientLabel.js'
@@ -64,7 +64,7 @@ export interface Derived {
  * Les deux agregations sont faites sur DEUX jeux de lignes, l'un mis a
  * l'echelle et l'autre non, plutot qu'en multipliant les totaux apres coup.
  * C'est ce qui evite de reecrire une regle de trois par grandeur derivee — et
- * la division par le nombre de portions reste celle de @livre/shared.
+ * la division par le nombre de portions reste celle de @prandia/shared.
  */
 export function useDerived(draft: RecipeDraft, displayPortions: number | null): Derived {
   return useMemo(() => {

@@ -22,7 +22,7 @@
  * detail de la ligne au-dessus, pas un nutriment de plus.
  */
 
-import type { NutritionTotal } from '@livre/shared'
+import type { NutritionTotal } from '@prandia/shared'
 
 import { Icon, type IconName } from '../icons/index.js'
 

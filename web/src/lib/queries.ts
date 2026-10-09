@@ -36,7 +36,7 @@ import {
   formatCriteria,
   type Criterion,
 
-  type WeighIn,} from '@livre/shared'
+  type WeighIn,} from '@prandia/shared'
 
 import { apiFetch } from './api.js'
 

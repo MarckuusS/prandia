@@ -23,7 +23,7 @@
  */
 
 import { useMemo } from 'react'
-import { splitSteps, stepRanks } from '@livre/shared'
+import { splitSteps, stepRanks } from '@prandia/shared'
 
 import { TextArea } from '../../components/Field.js'
 import { Icon } from '../../icons/index.js'

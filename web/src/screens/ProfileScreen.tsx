@@ -40,7 +40,7 @@ import {
   type GoalCode,
   type MacroSplit,
   type SplitCode,
-} from '@livre/shared'
+} from '@prandia/shared'
 
 import { NumberField, RadioGroupField } from '../components/Field.js'
 import { ErrorState, LoadingRows } from '../components/States.js'

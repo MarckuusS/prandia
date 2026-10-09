@@ -18,28 +18,28 @@ from .orm import Base
 
 log = logging.getLogger(__name__)
 
-_DEFAULT_DB_FILENAME = "livre_de_recettes.db"
+_DEFAULT_DB_FILENAME = "prandia.db"
 _BACKUP_TIMESTAMP_FORMAT = "%Y-%m-%d_%H%M%S"
 
 
 def default_db_path() -> Path:
-    """Where the local SQLite DB lives. Override with LIVRE_DB_PATH."""
-    override = os.environ.get("LIVRE_DB_PATH")
+    """Where the local SQLite DB lives. Override with PRANDIA_DB_PATH."""
+    override = os.environ.get("PRANDIA_DB_PATH")
     if override:
         return Path(override)
     return Path.cwd() / _DEFAULT_DB_FILENAME
 
 
 def default_backup_dir() -> Path:
-    """Where DB backups live. Override with LIVRE_BACKUP_DIR.
+    """Where DB backups live. Override with PRANDIA_BACKUP_DIR.
 
-    Default: `~/.livre-de-recettes/backups/` — outside the project tree so the
+    Default: `~/.prandia/backups/` — outside the project tree so the
     backups survive a project move / delete. Created on demand.
     """
-    override = os.environ.get("LIVRE_BACKUP_DIR")
+    override = os.environ.get("PRANDIA_BACKUP_DIR")
     if override:
         return Path(override)
-    return Path.home() / ".livre-de-recettes" / "backups"
+    return Path.home() / ".prandia" / "backups"
 
 
 # ============================================================ DB backup
@@ -52,7 +52,7 @@ def default_backup_dir() -> Path:
 #     Result: ~13 files max (7 daily + ~6 monthly), bounded growth.
 #
 # The backup is a self-contained SQLite file that can be restored in-place by
-# closing the live DB and copying the backup over `livre_de_recettes.db`.
+# closing the live DB and copying the backup over `prandia.db`.
 
 
 def backup_on_startup(

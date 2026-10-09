@@ -30,7 +30,7 @@
  */
 
 import { useState } from 'react'
-import type { Ingredient } from '@livre/shared'
+import type { Ingredient } from '@prandia/shared'
 
 import { DateField, TextField } from '../../components/Field.js'
 import { IngredientPicker } from '../../components/IngredientPicker.js'

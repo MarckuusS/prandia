@@ -106,7 +106,7 @@ const html = `<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Jeu d'icônes — Livre de recettes</title>
+<title>Jeu d'icônes — Prandia</title>
 <style>
   :root {
     color-scheme: light dark;

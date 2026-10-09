@@ -5,7 +5,7 @@
       "// web": "Front seul, avec rechargement a chaud. Proxifie /api vers le serveur 'pages' ci-dessous.",
       "name": "web",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--workspace", "@livre/web", "run", "dev"],
+      "runtimeArgs": ["--workspace", "@prandia/web", "run", "dev"],
       "port": 5173
     },
     {
@@ -16,7 +16,7 @@
       "port": 4321
     },
     {
-      "// pages": "Site + API tels qu'en production. Necessite un build prealable (npm --workspace @livre/web run build) : ce serveur sert web/dist, il ne compile rien.",
+      "// pages": "Site + API tels qu'en production. Necessite un build prealable (npm --workspace @prandia/web run build) : ce serveur sert web/dist, il ne compile rien.",
       "name": "pages",
       "runtimeExecutable": "npx",
       "runtimeArgs": ["wrangler", "pages", "dev", "--port", "8787"],

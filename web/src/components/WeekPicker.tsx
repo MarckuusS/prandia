@@ -15,7 +15,7 @@
  * ajouter dans components.css.
  */
 
-import { nextIsoWeek, previousIsoWeek } from '@livre/shared'
+import { nextIsoWeek, previousIsoWeek } from '@prandia/shared'
 
 export interface WeekPickerProps {
   readonly isoWeek: string

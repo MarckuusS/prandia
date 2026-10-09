@@ -13,7 +13,7 @@
  * une donnee — rien ici n'est perdu si tout disparait.
  */
 
-const KEY = 'livre.courses.stores'
+const KEY = 'prandia.courses.stores'
 
 /** Au-dela, la liste de suggestions devient un ecran a elle seule. */
 const MAX = 5

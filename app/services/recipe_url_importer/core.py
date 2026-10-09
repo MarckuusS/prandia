@@ -28,7 +28,7 @@ from .scrapers_adapter import try_recipe_scrapers
 
 log = logging.getLogger(__name__)
 
-_USER_AGENT = "livre-de-recettes/0.1.0 (+https://github.com/MarckuusS/livre-de-recette)"
+_USER_AGENT = "prandia/0.1.0 (+https://github.com/MarckuusS/prandia)"
 # Slightly more generous than OFF — recipe pages can be heavy (images,
 # embedded ads). Connect kept short to fail fast on bad URLs.
 _TIMEOUT = httpx.Timeout(15.0, connect=5.0)

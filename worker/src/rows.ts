@@ -6,8 +6,8 @@
  * de l'API vit ici — nulle part ailleurs.
  */
 
-import { isStorageSpace } from '@livre/shared'
-import type { Ingredient, MealPlanEntry, MealSlot, PantryStock, Recipe, Source, Tag } from '@livre/shared'
+import { isStorageSpace } from '@prandia/shared'
+import type { Ingredient, MealPlanEntry, MealSlot, PantryStock, Recipe, Source, Tag } from '@prandia/shared'
 
 /** Ligne brute de la table `ingredient`. */
 export interface IngredientRow {

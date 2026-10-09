@@ -21,7 +21,7 @@
 
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
-import type { Recipe } from '@livre/shared'
+import type { Recipe } from '@prandia/shared'
 
 import { NumberField, TextField } from '../components/Field.js'
 import { Sheet } from '../components/Sheet.js'

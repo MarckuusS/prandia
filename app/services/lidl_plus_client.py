@@ -31,7 +31,7 @@ log = logging.getLogger(__name__)
 # Constantes pour le keyring : un service unique, deux clés (refresh_token + email).
 # Le mot de passe n'est JAMAIS persisté — uniquement utilisé pour générer le
 # refresh_token initial puis jeté.
-_KEYRING_SERVICE = "livre-de-recettes/lidl-plus"
+_KEYRING_SERVICE = "prandia/lidl-plus"
 _KEY_REFRESH_TOKEN = "refresh_token"
 _KEY_EMAIL = "email"
 

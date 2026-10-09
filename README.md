@@ -1,10 +1,10 @@
-# Livre de recettes numerique
+# Prandia
 
 Application desktop personnelle de gestion culinaire (Windows / PySide6).
 
-> **L'application web s'appelle Prandia** (du latin *prandium*, le repas) depuis le 2026-08-12.
-> Le nom vit dans `web/` : titre, manifeste, ecran de connexion. Le depot, la base et les paquets
-> npm gardent leurs noms d'origine — les renommer casserait le deploiement pour zero gain visible.
+> **Prandia** vient du latin *prandium*, le repas. Le nom s'applique a l'application web (depuis le
+> 2026-08-12) et, depuis le 2026-10-09, au depot, aux paquets npm, a la base locale et aux
+> ressources Cloudflare. L'ancien nom a disparu partout.
 
 ## Fonctionnalites
 
@@ -29,7 +29,7 @@ python -m app.main
 
 Sous Windows, le script `run.bat` a la racine fait tout en une fois (creation du venv si absent, installation des deps, lancement). Detecte un venv casse (par exemple herite d'une autre machine) et le recree avec `py -3.12` ou `py -3.11`.
 
-Au premier lancement, la base SQLite locale (`livre_de_recettes.db` a la racine du projet) est creee. Pour beneficier de la table CIQUAL pre-remplie (~3500 aliments avec valeurs nutritionnelles officielles ANSES) :
+Au premier lancement, la base SQLite locale (`prandia.db` a la racine du projet) est creee. Pour beneficier de la table CIQUAL pre-remplie (~3500 aliments avec valeurs nutritionnelles officielles ANSES) :
 
 1. Telecharger la table CIQUAL la plus recente sur https://ciqual.anses.fr/ (lien "Telecharger la table" en bas de page).
 2. Placer le fichier sous `app/data/seeds/`. Les formats `.xls`, `.xlsx` et `.csv` sont tous supportes.

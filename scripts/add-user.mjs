@@ -174,7 +174,7 @@ async function runWrangler(sql, target, persistTo, { json = false, viaCommand = 
    * identifiant deja valide contre /^[a-z0-9_-]{2,32}$/, et `spawn` ne passe
    * par aucun shell.
    */
-  const file = viaCommand ? null : join(tmpdir(), `livre-user-${Date.now()}.sql`)
+  const file = viaCommand ? null : join(tmpdir(), `prandia-user-${Date.now()}.sql`)
   if (file !== null) await writeFile(file, sql, 'utf8')
 
   // On appelle l'entree JavaScript de wrangler avec le Node courant, plutot
@@ -201,7 +201,7 @@ async function runWrangler(sql, target, persistTo, { json = false, viaCommand = 
           wrangler,
           'd1',
           'execute',
-          'livre-de-recettes',
+          'prandia',
           target,
           // LE MEME EMPLACEMENT QUE LE SERVEUR, sinon on ecrit dans une base
           // que personne ne lit. Le defaut s'est produit : `mobile.bat` place

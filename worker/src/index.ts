@@ -1,5 +1,5 @@
 /**
- * API du Livre de recettes — Cloudflare Worker.
+ * API de Prandia, Cloudflare Worker.
  *
  * Sert /api/* sur la meme origine que le front (Cloudflare Pages), ce qui
  * evite toute question de CORS.

@@ -28,7 +28,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { Icon } from '../../icons/index.js'
-import { formatEuros, formatGrams, formatShoppingQuantity, type ShoppingSession } from '@livre/shared'
+import { formatEuros, formatGrams, formatShoppingQuantity, type ShoppingSession } from '@prandia/shared'
 
 import { ConfirmDialog } from '../../components/Sheet.js'
 import { useToast } from '../../components/Toast.js'

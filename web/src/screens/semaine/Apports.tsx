@@ -13,8 +13,8 @@
  * d'energie auraient fini par diverger d'un ecran a l'autre.
  */
 
-import { formatEuros } from "@livre/shared";
-import type { NutritionTotal } from "@livre/shared";
+import { formatEuros } from "@prandia/shared";
+import type { NutritionTotal } from "@prandia/shared";
 
 import { TableauNutriments } from "../../components/TableauNutriments.js";
 import { MacrosRing } from "../../components/MacrosDonut.js";

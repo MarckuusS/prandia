@@ -15,7 +15,7 @@
  */
 
 import { useState } from 'react'
-import { DAY_LABELS, nextIsoWeek, previousIsoWeek } from '@livre/shared'
+import { DAY_LABELS, nextIsoWeek, previousIsoWeek } from '@prandia/shared'
 
 import { TextField } from '../../components/Field.js'
 import { ConfirmDialog, Sheet } from '../../components/Sheet.js'

@@ -28,13 +28,13 @@ def sample_csv(tmp_path: Path) -> Path:
 
 
 def test_loader_inserts_rows(monkeypatch, tmp_path, sample_csv):
-    monkeypatch.setenv("LIVRE_DB_PATH", str(tmp_path / "test.db"))
+    monkeypatch.setenv("PRANDIA_DB_PATH", str(tmp_path / "test.db"))
     n = ciqual_loader.load_csv(sample_csv)
     assert n == 3
 
 
 def test_loader_idempotent(monkeypatch, tmp_path, sample_csv):
-    monkeypatch.setenv("LIVRE_DB_PATH", str(tmp_path / "test.db"))
+    monkeypatch.setenv("PRANDIA_DB_PATH", str(tmp_path / "test.db"))
     ciqual_loader.load_csv(sample_csv)
     ciqual_loader.load_csv(sample_csv)  # second run should not duplicate
 
@@ -55,7 +55,7 @@ def test_loader_idempotent(monkeypatch, tmp_path, sample_csv):
 
 
 def test_loader_parses_traces_and_dash(monkeypatch, tmp_path, sample_csv):
-    monkeypatch.setenv("LIVRE_DB_PATH", str(tmp_path / "test.db"))
+    monkeypatch.setenv("PRANDIA_DB_PATH", str(tmp_path / "test.db"))
     ciqual_loader.load_csv(sample_csv)
 
     from app.data.db import init_schema, make_engine, make_session_factory
@@ -89,7 +89,7 @@ def test_loader_missing_file_returns_zero(tmp_path):
 def test_loader_keeps_in_personal_library_flag(monkeypatch, tmp_path, sample_csv):
     """Re-seeding CIQUAL must NOT clobber in_personal_library when the user has
     already imported a row to their working library."""
-    monkeypatch.setenv("LIVRE_DB_PATH", str(tmp_path / "test.db"))
+    monkeypatch.setenv("PRANDIA_DB_PATH", str(tmp_path / "test.db"))
 
     from app.data.db import init_schema, make_engine, make_session_factory
     from app.data.repositories import IngredientRepo

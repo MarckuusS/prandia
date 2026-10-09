@@ -25,7 +25,7 @@ import {
   MEAL_SLOT_LABELS,
   datesOfIsoWeek,
   perEater,
-} from "@livre/shared";
+} from "@prandia/shared";
 
 import { MacroBar } from "../components/MacrosDonut.js";
 import { ErrorState, LoadingRows } from "../components/States.js";
