@@ -355,9 +355,11 @@ function RayonSheet({ rayon, onClose }: { rayon: RayonItem | null; onClose: () =
           {error !== null && <p className="status status--error">{error}</p>}
 
           {rayon !== null && (
+            // Sans aplat (`.button--retrait`) : la confirmation qu'il ouvre porte
+            // le rouge plein.
             <button
               type="button"
-              className="button button--danger"
+              className="button button--retrait button--block"
               onClick={() => setConfirmDelete(true)}
             >
               <Icon name="ui-trash" size={16} className="icon--inline" /> Supprimer ce rayon

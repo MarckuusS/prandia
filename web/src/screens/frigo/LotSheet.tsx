@@ -27,6 +27,7 @@ import { formatEuros, formatGrams, type PantryMovementReason } from '@prandia/sh
 import { DateField, TextField } from '../../components/Field.js'
 import { QuantityField } from '../../components/QuantityField.js'
 import { ConfirmDialog, Sheet } from '../../components/Sheet.js'
+import { Icon } from '../../icons/index.js'
 import { useToast } from '../../components/Toast.js'
 import {
   useAddPrice,
@@ -239,13 +240,12 @@ export function LotSheet({ lot, onClose }: LotSheetProps) {
         dismissible={!busy}
         actions={
           <>
-            <button
-              type="button"
-              className="button button--danger"
-              onClick={() => setConfirmingDelete(true)}
-              disabled={busy}
-            >
-              Retirer
+            {/* "Retirer" vivait ICI, en rouge plein, a un pouce d'"Enregistrer" :
+                le geste le plus lourd de la feuille dans la rangee de validation.
+                Il est descendu en bas du contenu (voir plus bas), et le pied
+                reprend la forme de toutes les feuilles : Fermer, Enregistrer. */}
+            <button type="button" className="button button--secondary" onClick={onClose} disabled={busy}>
+              Fermer
             </button>
             <button
               type="button"
@@ -366,6 +366,17 @@ export function LotSheet({ lot, onClose }: LotSheetProps) {
             {failure.message}
           </p>
         )}
+
+        {/* En bas et sans aplat (`.button--retrait`). Il ouvre la confirmation,
+            qui garde son rouge plein : la, retirer est l'action principale. */}
+        <button
+          type="button"
+          className="button button--retrait button--block"
+          onClick={() => setConfirmingDelete(true)}
+          disabled={busy}
+        >
+          <Icon name="ui-trash" size={16} className="icon--inline" /> Retirer du stock
+        </button>
       </Sheet>
 
       <ConfirmDialog

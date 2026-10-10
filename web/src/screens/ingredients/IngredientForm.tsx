@@ -338,7 +338,10 @@ export function IngredientForm({ ingredient }: IngredientFormProps) {
               Annuler
             </button>
           ) : (
-            <button type="button" className="button button--danger" onClick={() => setDeleteOpen(true)}>
+            // Sans aplat (`.button--retrait`) : il ouvre la confirmation, qui
+            // porte le rouge plein. Le seul aplat de la fiche reste "Enregistrer".
+            <button type="button" className="button button--retrait" onClick={() => setDeleteOpen(true)}>
+              <Icon name="ui-trash" size={16} className="icon--inline" />{' '}
               {ingredient?.source === 'manual' ? 'Supprimer cet ingrédient' : 'Retirer de ma bibliothèque'}
             </button>
           )}

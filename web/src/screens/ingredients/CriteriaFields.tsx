@@ -95,7 +95,9 @@ function CriterionRow({
 
       <button
         type="button"
-        className="button button--danger ing-criterion__remove"
+        // Retirer une borne de filtre ne detruit rien : une croix grise, pas un
+        // aplat rouge. Voir `.ing-criterion__remove`.
+        className="button button--ghost ing-criterion__remove"
         onClick={onRemove}
         aria-label="Retirer cette borne"
       >

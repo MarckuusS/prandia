@@ -113,9 +113,12 @@ L'interface suit un mockup adopté le 2026-08-12. Ce qui ne se devine pas :
   plus voyant, et le vert annonçait une validation sur un simple lien. `.button--success` est
   parti avec. Appliqué aussi au chariot, à la suppression d'une recette et à celle d'une
   étiquette. **Le rouge plein garde UNE place légitime : le bouton qui CONFIRME** (`ConfirmDialog`
-  avec `danger`), parce que là, détruire est l'action principale. Restent en rouge plein, à
-  trancher : "Retirer" dans le pied d'un lot du frigo, la suppression d'un ingrédient et d'un
-  rayon, et la croix d'une borne de critère.
+  avec `danger`), parce que là, détruire est l'action principale. Puis au frigo (le retrait a
+  quitté le pied, devenu Fermer / Enregistrer), à l'ingrédient, au rayon ; la croix d'une borne
+  de critère est devenue grise, retirer un filtre ne détruit rien.
+  **`web/src/components/aplats.test.ts` garde la règle sur TOUTES les sources** : `button--danger`
+  n'apparaît que dans `Sheet.tsx`, et `button--success` nulle part. Il a été vu échouer avant
+  d'être gardé. La règle avait été appliquée écran par écran, et chaque passe en laissait.
 
 ## Navigation (web) — `web/src/App.tsx`
 
