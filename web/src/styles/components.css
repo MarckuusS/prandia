@@ -228,8 +228,10 @@
   max-height: 264px;
   overflow-y: auto;
   /* Sans cela, arriver en bas de la liste continue de faire defiler la
-     feuille modale derriere elle. */
-  overscroll-behavior: contain;
+     feuille modale derriere elle. `none` et non `contain` : les deux arretent
+     la propagation, mais `contain` laisse le rebond elastique de la liste
+     elle-meme, qui trahit une page web. */
+  overscroll-behavior: none;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -386,7 +388,10 @@
   flex-direction: column;
   gap: var(--space-lg);
   overflow-y: auto;
-  overscroll-behavior: contain;
+  /* `none` et non `contain` : `contain` empechait bien la page derriere de
+     defiler, mais laissait tirer le contenu de la feuille et ouvrir un vide
+     sous son en-tete, comme une page web (constate sur iPhone). */
+  overscroll-behavior: none;
   padding: var(--space-lg);
 }
 

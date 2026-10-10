@@ -671,6 +671,11 @@ Ce qui trahissait une page web sur iPhone, et ce qui le corrige. Ce qui ne se de
 - **Le rebond se coupe sur `html`, pas sur `body`** : le défilement de la page est celui du
   viewport, que Safari règle d'après l'élément racine seulement. La règle posée sur `body`
   laissait tirer l'écran très loin.
+- **Toute zone qui défile porte `overscroll-behavior: none`, jamais `contain`** (corps des
+  feuilles, liste de suggestions, rangée de filtres). Les deux arrêtent la propagation à la page
+  derrière, mais `contain` laisse le rebond élastique de la zone elle-même : dans la feuille
+  plein écran, on tirait le contenu et un vide s'ouvrait sous l'en-tête. Une nouvelle zone qui
+  défile doit reprendre `none`.
 - **Pas de sélection hors des champs** : `user-select: none` sur `html`, rétabli EXPLICITEMENT
   sur `input`, `textarea` et `contenteditable`. Sans ce rétablissement, iOS peut refuser le
   curseur, la loupe, voire la frappe dans un champ. Le préfixe `-webkit-` reste nécessaire.

@@ -49,7 +49,8 @@
   /* Defilement horizontal plutot que retour a la ligne : la rangee reste sur
      une seule ligne et ne repousse pas la liste hors de l'ecran. */
   overflow-x: auto;
-  overscroll-behavior-x: contain;
+  /* Pas de rebond en bout de rangee : voir `.sheet__body`. */
+  overscroll-behavior-x: none;
   scrollbar-width: none;
   padding-bottom: var(--space-xs);
   margin: 0;
