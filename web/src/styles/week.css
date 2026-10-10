@@ -517,3 +517,231 @@
   height: 1px;
   background: var(--color-border);
 }
+
+/* ---------- Choisir un repas : la bibliotheque en tuiles ----------
+ *
+ * Voir `ChoixRepas.tsx`. Deux colonnes au telephone, trois au-dela : une tuile
+ * doit garder assez de largeur pour un nom de recette sur deux lignes.
+ */
+
+.choix {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+/* COLLANTE, et etiree sur toute la largeur du corps : ses marges negatives
+   annulent le rembourrage de `.sheet__body`, sinon les tuiles defileraient
+   visiblement de part et d'autre de la barre.
+   `top` NEGATIF, de la meme valeur : la position collante se compte depuis le
+   bord interieur du rembourrage, pas depuis le haut visible. Avec `top: 0`,
+   la barre s'arretait 16 px trop bas et les tuiles passaient au-dessus d'elle
+   (mesure). */
+.choix__haut {
+  position: sticky;
+  top: calc(-1 * var(--space-lg));
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin: calc(-1 * var(--space-lg)) calc(-1 * var(--space-lg)) 0;
+  padding: var(--space-md) var(--space-lg);
+  background: var(--color-background);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.choix__recherche {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+  min-height: var(--control-height-lg);
+  padding: 0 var(--space-xs) 0 var(--space-md);
+  color: var(--color-text-secondary);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+}
+
+.choix__recherche:focus-within {
+  border-color: var(--color-border-focus);
+}
+
+.choix__loupe {
+  flex: none;
+}
+
+/* 1rem, soit 16 px au telephone : en dessous, iOS zoome a la mise au point. */
+.choix__champ {
+  flex: 1;
+  min-width: 0;
+  height: var(--control-height-lg);
+  padding: 0;
+  font: inherit;
+  font-size: 1rem;
+  color: var(--color-text);
+  background: transparent;
+  border: 0;
+  outline: none;
+  appearance: none;
+}
+
+/* La croix native du champ de recherche ferait doublon avec la notre, qui a
+   une vraie cible de doigt. */
+.choix__champ::-webkit-search-cancel-button {
+  display: none;
+}
+
+.choix__effacer {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-full);
+}
+
+.choix__titre {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: baseline;
+  margin: 0 0 var(--space-sm);
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+}
+
+.choix__nombre {
+  font-family: var(--font-family);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-secondary);
+}
+
+.choix__etat {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+.choix__grille {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-md);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 560px) {
+  .choix__grille {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.tuile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  height: 100%;
+  padding: var(--space-sm) var(--space-sm) var(--space-md);
+  font: inherit;
+  color: var(--color-text);
+  text-align: left;
+  background: var(--color-surface);
+  border: 0;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-subtle);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tuile:active {
+  background: var(--color-surface-pressed);
+}
+
+.tuile__visuel {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  margin-bottom: var(--space-xs);
+  border-radius: var(--radius-md);
+}
+
+/* Meme teinte que les pastilles de rayon (`icons.css`), en grand. */
+.tuile__visuel--pastille,
+.retenu__visuel {
+  color: var(--rayon-color, var(--color-text-secondary));
+  background: color-mix(in srgb, var(--rayon-color, var(--color-text-secondary)) 12%, transparent);
+}
+
+.tuile__photo,
+.retenu__photo {
+  object-fit: cover;
+  background: var(--color-surface-hover);
+}
+
+.tuile__nom {
+  display: -webkit-box;
+  overflow: hidden;
+  padding: 0 var(--space-xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.3;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.tuile__meta {
+  padding: 0 var(--space-xs);
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+}
+
+.tuile__piece {
+  color: var(--color-accent);
+}
+
+/* ---------- Le repas retenu, en tete du second temps ---------- */
+
+.retenu {
+  display: flex;
+  gap: var(--space-md);
+  align-items: center;
+  padding: var(--space-md);
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-subtle);
+}
+
+.retenu__visuel {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-md);
+}
+
+.retenu__corps {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.retenu__nom {
+  font-weight: var(--font-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.retenu__meta {
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+}
+
+.retenu__changer {
+  flex: none;
+}

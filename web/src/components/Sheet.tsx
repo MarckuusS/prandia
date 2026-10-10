@@ -212,8 +212,11 @@ export interface SheetProps {
    * ferait croire a une annulation alors que la requete est partie.
    */
   readonly dismissible?: boolean | undefined
-  /** `'dialog'` : panneau compact, pour une question courte. */
-  readonly variant?: 'sheet' | 'dialog' | undefined
+  /**
+   * `'dialog'` : panneau compact, pour une question courte.
+   * `'plein'` : toute la hauteur de l'ecran, pour parcourir une collection.
+   */
+  readonly variant?: 'sheet' | 'dialog' | 'plein' | undefined
 }
 
 export function Sheet({

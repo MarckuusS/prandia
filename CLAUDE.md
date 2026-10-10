@@ -161,6 +161,16 @@ Deux ecrans, et c'est une decision, pas un accident :
 - Le total d'une ligne est celui de **la cuisine** ; le badge "Objectif tenu" compare une part
   **individuelle** (`perEater`) a la cible. Ne jamais ecrire les deux comme un rapport sur la meme
   ligne, ce serait un total de foyer face a une cible personnelle.
+- **Ajouter un repas se fait en deux temps, en plein écran** (`semaine/AddEntrySheet.tsx`,
+  `semaine/ChoixRepas.tsx`, variante `plein` de `Sheet`) : choisir parmi toute la bibliothèque en
+  tuiles, recettes et ingrédients filtrés par la MÊME recherche, puis doser. Il remplace un menu
+  déroulant natif pour les recettes et une liste de suggestions écrasée par le clavier.
+- **La recherche est en haut, collante, et ne prend pas la mise au point à l'ouverture** : le
+  clavier masquerait la moitié des tuiles. En bas, il aurait fallu la remonter au-dessus du clavier,
+  ce qu'iOS ne fait pas pour un élément fixe d'une app installée.
+- **Le `top` collant est NÉGATIF** (`-var(--space-lg)`) : la position collante se compte depuis le
+  bord intérieur du rembourrage de `.sheet__body`. Avec `top: 0`, la barre s'arrêtait 16 px trop
+  bas et les tuiles passaient au-dessus d'elle (mesuré).
 
 ## Pieds d'action fixes (web)
 

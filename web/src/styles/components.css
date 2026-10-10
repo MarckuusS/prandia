@@ -328,6 +328,21 @@
   animation: sheet-rise var(--duration-normal) var(--easing-enter);
 }
 
+/* PLEIN ECRAN, pour parcourir une collection (le choix d'un repas).
+   Un liseré du haut reste visible : on voit qu'une page est dessous, et le fond
+   garde une cible pour fermer. Le corps prend le papier de l'application pour
+   que les tuiles blanches s'en detachent, comme sur les ecrans. */
+.sheet--plein .sheet__panel {
+  height: calc(var(--app-height) - var(--space-sm));
+  max-height: none;
+}
+
+.sheet--plein .sheet__body {
+  flex: 1;
+  min-height: 0;
+  background: var(--color-background);
+}
+
 .sheet__panel:focus {
   /* Elle recoit la mise au point a l'ouverture : pas de halo pour autant,
      ce n'est pas une cible cliquable. */
