@@ -39,6 +39,15 @@ export interface Env {
    * (migrations/0001_core.sql:72).
    */
   readonly MEDIA: R2Bucket
+  /**
+   * Notifications (Web Push). La cle PUBLIQUE et le sujet sont dans
+   * `wrangler.toml` ; la cle PRIVEE est un secret pose par
+   * `wrangler pages secret put`, jamais dans le depot. Absente : les
+   * notifications sont annoncees indisponibles, rien ne part. Voir push.ts.
+   */
+  readonly VAPID_PUBLIC_KEY?: string | undefined
+  readonly VAPID_SUBJECT?: string | undefined
+  readonly VAPID_PRIVATE_KEY?: string | undefined
 }
 
 // ---------------------------------------------------------------------------

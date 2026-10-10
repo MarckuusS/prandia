@@ -423,7 +423,8 @@ const routes = {
    * La suppression ne touche QUE le compte, jamais sa cuisine.
    *
    * Les donnees personnelles partent avec lui par cascade (`user_profile`,
-   * `weight_log`, `hydration_day`), et ses traces de modification passent a
+   * `weight_log`, `hydration_day`, et ses appareils, reglages et journal de
+   * notifications), et ses traces de modification passent a
    * NULL. Mais recettes, frigo et prix appartiennent au FOYER : les emporter
    * ferait disparaitre une cuisine entiere sur un geste qui dit « supprimer un
    * compte ». La cuisine devenue vide reste, et se voit dans la liste.

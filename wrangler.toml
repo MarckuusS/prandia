@@ -43,6 +43,13 @@ migrations_dir = "migrations"
 # moissonneurs de spam.
 OFF_USER_AGENT = "prandia/0.2.0 (+https://github.com/MarckuusS/prandia)"
 ENVIRONMENT = "production"
+# Notifications (Web Push). La cle PUBLIQUE n'est pas un secret : l'appareil en
+# a besoin pour s'abonner. La cle PRIVEE, elle, est un secret pose par
+# `wrangler pages secret put VAPID_PRIVATE_KEY` et jamais ecrit ici. Le sujet
+# identifie l'expediteur aupres des services d'Apple et de Google : une URL,
+# pas d'adresse mail, le depot etant public. Voir worker/src/push.ts.
+VAPID_PUBLIC_KEY = "BGq6OwuatQjSXdBVUIAiw_m27ULML7I6Z_MHobvwflw9Je5CSruosO5RjseVRsWQgL11vOihgmHVERZ7wOhk8hs"
+VAPID_SUBJECT = "https://prandia.pages.dev"
 
 # --- Stockage d'objets -------------------------------------------------------
 # Photos de recettes, et plus tard les PDF de tickets.

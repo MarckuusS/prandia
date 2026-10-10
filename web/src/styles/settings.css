@@ -42,3 +42,43 @@
 .settings-group:first-child {
   margin-top: 0;
 }
+
+/* ---------- Notifications : un type par carte ---------- */
+
+.notif-liste {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.notif {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.notif__heures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  align-items: center;
+}
+
+.notif__quand {
+  color: var(--color-text-secondary);
+}
+
+/* Assez large pour "17:30" et la petite horloge native, pas davantage : trois
+   heures d'hydratation tiennent sur une ligne de telephone. */
+.notif__heure {
+  width: 7.5rem;
+}
+
+.notif__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}

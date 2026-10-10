@@ -249,10 +249,12 @@ ou "Annuler" est reste inatteignable un moment.
   un résumé (« Total queries executed », « Rows read ») et non par les colonnes : un
   `SELECT COUNT(*)` y est introuvable, et le contrôle rendait silencieusement « le compte
   n'existe pas ». Une réponse sans la colonne attendue rend `null`, jamais zéro.
-- **Trois tables sont cloisonnées par PERSONNE et non par foyer** : `user_profile`,
-  `hydration_day`, `weight_log`. Poids, taille, objectifs, pesées et hydratation restent donc
-  invisibles aux autres comptes, **y compris dans une même cuisine**. Tout le reste — recettes,
-  ingrédients, frigo, prix, tickets et **planning de repas** — appartient au foyer.
+- **Six tables sont cloisonnées par PERSONNE et non par foyer** : `user_profile`,
+  `hydration_day`, `weight_log`, et depuis la 0018 les trois tables de notifications
+  (`push_subscription`, `notification_pref`, `notification_log`). Poids, taille, objectifs, pesées,
+  hydratation et rappels restent donc invisibles aux autres comptes, **y compris dans une même
+  cuisine**. Tout le reste (recettes, ingrédients, frigo, prix, tickets et **planning de repas**)
+  appartient au foyer.
 
 ## Console d'administration — `admin.bat`, `scripts/admin/`
 
@@ -707,6 +709,52 @@ Ce qui trahissait une page web sur iPhone, et ce qui le corrige. Ce qui ne se de
   un nouveau champ qui n'est pas un `.field__input` doit en faire autant ET couper l'anneau par
   une règle à DEUX classes, car l'ordre des feuilles dans le paquet construit ne suit pas celui
   des imports (le champ de recherche du choix de repas a perdu contre `:focus-visible`).
+
+## Notifications (web) : `shared/src/notifications.ts`, `worker/src/notifier.ts`
+
+Web Push vers l'application installée, réglé dans `/parametres/notifications` : une case et des
+heures par type. Sept types déclarés dans `NOTIFICATION_DEFS` ; trois partent (repas du soir,
+planifier la semaine, pesée), les quatre autres sont affichés "bientôt" (`disponible: false`)
+et le planificateur ne les atteint pas. Ce qui ne se devine pas :
+
+- **Deux déploiements, pas un.** L'API (abonnement, préférences, test) est dans la Pages
+  Function et part avec le push sur `main`. La PLANIFICATION est un Worker à part,
+  `prandia-notifier` (`notifier/wrangler.toml`), sans route, réveillé toutes les cinq minutes :
+  Pages ne sait pas déclencher une action à heure fixe. Il se déploie par
+  `npx wrangler deploy --config notifier/wrangler.toml`, jamais tout seul. Une modification de
+  `notifier.ts`, de `push.ts` ou du calcul des heures demande les deux déploiements.
+- **La clé privée VAPID est un secret, posé DEUX fois** : dans le projet Pages (le bouton
+  "Envoyer un test") et dans le Worker planifié. La clé publique est dans les deux
+  `wrangler.toml` et doit rester la même : changer de paire désabonne en silence tous les
+  appareils, qui ont signé leur abonnement avec l'ancienne. Le sujet est l'URL du site, jamais
+  une adresse mail : le dépôt est public. En local, `.dev.vars` porte une paire DIFFÉRENTE.
+- **`@block65/webcrypto-web-push` est figé en 2.0.0, et la 1.x ne marche pas chez Apple** : elle
+  chiffre en `aesgcm` et signe en `WebPush`, deux formats anciens que le service d'Apple
+  refuse. La 2.0.0 fait `aes128gcm` (RFC 8291) et `vapid t=, k=` (RFC 8292). Elle exige
+  `--main-fields=module,main` dans `build:api`, sans quoi esbuild ne résout pas une de ses
+  dépendances.
+- **Réserver AVANT d'envoyer est la seule garantie contre le doublon.** Le planificateur pose la
+  clé dans `notification_log` par `INSERT OR IGNORE`, et seul le passage qui obtient
+  `changes = 1` compose et envoie. Un envoi qui échoue après la réservation n'est pas retenté :
+  une notification manquée vaut mieux qu'une notification reçue en double, qui fait désactiver
+  toutes les autres. "Rien à dire" (déjà pesé, semaine suivante remplie) garde la clé posée.
+- **Les heures sont celles de Paris, le Worker tourne en UTC.** `parisClock` passe par
+  `Intl.DateTimeFormat` avec `Europe/Paris`, jamais par un décalage fixe : deux heures l'été, une
+  l'hiver. Une heure n'est due que dans les 60 minutes qui la suivent (`CATCH_UP_MIN`) :
+  activer la pesée à 17 h n'envoie pas celle de 7 h 30. Les tests couvrent le changement d'heure
+  et minuit à Paris, qui n'est pas minuit en UTC.
+- **L'absence de ligne vaut "désactivé"**, jamais "activé par défaut". Une notification
+  qu'on n'a pas demandée fait couper toutes les autres.
+- **Sur iPhone, seule l'application INSTALLÉE peut s'abonner** (iOS 16.4 et plus) : dans un
+  onglet de Safari, `PushManager` n'existe pas, et l'écran le dit au lieu d'offrir un bouton
+  inerte. L'autorisation se demande après un TOUCHER, jamais au chargement. Une fois refusée,
+  l'application ne peut plus la redemander : seul le réglage du téléphone la rend.
+- **L'abonnement appartient à l'APPAREIL, les préférences à la PERSONNE.** Un `endpoint` est
+  `UNIQUE` : un téléphone qui change de compte change de propriétaire, il ne reçoit pas les
+  rappels des deux. Un 404 ou 410 du service supprime l'abonnement aussitôt.
+- **`web/public/push-sw.js` est importé dans le service worker généré** (`importScripts` dans
+  `vite.config.ts`). Sans lui, une notification arriverait sans que rien ne sache l'afficher ni
+  ouvrir l'écran visé au toucher.
 
 ## Common commands
 

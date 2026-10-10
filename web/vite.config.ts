@@ -64,6 +64,10 @@ export default defineConfig({
         // Supprime les caches des versions precedentes, qui sinon
         // s'accumulent a chaque deploiement.
         cleanupOutdatedCaches: true,
+        // Les notifications : `public/push-sw.js` ajoute la reception et le
+        // toucher au service worker genere. Sans cette ligne, une notification
+        // arriverait sans que rien ne sache l'afficher.
+        importScripts: ['push-sw.js'],
       },
       devOptions: { enabled: false },
     }),

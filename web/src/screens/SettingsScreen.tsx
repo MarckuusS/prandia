@@ -238,6 +238,12 @@ export function SettingsScreen() {
       <h2 className="section-header settings-group">Personnalisation</h2>
       <ul className="row-list">
         <SettingsRow
+          to="/parametres/notifications"
+          icon="ui-clock"
+          title="Notifications"
+          hint="Choisir les rappels, leurs heures, et les appareils qui les reçoivent."
+        />
+        <SettingsRow
           to="/parametres/rayons"
           icon="ui-tag"
           title="Rayons"

@@ -162,6 +162,38 @@ Diagnostic indique « installée sur l'écran d'accueil » quand c'est bien le c
 
 ---
 
+## 6. Les notifications
+
+Deux pièces, et seule la première part avec le push sur `main`.
+
+L'API (abonnement d'un appareil, préférences, bouton "Envoyer un test") est dans la Pages Function, comme le reste.
+
+La planification est un Worker à part, `prandia-notifier`, sans route : il se réveille toutes les cinq minutes, lit la base `prandia` et envoie les rappels dus. Il se déploie à la main, après chaque modification de `worker/src/notifier.ts`, `worker/src/push.ts` ou `shared/src/notifications.ts` :
+
+```bash
+npx wrangler deploy --config notifier/wrangler.toml
+```
+
+La clé privée VAPID est un secret, posé une fois de chaque côté, jamais écrit dans le dépôt :
+
+```bash
+npx wrangler pages secret put VAPID_PRIVATE_KEY --project-name prandia
+```
+
+```bash
+npx wrangler secret put VAPID_PRIVATE_KEY --config notifier/wrangler.toml
+```
+
+La clé publique correspondante est dans `wrangler.toml` et dans `notifier/wrangler.toml`, identique dans les deux. Changer de paire de clés désabonne tous les appareils sans les prévenir : chacun devra retoucher "Activer les notifications".
+
+Pour lire ce que fait le planificateur en direct :
+
+```bash
+npx wrangler tail prandia-notifier
+```
+
+---
+
 ## Avant chaque mise en production
 
 ```bash

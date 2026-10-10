@@ -6,6 +6,7 @@ import { Icon, type IconName } from './icons/index.js'
 import { useTheme } from './lib/theme.js'
 import { IconGalleryScreen } from './screens/IconGalleryScreen.js'
 import { CustomIconsScreen } from './screens/CustomIconsScreen.js'
+import { NotificationsScreen } from './screens/NotificationsScreen.js'
 import { AccueilScreen, libelleDuJour } from './screens/AccueilScreen.js'
 import { ProfileScreen } from './screens/ProfileScreen.js'
 import { ScanScreen } from './screens/ScanScreen.js'
@@ -88,6 +89,7 @@ const TITLES: Array<[RegExp, string]> = [
   [/^\/parametres\/icones$/, 'Jeu d’icônes'],
   [/^\/parametres\/rayons$/, 'Rayons'],
   [/^\/parametres\/mes-icones$/, 'Mes icônes'],
+  [/^\/parametres\/notifications$/, 'Notifications'],
   [/^\/activite$/, 'Journal d’activité'],
 ]
 
@@ -100,7 +102,7 @@ const TITLES: Array<[RegExp, string]> = [
  * geste systeme du navigateur, absent d'une PWA installee en plein ecran.
  */
 const STACKED =
-  /^\/(ingredients|recettes|courses|frigo|scan|activite)$|^\/(ingredients|recettes)\/[^/]+(\/modifier)?$|^\/planning\/[0-6]$|^\/objectifs\/reglages$|^\/parametres(\/(icones|rayons|mes-icones))?$/
+  /^\/(ingredients|recettes|courses|frigo|scan|activite)$|^\/(ingredients|recettes)\/[^/]+(\/modifier)?$|^\/planning\/[0-6]$|^\/objectifs\/reglages$|^\/parametres(\/(icones|rayons|mes-icones|notifications))?$/
 
 /** L'alias `/semaine`, qui emporte sa chaine de requete vers `/planning`. */
 function RedirigeVersPlanning() {
@@ -233,6 +235,7 @@ export function App() {
             <Route path="/parametres/icones" element={<IconGalleryScreen />} />
             <Route path="/parametres/rayons" element={<RayonsScreen />} />
             <Route path="/parametres/mes-icones" element={<CustomIconsScreen />} />
+            <Route path="/parametres/notifications" element={<NotificationsScreen />} />
             <Route path="/diagnostic" element={<Navigate to="/profil" replace />} />
             <Route path="/activite" element={<ActivityScreen />} />
             <Route

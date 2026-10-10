@@ -1,0 +1,34 @@
+# =============================================================================
+# Prandia : la planification des notifications.
+#
+# Un Worker A PART, sans route : il se reveille toutes les cinq minutes, lit la
+# base `prandia` et envoie les rappels dus. Pages ne sait pas declencher une
+# action a heure fixe, d'ou ce Worker. Voir worker/src/notifier.ts.
+#
+# IL NE SE DEPLOIE PAS PAR LE PUSH SUR MAIN, contrairement au site :
+#     npx wrangler deploy --config notifier/wrangler.toml
+# La cle privee est un secret, pose une fois :
+#     npx wrangler secret put VAPID_PRIVATE_KEY --config notifier/wrangler.toml
+# =============================================================================
+
+name = "prandia-notifier"
+main = "../worker/src/notifier.ts"
+compatibility_date = "2025-01-15"
+compatibility_flags = ["nodejs_compat"]
+# Aucune adresse publique : ce Worker ne repond a rien, il ne fait qu'envoyer.
+workers_dev = false
+
+[triggers]
+crons = ["*/5 * * * *"]
+
+# La MEME base que le site, par son identifiant.
+[[d1_databases]]
+binding = "DB"
+database_name = "prandia"
+database_id = "b8a05209-f6d0-4cbb-84e8-2fea44cf7e87"
+
+[vars]
+# Memes valeurs que dans wrangler.toml a la racine : la cle publique doit etre
+# celle dont la privee est posee en secret ici.
+VAPID_PUBLIC_KEY = "BGq6OwuatQjSXdBVUIAiw_m27ULML7I6Z_MHobvwflw9Je5CSruosO5RjseVRsWQgL11vOihgmHVERZ7wOhk8hs"
+VAPID_SUBJECT = "https://prandia.pages.dev"

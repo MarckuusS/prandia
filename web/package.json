@@ -7,7 +7,7 @@
     "dev": "vite",
     "// build": "Deux etapes : le site, puis l'API bundlee en _worker.js dans la meme sortie. Pages execute ce fichier devant chaque requete.",
     "build": "vite build && npm run build:api",
-    "build:api": "esbuild ../worker/src/index.ts --bundle --format=esm --platform=neutral --target=es2022 --outfile=dist/_worker.js --minify",
+    "build:api": "esbuild ../worker/src/index.ts --bundle --format=esm --platform=neutral --target=es2022 --main-fields=module,main --outfile=dist/_worker.js --minify",
     "preview": "vite preview",
     "test": "vitest run"
   },
