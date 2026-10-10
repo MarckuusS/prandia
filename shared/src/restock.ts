@@ -20,6 +20,9 @@
 
 import type { Ingredient } from './models.js'
 
+/** Ce que le calcul lit d'un ingredient : le Worker n'a pas a charger la fiche entiere. */
+export type RestockSource = Pick<Ingredient, 'id' | 'name' | 'categoryL1' | 'restockThresholdG'>
+
 export interface RestockLine {
   readonly ingredientId: number
   readonly name: string
@@ -48,7 +51,7 @@ const collator = new Intl.Collator('fr', { sensitivity: 'base', numeric: true })
  * reellement suivis.
  */
 export function restockLines(
-  ingredients: readonly Ingredient[],
+  ingredients: readonly RestockSource[],
   pantryByIngredient: ReadonlyMap<number, number>,
 ): RestockLine[] {
   const lignes: RestockLine[] = []

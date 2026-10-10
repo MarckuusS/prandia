@@ -15,14 +15,7 @@
  */
 
 import { useMemo } from 'react'
-import {
-  estimateTargets,
-  hydrationTarget,
-  type ActivityCode,
-  type GoalCode,
-  type SplitCode,
-  type Targets,
-} from '@prandia/shared'
+import { dailyTargetsOf, hydrationTarget, type Targets } from '@prandia/shared'
 
 import { useProfile } from './queries.js'
 
@@ -67,33 +60,9 @@ export function useDailyTargets(): DailyTargets {
     }
 
     const { profile, eaters } = query.data
-    const targets = estimateTargets({
-      sex: profile.sex,
-      birthYear: profile.birthYear,
-      heightCm: profile.heightCm,
-      weightKg: profile.weightKg,
-      // Le serveur rend des chaines libres : un code retire des listes ne doit
-      // pas faire tomber l'ecran. `estimateTargets` rend `null` s'il ne le
-      // reconnait pas, ce qui est exactement le comportement voulu ici.
-      activity: profile.activity as ActivityCode | null,
-      goal: profile.goal as GoalCode | null,
-      // La repartition et le poids vise comptent AUSSI : sans eux, on
-      // comparerait la journee aux macros par defaut de l'objectif, pas a
-      // celles que la personne a reglees.
-      split: profile.split as SplitCode | null,
-      customSplit:
-        profile.splitProteins === null
-          ? null
-          : {
-              proteins: profile.splitProteins,
-              carbs: profile.splitCarbs ?? 0,
-              fats: profile.splitFats ?? 0,
-            },
-      targetWeightKg: profile.targetWeightKg,
-      paceKgPerWeek: profile.paceKgPerWeek,
-    })
-
-    const kcalTarget = profile.kcalTarget ?? targets?.kcal ?? null
+    // Le calcul vit dans @prandia/shared, partage avec le bilan du dimanche :
+    // codes relus, repartition personnalisee, cible saisie a la main d'abord.
+    const { targets, kcalTarget } = dailyTargetsOf(profile)
     return {
       etat: kcalTarget === null ? 'absent' : 'pret',
       kcalTarget,

@@ -106,6 +106,45 @@ export function aggregateRecipe(
   }
 }
 
+/**
+ * Ce que designe une entree du planning, une fois resolue. `null` : la recette
+ * ou l'ingredient a disparu, l'entree ne pese rien.
+ */
+export type MealTarget =
+  | { readonly kind: 'recipe'; readonly recipe: Pick<Recipe, 'lines' | 'defaultPortions'> }
+  | {
+      readonly kind: 'ingredient'
+      readonly ingredient: Pick<
+        Ingredient,
+        'kcal' | 'proteins' | 'carbs' | 'sugars' | 'fats' | 'saturatedFats' | 'fiber' | 'salt'
+      >
+    }
+  | null
+
+/**
+ * Les apports d'une entree du planning : un ingredient pese, ou des portions
+ * d'une recette.
+ *
+ * ICI ET NULLE PART AILLEURS. L'ecran de la semaine et le bilan envoye le
+ * dimanche lisent la meme journee ; deux formules donneraient "objectif tenu"
+ * a l'ecran et "pas tenu" dans la notification pour le meme mercredi.
+ */
+export function mealEntryNutrition(
+  amount: { readonly quantityG: number | null; readonly portions: number | null },
+  target: MealTarget,
+): NutritionTotal {
+  if (target === null) return ZERO_NUTRITION
+  if (target.kind === 'ingredient') return macrosFor(target.ingredient, amount.quantityG ?? 0)
+
+  const portions = amount.portions ?? 1
+  if (portions <= 0) return ZERO_NUTRITION
+  const { total } = aggregateRecipe(target.recipe)
+  // Mise a l'echelle sans recopier de formule : diviser par
+  // (portions par defaut / portions servies) revient exactement a multiplier
+  // par le rapport des portions, ce que fait `nutrition_service._scale`.
+  return divideNutrition(total, Math.max(target.recipe.defaultPortions, 1) / portions)
+}
+
 function hasUnknownMacros(ingredient: Ingredient): boolean {
   return (
     ingredient.kcal === null ||

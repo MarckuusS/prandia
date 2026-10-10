@@ -24,7 +24,7 @@ import {
   MEAL_SLOTS,
   MEAL_SLOT_LABELS,
   datesOfIsoWeek,
-  perEater,
+  dayOnTarget,
 } from "@prandia/shared";
 
 import { MacroBar } from "../components/MacrosDonut.js";
@@ -147,11 +147,9 @@ function JourLigne({
   );
   const manquants = MEAL_SLOTS.filter((slot) => !remplis.includes(slot));
 
+  // La regle vit dans @prandia/shared : le bilan du dimanche la lit aussi.
   const tenu =
-    total !== null &&
-    entries.length > 0 &&
-    kcalTarget !== null &&
-    Math.abs(perEater(total.kcal, eaters) - kcalTarget) <= kcalTarget * 0.1;
+    total !== null && dayOnTarget(total.kcal, entries.length, kcalTarget, eaters);
 
   return (
     <li>

@@ -14,11 +14,9 @@ import {
   MEAL_SLOTS,
   ZERO_NUTRITION,
   addNutrition,
-  aggregateRecipe,
-  divideNutrition,
   cookedGramsPerPortion,
   formatGrams,
-  macrosFor,
+  mealEntryNutrition,
   mealPlanEntryCost,
   mealPlanEntryCostDetail,
   type Ingredient,
@@ -132,19 +130,9 @@ export function entryAmountLabel(entry: MealPlanEntry, data?: CalendarResponse):
 // Nutrition
 // ---------------------------------------------------------------------------
 
+/** La formule vit dans @prandia/shared : le bilan du dimanche la lit aussi. */
 export function entryNutrition(entry: MealPlanEntry, data: CalendarResponse): NutritionTotal {
-  const target = targetOf(entry, data)
-  if (target === null) return ZERO_NUTRITION
-
-  if (target.kind === 'ingredient') return macrosFor(target.ingredient, entry.quantityG ?? 0)
-
-  const portions = entry.portions ?? 1
-  if (portions <= 0) return ZERO_NUTRITION
-  const { total } = aggregateRecipe(target.recipe)
-  // Mise a l'echelle sans recopier de formule : diviser par
-  // (portions par defaut / portions servies) revient exactement a multiplier
-  // par le rapport des portions, ce que fait `nutrition_service._scale`.
-  return divideNutrition(total, Math.max(target.recipe.defaultPortions, 1) / portions)
+  return mealEntryNutrition(entry, targetOf(entry, data))
 }
 
 export function sumNutrition(

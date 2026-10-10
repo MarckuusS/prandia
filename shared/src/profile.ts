@@ -610,6 +610,93 @@ export function hydrationTarget(weightKg: number | null): {
 export const perEater = (total: number, eaters: number): number =>
   eaters > 0 ? total / eaters : total
 
+/**
+ * Ecart tolere autour de la cible, en part de la cible, pour dire qu'une
+ * journee "tient l'objectif".
+ */
+export const ON_TARGET_TOLERANCE = 0.1
+
+/**
+ * Une journee planifiee tient-elle l'objectif ? Sa part individuelle a 10 %
+ * pres de la cible. Une journee sans repas ne tient rien : elle n'est pas
+ * planifiee, ce n'est pas une journee a zero calorie.
+ *
+ * Le badge de la semaine et le bilan du dimanche s'en servent tous deux : la
+ * meme journee ne doit pas etre tenue a l'ecran et ratee dans la notification.
+ */
+export function dayOnTarget(
+  dayKcal: number,
+  entryCount: number,
+  kcalTarget: number | null,
+  eaters: number,
+): boolean {
+  return (
+    entryCount > 0 &&
+    kcalTarget !== null &&
+    Math.abs(perEater(dayKcal, eaters) - kcalTarget) <= kcalTarget * ON_TARGET_TOLERANCE
+  )
+}
+
+/**
+ * Le profil tel que la base le stocke et que l'API le rend : des chaines libres
+ * la ou `Profile` attend des codes, et la repartition en trois colonnes.
+ */
+export interface StoredProfile {
+  readonly sex: Sex | null
+  readonly birthYear: number | null
+  readonly heightCm: number | null
+  readonly weightKg: number | null
+  readonly activity: string | null
+  readonly goal: string | null
+  readonly split: string | null
+  readonly splitProteins: number | null
+  readonly splitCarbs: number | null
+  readonly splitFats: number | null
+  readonly targetWeightKg: number | null
+  readonly paceKgPerWeek: number | null
+  /** Cible saisie a la main : elle l'emporte sur la cible calculee. */
+  readonly kcalTarget: number | null
+}
+
+/**
+ * La cible du jour d'une personne, depuis son profil enregistre.
+ *
+ * Partagee par l'ecran (`useDailyTargets`) et par le bilan du dimanche. La
+ * regle n'est pas triviale : codes relus depuis des chaines libres, repartition
+ * personnalisee recomposee, et cible saisie a la main AVANT la cible calculee.
+ * Deux copies finiraient par annoncer deux objectifs pour la meme journee.
+ */
+export function dailyTargetsOf(
+  profile: StoredProfile,
+  now: Date = new Date(),
+): { readonly targets: Targets | null; readonly kcalTarget: number | null } {
+  const targets = estimateTargets(
+    {
+      sex: profile.sex,
+      birthYear: profile.birthYear,
+      heightCm: profile.heightCm,
+      weightKg: profile.weightKg,
+      // Un code retire des listes ne doit rien faire tomber : `estimateTargets`
+      // rend `null` s'il ne le reconnait pas.
+      activity: profile.activity as ActivityCode | null,
+      goal: profile.goal as GoalCode | null,
+      split: profile.split as SplitCode | null,
+      customSplit:
+        profile.splitProteins === null
+          ? null
+          : {
+              proteins: profile.splitProteins,
+              carbs: profile.splitCarbs ?? 0,
+              fats: profile.splitFats ?? 0,
+            },
+      targetWeightKg: profile.targetWeightKg,
+      paceKgPerWeek: profile.paceKgPerWeek,
+    },
+    now,
+  )
+  return { targets, kcalTarget: profile.kcalTarget ?? targets?.kcal ?? null }
+}
+
 /** Ou en est-on d'une cible : part atteinte, et de combien on l'a depassee. */
 export interface Progress {
   readonly ratio: number

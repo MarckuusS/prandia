@@ -134,9 +134,10 @@ la forme du mockup. Ce qui ne se devine pas :
   session.
 - **Ajouter au chariot exige une session ouverte.** `SessionBar` ouvre d'office sa feuille de
   démarrage quand un code attend, et dit pourquoi.
-- **`useDailyTargets`** (`web/src/lib/useDailyTargets.ts`) est la seule source de la cible du jour,
-  partagée par `GoalCard` et l'Accueil. Deux copies de ce calcul afficheraient deux objectifs
-  différents pour la même journée.
+- **`useDailyTargets`** (`web/src/lib/useDailyTargets.ts`) est la seule source de la cible du jour
+  côté écran, partagée par `GoalCard` et l'Accueil. Elle délègue le calcul à `dailyTargetsOf`
+  (`shared/src/profile.ts`), que le bilan du dimanche appelle aussi. Deux copies de ce calcul
+  afficheraient deux objectifs différents pour la même journée.
 - **L'hydratation** est la **deuxième table cloisonnée par PERSONNE** après `user_profile`. Sa cible
   se recalcule du poids (`hydrationTarget`, 30 ml/kg borné 1,5–4 L), jamais stockée. Le dépôt écrit
   un **delta**, pas un total : deux appareils peuvent ajouter un verre dans la même minute. Le SQL
@@ -712,10 +713,10 @@ Ce qui trahissait une page web sur iPhone, et ce qui le corrige. Ce qui ne se de
 
 ## Notifications (web) : `shared/src/notifications.ts`, `worker/src/notifier.ts`
 
-Web Push vers l'application installée, réglé dans `/parametres/notifications` : une case et des
-heures par type. Sept types déclarés dans `NOTIFICATION_DEFS` ; trois partent (repas du soir,
-planifier la semaine, pesée), les quatre autres sont affichés "bientôt" (`disponible: false`)
-et le planificateur ne les atteint pas. Ce qui ne se devine pas :
+Web Push vers l'application installée, réglé dans `/parametres/notifications` : un interrupteur
+et des heures par type. Sept types dans `NOTIFICATION_DEFS`, tous envoyés depuis le 2026-10-10.
+Un type à venir peut naître `disponible: false` : l'écran l'étiquette alors "Bientôt" et le
+planificateur ne l'atteint pas. Ce qui ne se devine pas :
 
 - **Deux déploiements, pas un.** L'API (abonnement, préférences, test) est dans la Pages
   Function et part avec le push sur `main`. La PLANIFICATION est un Worker à part,
@@ -776,6 +777,30 @@ et le planificateur ne les atteint pas. Ce qui ne se devine pas :
 - **Une heure par ligne, sous un filet, champ de LARGEUR FIXE au bord droit** : les heures
   forment une seule colonne sur tout l'écran. Elles s'enroulaient à la suite du libellé, sans
   ordre lisible. Plusieurs heures se nomment par leur rang (premier, deuxième, troisième rappel).
+- **Les textes sont des fonctions pures** (`expiryMessage`, `restockMessage`,
+  `hydrationMessage`, `weekReviewMessage`), testées sans base ; `composer` ne fait que lire la
+  base et les appeler. Chacune rend `null` quand il n'y a rien à dire, et le rappel se tait.
+- **Péremption : la veille et le jour même, rien d'autre.** Un lot DÉJÀ périmé n'y revient pas,
+  sinon le yaourt oublié au fond du frigo reviendrait chaque matin. Deux lots d'un même produit
+  ne le nomment qu'une fois, au jour le plus proche.
+- **Seuil : "passé sous", pas "est sous".** Un produit n'est annoncé qu'une fois par descente.
+  La mémoire est le journal d'envoi lui-même : une clé `sous-seuil:<id>` par produit annoncé,
+  réservée avant l'envoi et EFFACÉE dès que le produit remonte au seuil, pour qu'une nouvelle
+  descente soit annoncée de nouveau. Aucune table de plus. La règle du seuil reste
+  `restockLines` (strictement sous), que le Worker appelle sur un `RestockSource` minimal.
+- **Hydratation : la cible se recalcule du poids** (`hydrationTarget`), comme à l'Accueil, et le
+  rappel se tait dès qu'elle est atteinte. Ce qui reste s'arrondit au dixième SUPÉRIEUR : 30 ml
+  arrondis au plus proche donnaient "encore 0 L".
+- **Le bilan du dimanche ne doit jamais contredire l'écran.** Il a imposé de sortir trois règles
+  des écrans vers `@prandia/shared` : `dayOnTarget` (une journée tenue, à 10 % près, recopiée
+  jusque-là dans la semaine ET dans les Objectifs), `mealEntryNutrition` (les apports d'une
+  entrée) et `dailyTargetsOf` (la cible du jour, dont `useDailyTargets` n'est plus qu'un
+  appelant). Il ne compte que les jours PLANIFIÉS : "0 sur 7" accuserait une semaine qu'on n'a
+  pas remplie. Tendance par `weeklyPace` sur 28 jours, sans couleur ni mot de jugement.
+- **Un banc d'essai qui joue le dimanche un samedi** : `composer` est exporté, et
+  `getPlatformProxy` de wrangler fournit une vraie D1 locale. Copier `.wrangler/state` dans un
+  dossier au chemin COURT avant de l'ouvrir : sous un chemin long, SQLite échoue en
+  `SQLITE_CANTOPEN` (limite de 260 caractères de Windows, base comprise).
 
 ## Common commands
 

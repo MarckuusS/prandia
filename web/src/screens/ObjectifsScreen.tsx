@@ -23,7 +23,7 @@ import {
   bmiZone,
   currentIsoWeek,
   movingAverage,
-  perEater,
+  dayOnTarget,
   readCap,
   type Cap,
   type NutritionTotal,
@@ -497,9 +497,9 @@ function Bloc5Regularite({ cible }: { cible: DailyTargets }) {
     return INITIALES.map((initiale, index) => {
       if (index > aujourdhui) return { initiale, etat: 'avenir' as const }
       if (index === aujourdhui) return { initiale, etat: 'encours' as const }
-      const total: NutritionTotal = sumNutrition(entriesOfDay(data, index), data)
-      const mien = perEater(total.kcal, eaters)
-      const tenu = mien > 0 && Math.abs(mien - kcalTarget) <= kcalTarget * 0.1
+      const duJour = entriesOfDay(data, index)
+      const total: NutritionTotal = sumNutrition(duJour, data)
+      const tenu = dayOnTarget(total.kcal, duJour.length, kcalTarget, eaters)
       return { initiale, etat: tenu ? ('tenu' as const) : ('rate' as const) }
     })
   }, [data, kcalTarget, eaters])
