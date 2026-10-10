@@ -648,6 +648,12 @@ Ce qui trahissait une page web sur iPhone, et ce qui le corrige. Ce qui ne se de
   centaine de pixels du haut : l'en-tête, ses icônes et le titre devenaient flous. Aucune règle
   CSS ne le coupe. **iOS ne relit cette balise qu'à l'ajout à l'écran d'accueil** : une icône
   déjà installée garde l'ancien réglage, il faut la supprimer et la rajouter.
+- **Conséquence sur la hauteur : `--app-height` vaut `100dvh` partout, sans correction iOS.**
+  Avec la barre d'état opaque, la page commence SOUS elle et mesure vraiment la zone visible
+  (848 px sur un iPhone 11), alors que `100vh` compte toujours l'écran entier (896). L'ancienne
+  correction (`100vh` et `--viewport-drift` en mode installé), juste du temps de
+  `black-translucent`, poussait la barre d'onglets 48 px sous le bord. Le diagnostic du Profil
+  mesure désormais « Sous la barre » contre `innerHeight`, pas contre l'écran physique.
 - La barre d'état opaque est peinte de `theme-color`. Ces balises suivant la préférence du
   téléphone, `alignerBarreEtat()` (`web/src/lib/theme.ts`) les aligne sur le thème choisi dans
   l'application, sinon un thème forcé laissait une barre claire sur un écran sombre.

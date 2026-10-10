@@ -128,8 +128,13 @@ function readMetrics(): ViewportMetrics {
     dvh: Math.round(dvh),
     tabbarBottom: rect ? Math.round(rect.bottom) : 0,
     tabbarHeight: rect ? Math.round(rect.height) : 0,
-    // L'ecart entre le bas de la barre et le bas de l'ecran physique.
-    belowTabbar: rect ? Math.max(Math.round(screenH - rect.bottom), 0) : 0,
+    // L'ecart entre le bas de la barre et le bas de la ZONE VISIBLE, signe :
+    // positif, du fond apparait sous la barre ; negatif, la barre est coupee.
+    // Il se mesurait contre l'ecran physique, ce qui supposait que la page
+    // commence en haut de l'ecran. Depuis la barre d'etat opaque, elle
+    // commence 48 px plus bas : la barre debordait de 48 px et la mesure
+    // affichait 0.
+    belowTabbar: rect ? Math.round(window.innerHeight - rect.bottom) : 0,
     safeTop: px(style.getPropertyValue('--safe-top')),
     safeBottom: px(style.getPropertyValue('--safe-bottom')),
     standalone:
@@ -351,9 +356,12 @@ export function SettingsScreen() {
 
         {/* La seule ligne qui demande une action. Les autres ne sont que du
             contexte pour la comprendre. */}
-        {view.belowTabbar > 0 && (
+        {view.belowTabbar !== 0 && (
           <p className="status status--error" role="alert">
-            {view.belowTabbar} px de fond apparaissent sous la barre d’onglets. Envoie cette capture.
+            {view.belowTabbar > 0
+              ? `${view.belowTabbar} px de fond apparaissent sous la barre d’onglets.`
+              : `La barre d’onglets dépasse de ${-view.belowTabbar} px sous le bord de l’écran.`}{' '}
+            Envoie cette capture.
           </p>
         )}
       </div>

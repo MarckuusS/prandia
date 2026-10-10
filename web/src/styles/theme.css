@@ -281,36 +281,19 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 
   /* ---------- Hauteur reelle de l'ecran ----------
-     Dans un onglet de navigateur, `dvh` est la bonne unite : elle suit la
-     barre d'adresse qui se retracte, la ou `vh` compte toujours la hauteur
-     maximale et fait passer la barre d'onglets sous le bord de l'ecran. */
+     `dvh`, partout, installee ou non. Dans un onglet, elle suit la barre
+     d'adresse qui se retracte, la ou `vh` compte toujours la hauteur maximale.
+     Installee, elle vaut exactement la zone visible.
+
+     IL Y A EU ICI UNE CORRECTION iOS, et elle doit rester partie. Tant que la
+     barre d'etat etait `black-translucent`, la page couvrait tout l'ecran mais
+     iOS annoncait un `dvh` ampute de l'encoche (848 px pour 896 sur un
+     iPhone 11) : on passait donc a `100vh` et on faisait descendre la barre
+     d'onglets de l'ecart. Depuis la barre d'etat `default` (voir index.html),
+     la page commence SOUS la barre d'etat et mesure vraiment 848 px, alors que
+     `vh` compte toujours 896 : la meme correction poussait la barre d'onglets
+     48 px sous le bord, libelles coupes. */
   --app-height: 100dvh;
-
-  /* Ecart entre le viewport annonce et l'ecran. Nul partout, sauf iOS
-     installe — voir le bloc `display-mode: standalone` ci-dessous. */
-  --viewport-drift: 0px;
-}
-
-/* ---------- Correction iOS en mode installe ----------
- *
- * Une fois l'application ajoutee a l'ecran d'accueil, iOS calcule `dvh` en
- * RETRANCHANT l'encoche : sur un iPhone 11, `100dvh` vaut 848 px pour un ecran
- * de 896. Comme `.tabbar` est en `position: fixed; bottom: 0`, elle s'accroche
- * a ces 848 px et laisse une bande de 48 px de fond nu sous elle.
- *
- * En mode installe il n'y a plus de barre d'adresse retractable : `vh` decrit
- * donc exactement l'ecran, et la raison d'etre de `dvh` disparait.
- *
- * `--viewport-drift` vaut la difference — negative sur iPhone, exactement zero
- * partout ou les deux unites concordent (Android installe, bureau). La
- * correction s'annule donc d'elle-meme la ou elle n'a pas lieu d'etre, sans
- * detection d'appareil ni mesure en JavaScript.
- */
-@media (display-mode: standalone) {
-  :root {
-    --app-height: 100vh;
-    --viewport-drift: calc(100dvh - 100vh);
-  }
 }
 
 /* Distance entre le bas du viewport et le HAUT de la barre d'onglets.
@@ -321,14 +304,10 @@
  *   - `padding-bottom:` du contenu defilant, pour que sa derniere ligne ne
  *     finisse pas cachee derriere elle.
  *
- * Quand la barre deborde sous le viewport (correction iOS ci-dessus), la part
- * qu'elle occupe REELLEMENT dans le viewport diminue d'autant : le meme
- * `--viewport-drift` negatif corrige donc les deux usages a la fois.
- *
  * A utiliser tel quel plutot que de recomposer le calcul — un nouvel ecran qui
  * l'oublierait poserait son bouton sous le bord de l'ecran. */
 :root {
-  --above-tabbar: calc(var(--tabbar-height) + var(--safe-bottom) + var(--viewport-drift));
+  --above-tabbar: calc(var(--tabbar-height) + var(--safe-bottom));
 }
 
 /* ---------- Palette sombre (Theme.qml, darkMode = true) ---------- */
