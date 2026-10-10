@@ -265,12 +265,16 @@ export function TagSheet({
             >
               Annuler
             </button>
+            {/* Du texte rouge et non un aplat (`.button--retrait`), dans ses deux
+                temps : le libelle qui change ("Confirmer la suppression") et la
+                note dessous disent deja que le second toucher detruit. */}
             <button
               type="button"
-              className="button button--danger button--block"
+              className="button button--retrait button--block"
               onClick={() => (confirmDelete ? destroy() : setConfirmDelete(true))}
               disabled={pending}
             >
+              <Icon name="ui-trash" size={16} className="icon--inline" />{' '}
               {remove.isPending
                 ? 'Suppression…'
                 : confirmDelete

@@ -111,7 +111,11 @@ L'interface suit un mockup adopté le 2026-08-12. Ce qui ne se devine pas :
   **Les couleurs de signal (réussite, erreur) ne servent jamais d'aplat de bouton** : la feuille
   d'un repas portait un vert plein et un rouge plein au milieu, le retrait y était l'élément le
   plus voyant, et le vert annonçait une validation sur un simple lien. `.button--success` est
-  parti avec. Restent trois rouges pleins à aligner un jour (chariot, recette, étiquette).
+  parti avec. Appliqué aussi au chariot, à la suppression d'une recette et à celle d'une
+  étiquette. **Le rouge plein garde UNE place légitime : le bouton qui CONFIRME** (`ConfirmDialog`
+  avec `danger`), parce que là, détruire est l'action principale. Restent en rouge plein, à
+  trancher : "Retirer" dans le pied d'un lot du frigo, la suppression d'un ingrédient et d'un
+  rayon, et la croix d'une borne de critère.
 
 ## Navigation (web) — `web/src/App.tsx`
 

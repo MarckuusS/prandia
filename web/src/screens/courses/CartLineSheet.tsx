@@ -15,6 +15,7 @@ import { useState } from 'react'
 import type { SessionItem } from '@prandia/shared'
 
 import { Sheet } from '../../components/Sheet.js'
+import { Icon } from '../../icons/index.js'
 import { useRemoveSessionItem, useUpdateSessionItem } from '../../lib/queries.js'
 import { SessionItemFields } from './SessionItemFields.js'
 import { draftFromItem, readDraft, type ItemDraft } from './sessionDraft.js'
@@ -75,14 +76,17 @@ export function CartLineSheet({ item, onList, onClose, onRemoved }: CartLineShee
 
       {/* Le retrait est en bas, en rouge, hors de la rangee de validation : on
           ne doit pas pouvoir le confondre avec « Annuler » d'un pouce presse.
-          Pas de confirmation en revanche — rien n'est encore ecrit ailleurs, et
-          rescanner l'article coute deux secondes. */}
+          Du texte rouge et non un aplat (`.button--retrait`) : le seul aplat de
+          la feuille reste "Enregistrer". Pas de confirmation en revanche : rien
+          n'est encore ecrit ailleurs, et rescanner l'article coute deux
+          secondes. */}
       <button
         type="button"
-        className="button button--danger button--block session-remove"
+        className="button button--retrait button--block session-remove"
         onClick={() => remove.mutate(item.id, { onSuccess: () => onRemoved(item.name) })}
         disabled={busy}
       >
+        <Icon name="ui-trash" size={16} className="icon--inline" />{' '}
         {remove.isPending ? 'Retrait…' : 'Retirer du chariot'}
       </button>
     </Sheet>

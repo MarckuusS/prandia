@@ -336,12 +336,15 @@ export function RecipeEditor({
           La recette et son journal de cuisson disparaissent, et les repas déjà planifiés qui
           l’utilisent sont retirés du calendrier.
         </p>
+        {/* Du texte rouge et non un aplat (`.button--retrait`) : ce bouton ne
+            fait qu'ouvrir la confirmation, c'est ELLE qui porte le rouge plein,
+            parce que la, supprimer est l'action principale. */}
         <button
           type="button"
-          className="button button--danger button--block"
+          className="button button--retrait button--block"
           onClick={() => setDeleteOpen(true)}
         >
-          Supprimer cette recette
+          <Icon name="ui-trash" size={16} className="icon--inline" /> Supprimer cette recette
         </button>
       </div>
 
