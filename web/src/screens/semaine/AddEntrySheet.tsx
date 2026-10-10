@@ -26,7 +26,6 @@
  */
 
 import { useState } from 'react'
-import { Link } from 'react-router'
 import {
   DAY_LABELS,
   MEAL_SLOT_LABELS,
@@ -37,6 +36,7 @@ import {
 } from '@prandia/shared'
 
 import { ChoixBibliotheque } from '../../components/ChoixBibliotheque.js'
+import { LienFiche } from '../../components/LienFiche.js'
 import { QuantityField } from '../../components/QuantityField.js'
 import { Sheet } from '../../components/Sheet.js'
 import { Icon, RayonIcon } from '../../icons/index.js'
@@ -160,7 +160,7 @@ export function AddEntrySheet({ isoWeek, dayOfWeek, slot, onClose }: AddEntryShe
                 onUnit={setUnit}
                 disabled={add.isPending}
               />
-              <VersLaFiche to={`/recettes/${choix.recette.id}`} libelle="Ouvrir la recette" />
+              <VersLaFiche to={`/recettes/${choix.recette.id}`} libelle="Voir la recette" />
             </>
           ) : (
             <>
@@ -180,7 +180,7 @@ export function AddEntrySheet({ isoWeek, dayOfWeek, slot, onClose }: AddEntryShe
               {choix.ingredient.id !== null && (
                 <VersLaFiche
                   to={`/ingredients/${choix.ingredient.id}`}
-                  libelle="Ouvrir la fiche ingrédient"
+                  libelle="Voir la fiche de l’ingrédient"
                 />
               )}
             </>
@@ -284,6 +284,9 @@ function Retenu({
  * existe deja sur la feuille d'un repas DEJA planifie ; il manquait a celle qui
  * le cree.
  *
+ * Une ligne de navigation, comme sur la feuille d'un repas planifie : voir
+ * LienFiche. Sans visuel ici, le rappel du choix juste au-dessus le porte deja.
+ *
  * IL QUITTE LA FEUILLE, et le dit. Ouvrir la fiche est une navigation, pas une
  * sous-fenetre : le choix en cours n'est pas conserve. Le taire ferait passer
  * une consequence connue pour une perte inexpliquee — d'autant qu'on revient
@@ -291,12 +294,5 @@ function Retenu({
  * quantite proposee au moment de rechoisir.
  */
 function VersLaFiche({ to, libelle }: { readonly to: string; readonly libelle: string }) {
-  return (
-    <>
-      <Link to={to} className="button button--secondary button--block lien-surface">
-        <Icon name="ui-edit" size={16} className="icon--inline" /> {libelle}
-      </Link>
-      <p className="field__hint">L’ajout en cours n’est pas conservé.</p>
-    </>
-  )
+  return <LienFiche to={to} libelle={libelle} note="L’ajout en cours n’est pas conservé." />
 }

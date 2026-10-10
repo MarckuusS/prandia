@@ -671,19 +671,73 @@
   background: var(--color-error-hover);
 }
 
-/* Meme gabarit plein que `--danger`, couleur inverse.
-   Il fallait un bouton d'action AFFIRME mais rassurant a cote de "Retirer de
-   la semaine" : en variante discrete, "Ouvrir la fiche" avait l'air d'une note
-   de bas de page a cote d'un aplat rouge. Le vert de reussite plutot que
-   l'olive de la marque, deja portee par "Enregistrer" dans le pied de la meme
-   feuille : deux aplats olive se seraient disputes l'action principale. */
-.button--success {
-  color: var(--color-on-primary);
-  background: var(--color-success);
+/*
+ * Retirer, SANS aplat : du texte rouge, une corbeille, rien d'autre.
+ *
+ * Un "Retirer de la semaine" en rouge plein etait l'element le plus voyant de
+ * sa feuille, plus que l'action principale, pour un geste qui se defait d'un
+ * toucher (le message "Annuler" suit le retrait). Il se pose en BAS, la ou on
+ * le cherche, et ne dispute plus rien a "Enregistrer". Contraste du texte :
+ * 5,57:1 sur une carte claire, 6,78:1 en sombre (`--color-error` se retourne).
+ */
+.button--retrait {
+  color: var(--color-error);
+  background: transparent;
+  border-color: transparent;
 }
 
-.button--success:active {
-  filter: brightness(0.92);
+.button--retrait:active {
+  background: var(--color-surface-pressed);
+}
+
+/* ---------- Lien vers une fiche (LienFiche.tsx) ---------- */
+
+/*
+ * Classe DOUBLEE, et c'est la correction d'un defaut constate : `.lien-surface`
+ * pose `color: inherit`, et a specificite egale l'ordre des feuilles dans le
+ * paquet construit tranche. Le bouton vert qui precedait cette ligne y avait
+ * perdu son texte blanc : encre sur vert, 2,63:1.
+ *
+ * Encre normale sur un fond de ligne a peine teinte : 13,2:1 en clair, 12,4:1
+ * en sombre. Le chevron garde l'olive lisible (6,7 et 8,1:1) : c'est lui qui
+ * dit "ca s'ouvre".
+ */
+.lien-fiche.lien-surface {
+  display: flex;
+  gap: var(--space-md);
+  align-items: center;
+  min-height: var(--control-height-lg);
+  padding: var(--space-sm) var(--space-md);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+  background: var(--color-surface-hover);
+  border-radius: var(--radius-md);
+}
+
+.lien-fiche.lien-surface:active {
+  background: var(--color-surface-pressed);
+}
+
+/* Sur le PAPIER d'une feuille plein ecran, le gris de ligne se confondait
+   avec le fond : la ligne y prend le blanc des cartes. */
+.sheet--plein .lien-fiche.lien-surface {
+  background: var(--color-surface);
+}
+
+/* A specificite egale de la regle ci-dessus : sans elle, l'ordre lui donnerait
+   le dernier mot et le toucher ne se verrait plus. */
+.sheet--plein .lien-fiche.lien-surface:active {
+  background: var(--color-surface-pressed);
+}
+
+.lien-fiche__libelle {
+  flex: 1;
+  min-width: 0;
+}
+
+.lien-fiche__chevron {
+  flex: none;
+  color: var(--color-primary-text);
 }
 
 .button--ghost {

@@ -20,15 +20,15 @@ import {
   type MealSlot,
 } from '@prandia/shared'
 
-import { Link } from 'react-router'
-
 import { SelectField } from '../../components/Field.js'
+import { LienFiche } from '../../components/LienFiche.js'
 import { MacrosDonut } from '../../components/MacrosDonut.js'
 import { TableauNutriments } from '../../components/TableauNutriments.js'
-import { Icon } from '../../icons/index.js'
+import { Icon, RayonIcon } from '../../icons/index.js'
 import { QuantityField } from '../../components/QuantityField.js'
 import { Sheet } from '../../components/Sheet.js'
 import { useMoveEntry, useUpdateEntryAmount, type CalendarResponse } from '../../lib/queries.js'
+import { useRayonStyle } from '../../lib/useRayonStyle.js'
 import {
   entryName,
   entryNutrition,
@@ -54,6 +54,7 @@ export interface EntrySheetProps {
 export function EntrySheet({ isoWeek, entry, data, onClose, onDelete }: EntrySheetProps) {
   const target = targetOf(entry, data)
   const isRecipe = entry.recipeId !== null
+  const styleOf = useRayonStyle()
 
   const [dayOfWeek, setDayOfWeek] = useState(entry.dayOfWeek)
   const [slot, setSlot] = useState<MealSlot>(entry.slot)
@@ -126,6 +127,27 @@ export function EntrySheet({ isoWeek, entry, data, onClose, onDelete }: EntryShe
       }
     >
       <div className="form">
+        {/* La fiche d'origine, a un toucher, EN TETE : on ouvre ce repas, on
+            peut vouloir corriger un poids unitaire ou un prix faux. Une ligne
+            de navigation et non un bouton : voir LienFiche. */}
+        {target !== null && (
+          <LienFiche
+            to={target.kind === 'ingredient' ? `/ingredients/${target.ingredient.id}` : `/recettes/${target.recipe.id}`}
+            libelle={target.kind === 'ingredient' ? 'Voir la fiche de l’ingrédient' : 'Voir la recette'}
+            visuel={
+              target.kind === 'ingredient' ? (
+                <span className="icon-chip icon-chip--sm" {...styleOf(target.ingredient.categoryL1).tint} aria-hidden="true">
+                  <RayonIcon glyph={styleOf(target.ingredient.categoryL1).glyph} size={16} strokeWidth={1.8} />
+                </span>
+              ) : (
+                <span className="icon-chip icon-chip--sm" data-rayon="autre" aria-hidden="true">
+                  <Icon name="ui-utensils" size={16} strokeWidth={1.8} />
+                </span>
+              )
+            }
+          />
+        )}
+
         {isRecipe ? (
           <PortionsOuGrammes
             recipe={target?.kind === 'recipe' ? target.recipe : undefined}
@@ -177,26 +199,6 @@ export function EntrySheet({ isoWeek, entry, data, onClose, onDelete }: EntryShe
           </p>
         )}
 
-        {/* La fiche d'origine, a un tap. Corriger un poids unitaire ou un prix
-            faux se faisait jusqu'ici en quittant la semaine, en cherchant
-            l'ingredient dans la bibliotheque, puis en revenant. */}
-        {target !== null && (
-          <Link
-            to={target.kind === 'ingredient' ? `/ingredients/${target.ingredient.id}` : `/recettes/${target.recipe.id}`}
-            className="button button--success button--block lien-surface"
-          >
-            {target.kind === 'ingredient' ? 'Ouvrir la fiche ingrédient' : 'Ouvrir la recette'}
-          </Link>
-        )}
-
-        <button
-          type="button"
-          className="button button--danger button--block"
-          onClick={() => onDelete(entry, label)}
-          disabled={busy}
-        >
-          Retirer de la semaine
-        </button>
       </div>
 
       {/* Le detail nutritionnel de CE repas, pour la quantite saisie.
@@ -218,6 +220,17 @@ export function EntrySheet({ isoWeek, entry, data, onClose, onDelete }: EntryShe
         <h3 className="card__title">Apports de ce repas</h3>
         <TableauNutriments total={nutrition} />
       </div>
+
+      {/* Retirer, EN BAS et sans aplat : voir `.button--retrait`. Pas de
+          confirmation, le message "Annuler" qui suit le retrait la remplace. */}
+      <button
+        type="button"
+        className="button button--retrait button--block"
+        onClick={() => onDelete(entry, label)}
+        disabled={busy}
+      >
+        <Icon name="ui-trash" size={16} className="icon--inline" /> Retirer de la semaine
+      </button>
     </Sheet>
   )
 }

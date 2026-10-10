@@ -104,6 +104,14 @@ L'interface suit un mockup adopté le 2026-08-12. Ce qui ne se devine pas :
 - **Les 11 teintes de rayon (`styles/icons.css`) ne font pas partie du tricolore.** C'est un
   système de codes calibré pour rester distinct côte à côte dans une liste triée par nom. En
   retoucher une seule le déséquilibre.
+- **Une feuille n'a qu'UN aplat de couleur : son action principale.** Aller voir une fiche est
+  une ligne de navigation (`components/LienFiche.tsx` : encre normale, fond de ligne à peine
+  teinté, chevron olive), jamais un bouton plein. Retirer est du texte rouge avec une corbeille,
+  en BAS de la feuille (`.button--retrait`), sans confirmation quand un "Annuler" suit.
+  **Les couleurs de signal (réussite, erreur) ne servent jamais d'aplat de bouton** : la feuille
+  d'un repas portait un vert plein et un rouge plein au milieu, le retrait y était l'élément le
+  plus voyant, et le vert annonçait une validation sur un simple lien. `.button--success` est
+  parti avec. Restent trois rouges pleins à aligner un jour (chariot, recette, étiquette).
 
 ## Navigation (web) — `web/src/App.tsx`
 
