@@ -22,8 +22,10 @@
  * temps :
  *
  *   - viseur ferme : les pistes sont DESACTIVEES (`enabled = false`). Elles ne
- *     produisent plus d'image, et la specification autorise le navigateur a
- *     eteindre le capteur. Les reactiver ne repose aucune question ;
+ *     produisent plus d'image, et les reactiver ne repose aucune question. La
+ *     specification autorise le navigateur a eteindre le capteur, mais iOS ne
+ *     le fait PAS : le point vert reste allume tant qu'une piste vit, meme
+ *     desactivee (constate sur iPhone le 2026-10-10). D'ou un delai court ;
  *   - plus aucun viseur depuis `IDLE_STOP_MS` : arret complet. Le scan suivant
  *     redemandera peut-etre, c'est le prix d'une camera qui ne reste pas
  *     reservee toute la journee.
@@ -48,11 +50,13 @@ export const CAMERA_CONSTRAINTS: MediaStreamConstraints = {
 }
 
 /**
- * Cinq minutes : assez pour enchainer les produits d'un rayon a l'autre, ou
- * ranger les courses produit par produit, sans laisser la camera reservee
- * quand on oublie l'application ouverte.
+ * Trente secondes, et c'est un compromis entre deux inconvenients. Plus long, le point
+ * vert d'iOS reste allume alors qu'on ne scanne plus (cinq minutes au depart :
+ * c'est ce que l'utilisateur a remarque). Plus court, le scan suivant
+ * redemande l'acces. Les scans en continu (chariot, frigo) et l'ecran de scan
+ * gardent leur viseur ouvert : ils ne sont pas concernes.
  */
-export const IDLE_STOP_MS = 5 * 60_000
+export const IDLE_STOP_MS = 30_000
 
 export interface CameraPool {
   /** Rend le flux partage, ouvert au besoin. A rendre par `release`. */

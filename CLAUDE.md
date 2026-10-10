@@ -623,16 +623,17 @@ Un seul flux caméra pour toute la vie de la page. Ce qui ne se devine pas :
   `camera().acquire()` et le rend par `release()`. Un `track.stop()` ajouté ailleurs ferait
   revenir la demande à chaque scan, sans qu'aucun test d'interface ne le voie.
 - **Fermer le viseur DÉSACTIVE les pistes** (`enabled = false`), il ne les arrête pas. L'arrêt
-  complet vient après `IDLE_STOP_MS` sans viseur ouvert (5 minutes), ou à la fermeture réelle de
-  la page. C'est ce qui protège la diode et la batterie, que l'ancienne règle protégeait en
-  coupant tout.
+  complet vient après `IDLE_STOP_MS` sans viseur ouvert, ou à la fermeture réelle de la page.
+- **Une piste désactivée garde la caméra active pour iOS** : le point vert reste allumé tant
+  qu'une piste vit (constaté sur iPhone). `IDLE_STOP_MS` est donc un compromis entre deux gênes,
+  le point vert d'un côté, une nouvelle demande d'accès de l'autre. Fixé à 30 secondes après
+  qu'un premier réglage à 5 minutes a laissé la caméra allumée hors des scans.
 - **ZXing passe par `decodeFromVideoElement`, et c'est voulu** : son `stop()` n'arrête que la
   boucle de décodage, jamais les pistes (vérifié dans `@zxing/browser` 0.1.5). Ses méthodes
   `decodeFromConstraints` et `decodeFromVideoDevice` ouvriraient leur propre caméra, donc leur
   propre demande.
 - Vérifié en local avec une fausse caméra : deux ouvertures du viseur, une seule demande, le
-  même flux réutilisé. Sur iPhone, reste à observer le point vert d'iOS une fois le viseur fermé :
-  s'il reste allumé, réduire `IDLE_STOP_MS`.
+  même flux réutilisé.
 - **La vidéo est ancrée en absolu aux quatre bords de la scène** (`.scanner__video`). En plein
   écran, la scène tient sa hauteur d'un `flex: 1` dans un parent qui n'a qu'une `min-height` :
   un `height: 100%` n'y trouve rien, la vidéo retombait sur sa taille propre (375 x 500 mesurés
