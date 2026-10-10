@@ -87,7 +87,7 @@ export function MealRow({
               seul n'en a pas : son nom EST sa composition. */}
           {composition !== null && <span className="meal__composition">{composition}</span>}
           <span className="meal__meta">
-            <span>{entryAmountLabel(entry)}</span>
+            <span>{entryAmountLabel(entry, data)}</span>
             {/* Un prix inconnu ne s'affiche pas en « 0,00 € » : le panneau de
                 cout compte deja ces lignes et le dit en toutes lettres. */}
             {cost !== null && <span className="meal__cost">{formatEuros(cost.toFixed(4))}</span>}

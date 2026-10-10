@@ -227,3 +227,29 @@ export function cookedWeightG(
   const ratio = ingredient.cookedWeightPer100gRaw
   return ratio === null ? rawQuantityG : (rawQuantityG * ratio) / 100
 }
+
+type CookedLine = {
+  readonly ingredient: Pick<Ingredient, 'cookedWeightPer100gRaw'>
+  readonly quantityG: number
+}
+
+/** Poids cuit d'une recette entiere : la somme de ses lignes, chacune avec son rendement. */
+export function recipeCookedWeightG(lines: readonly CookedLine[]): number {
+  return lines.reduce((sum, line) => sum + cookedWeightG(line.ingredient, line.quantityG), 0)
+}
+
+/**
+ * Poids cuit d'UNE portion : ce qui permet de servir une recette en grammes,
+ * "350 g de chili" plutot que "0,85 portion".
+ *
+ * `null` quand la recette ne pese rien (aucune ligne) : aucun gramme ne se
+ * convertit alors en portions, et l'ecran doit le dire plutot que de diviser
+ * par zero. Les portions par defaut valent au moins 1, comme partout ailleurs.
+ */
+export function cookedGramsPerPortion(recipe: {
+  readonly defaultPortions: number
+  readonly lines: readonly CookedLine[]
+}): number | null {
+  const total = recipeCookedWeightG(recipe.lines)
+  return total > 0 ? total / Math.max(recipe.defaultPortions, 1) : null
+}

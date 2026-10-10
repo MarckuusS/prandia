@@ -7,8 +7,10 @@ import {
   addNutrition,
   aggregateLines,
   aggregateRecipe,
+  cookedGramsPerPortion,
   cookedWeightG,
   divideNutrition,
+  recipeCookedWeightG,
   energyBreakdown,
   massBreakdown,
   macrosFor,
@@ -162,6 +164,32 @@ describe('cookedWeightG', () => {
 
   it('assume 1:1 quand le ratio est inconnu', () => {
     expect(cookedWeightG(makeIngredient(), 250)).toBe(250)
+  })
+})
+
+describe('poids cuit d une recette et d une portion', () => {
+  const riz = makeIngredient({ cookedWeightPer100gRaw: 300 })
+  const poulet = makeIngredient()
+  const lignes = [
+    { ingredient: riz, quantityG: 100 },
+    { ingredient: poulet, quantityG: 200 },
+  ]
+
+  it('additionne les lignes, chacune avec son rendement', () => {
+    // 100 g de riz cru donnent 300 g cuits, le poulet reste a 200 g.
+    expect(recipeCookedWeightG(lignes)).toBe(500)
+  })
+
+  it('divise par les portions de la recette', () => {
+    expect(cookedGramsPerPortion({ defaultPortions: 2, lines: lignes })).toBe(250)
+  })
+
+  it('compte au moins une portion, comme partout ailleurs', () => {
+    expect(cookedGramsPerPortion({ defaultPortions: 0, lines: lignes })).toBe(500)
+  })
+
+  it('rend null pour une recette qui ne pese rien, au lieu de diviser par zero', () => {
+    expect(cookedGramsPerPortion({ defaultPortions: 4, lines: [] })).toBeNull()
   })
 })
 

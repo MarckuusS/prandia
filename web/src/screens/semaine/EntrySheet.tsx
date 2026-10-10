@@ -22,7 +22,7 @@ import {
 
 import { Link } from 'react-router'
 
-import { NumberField, SelectField } from '../../components/Field.js'
+import { SelectField } from '../../components/Field.js'
 import { MacrosDonut } from '../../components/MacrosDonut.js'
 import { TableauNutriments } from '../../components/TableauNutriments.js'
 import { Icon } from '../../icons/index.js'
@@ -36,6 +36,7 @@ import {
   toMealSlot,
   type SavedEntry,
 } from './totals.js'
+import { PortionsOuGrammes } from './PortionsOuGrammes.js'
 import '../../styles/week.css'
 
 const DAY_OPTIONS = DAY_LABELS.map((label, index) => ({ value: String(index), label }))
@@ -70,7 +71,7 @@ export function EntrySheet({ isoWeek, entry, data, onClose, onDelete }: EntryShe
   // toucher au nombre laisse la masse identique, mais c'est bien une decision
   // a enregistrer, sans quoi la fiche rouvrirait sur l'ancienne unite.
   const amountChanged = isRecipe
-    ? portions !== entry.portions
+    ? portions !== entry.portions || unit !== entry.unit
     : quantityG !== entry.quantityG || unit !== entry.unit
   const amountValid = isRecipe ? portions !== null && portions > 0 : quantityG !== null && quantityG > 0
 
@@ -83,7 +84,7 @@ export function EntrySheet({ isoWeek, entry, data, onClose, onDelete }: EntryShe
         id: entry.id,
         quantityG: isRecipe ? null : quantityG,
         portions: isRecipe ? portions : null,
-        unit: isRecipe ? null : unit,
+        unit,
       })
     }
     onClose()
@@ -125,14 +126,14 @@ export function EntrySheet({ isoWeek, entry, data, onClose, onDelete }: EntryShe
     >
       <div className="form">
         {isRecipe ? (
-          <NumberField
-            label="Portions"
-            required
-            value={portions}
-            onChange={setPortions}
-            min={0.25}
-            max={50}
-            decimals={2}
+          <PortionsOuGrammes
+            recipe={target?.kind === 'recipe' ? target.recipe : undefined}
+            defaultPortions={target?.kind === 'recipe' ? target.recipe.defaultPortions : 1}
+            portions={portions}
+            onPortions={setPortions}
+            unit={unit}
+            onUnit={setUnit}
+            disabled={busy}
           />
         ) : (
           <QuantityField

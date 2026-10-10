@@ -36,13 +36,13 @@ import {
   type MealSlot,
 } from '@prandia/shared'
 
-import { NumberField } from '../../components/Field.js'
 import { QuantityField } from '../../components/QuantityField.js'
 import { Sheet } from '../../components/Sheet.js'
 import { Icon, RayonIcon } from '../../icons/index.js'
-import { useAddEntry, type EntryDraft, type RecipeSummary } from '../../lib/queries.js'
+import { useAddEntry, useRecipe, type EntryDraft, type RecipeSummary } from '../../lib/queries.js'
 import { useRayonStyle } from '../../lib/useRayonStyle.js'
 import { ChoixRepas } from './ChoixRepas.js'
+import { PortionsOuGrammes } from './PortionsOuGrammes.js'
 import '../../styles/week.css'
 
 /** Quantite proposee pour un ingredient sans poids unitaire connu. */
@@ -70,6 +70,9 @@ export function AddEntrySheet({ isoWeek, dayOfWeek, slot, onClose }: AddEntryShe
   const [unit, setUnit] = useState<string | null>(null)
 
   const add = useAddEntry(isoWeek)
+  // La recette COMPLETE, pour son poids cuit : le resume du choix n'a que les
+  // identifiants des ingredients, pas leur rendement a la cuisson.
+  const recetteComplete = useRecipe(choix?.type === 'recette' ? choix.recette.id : null)
 
   const valid =
     choix?.type === 'recette'
@@ -82,7 +85,7 @@ export function AddEntrySheet({ isoWeek, dayOfWeek, slot, onClose }: AddEntryShe
     if (!valid || choix === null) return
     const draft: EntryDraft =
       choix.type === 'recette'
-        ? { dayOfWeek, slot, recipeId: choix.recette.id, ingredientId: null, quantityG: null, portions }
+        ? { dayOfWeek, slot, recipeId: choix.recette.id, ingredientId: null, quantityG: null, portions, unit }
         : {
             dayOfWeek,
             slot,
@@ -131,6 +134,7 @@ export function AddEntrySheet({ isoWeek, dayOfWeek, slot, onClose }: AddEntryShe
         <ChoixRepas
           onRecette={(recette) => {
             setPortions(1)
+            setUnit(null)
             setChoix({ type: 'recette', recette })
           }}
           onIngredient={(ingredient) => {
@@ -147,15 +151,14 @@ export function AddEntrySheet({ isoWeek, dayOfWeek, slot, onClose }: AddEntryShe
 
           {choix.type === 'recette' ? (
             <>
-              <NumberField
-                label="Portions"
-                required
-                value={portions}
-                onChange={setPortions}
-                min={0.25}
-                max={50}
-                decimals={2}
-                hint={`De 0,25 à 50 portions. La recette est prévue pour ${choix.recette.defaultPortions}.`}
+              <PortionsOuGrammes
+                recipe={recetteComplete.data}
+                defaultPortions={choix.recette.defaultPortions}
+                portions={portions}
+                onPortions={setPortions}
+                unit={unit}
+                onUnit={setUnit}
+                disabled={add.isPending}
               />
               <VersLaFiche to={`/recettes/${choix.recette.id}`} libelle="Ouvrir la recette" />
             </>

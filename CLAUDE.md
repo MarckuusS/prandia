@@ -202,6 +202,13 @@ ou "Annuler" est reste inatteignable un moment.
   ne bouge pas : c'est une decision de lecture, et la feuille rouvrirait sinon sur l'ancienne.
 - `QuantityField` accepte deja `unit` et `onUnitChange` : toute nouvelle surface de saisie doit
   brancher les deux, sinon le choix se perd en silence.
+- **Une recette se sert en portions OU en grammes** (`semaine/PortionsOuGrammes.tsx`), mais la
+  base ne stocke que des PORTIONS : la regle XOR tient. Les grammes se convertissent par le poids
+  cuit d'une portion (`cookedGramsPerPortion`, dans `shared/src/nutrition.ts`, meme calcul que le
+  poids cuit de la fiche). L'unite `g` (`UNITE_GRAMMES`, `semaine/totals.ts`) est enregistree a
+  cote pour relire et rouvrir le repas en grammes ; aucun calcul ne la lit, le serveur la stocke
+  telle quelle. Les portions gardent toute leur precision (0,8333...) : arrondies, 350 g se
+  rouvriraient en 349. Sans ligne, une recette ne pese rien et ne se dose qu'en portions.
 
 ## Comptes et cuisines — `scripts/add-user.mjs`
 

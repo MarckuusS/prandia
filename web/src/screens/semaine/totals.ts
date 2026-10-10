@@ -16,6 +16,7 @@ import {
   addNutrition,
   aggregateRecipe,
   divideNutrition,
+  cookedGramsPerPortion,
   formatGrams,
   macrosFor,
   mealPlanEntryCost,
@@ -29,6 +30,12 @@ import {
 } from '@prandia/shared'
 
 import type { CalendarResponse } from '../../lib/queries.js'
+
+/**
+ * L'unite qui fait lire une entree RECETTE en grammes, meme code que `units.ts`.
+ * La base n'y stocke que des portions : voir `PortionsOuGrammes`.
+ */
+export const UNITE_GRAMMES = 'g'
 
 /**
  * Un montant, sans importer decimal.js.
@@ -104,10 +111,16 @@ export function entryComposition(entry: MealPlanEntry, data: CalendarResponse): 
 
 /**
  * Quantite lisible. La regle XOR se voit ici : des PORTIONS pour une recette,
- * des GRAMMES pour un ingredient, jamais les deux.
+ * des GRAMMES pour un ingredient, jamais les deux en base.
+ *
+ * Une recette servie EN GRAMMES (unite `g`, voir `PortionsOuGrammes`) se relit
+ * en grammes : ses portions sont converties par le poids cuit d'une portion.
  */
-export function entryAmountLabel(entry: MealPlanEntry): string {
+export function entryAmountLabel(entry: MealPlanEntry, data?: CalendarResponse): string {
   if (entry.recipeId !== null) {
+    const recipe = data?.recipes[String(entry.recipeId)]
+    const parPortion = entry.unit === UNITE_GRAMMES && recipe ? cookedGramsPerPortion(recipe) : null
+    if (parPortion !== null) return formatGrams(Math.round((entry.portions ?? 1) * parPortion))
     const portions = entry.portions ?? 1
     const value = portions.toLocaleString('fr-FR', { maximumFractionDigits: 2 })
     return `${value} portion${portions > 1 ? 's' : ''}`
