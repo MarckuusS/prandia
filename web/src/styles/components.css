@@ -686,7 +686,21 @@
   background: var(--color-surface-hover);
 }
 
+/*
+ * POSEE EN ABSOLU sur toute la scene, et pas dans le flux.
+ *
+ * En plein ecran, la scene tient sa hauteur d'un `flex: 1` dans un conteneur
+ * qui n'a qu'une hauteur MINIMALE : un `height: 100%` n'y a rien a quoi se
+ * rapporter, et la video retombait sur sa taille propre, qui n'est connue
+ * qu'a l'arrivee des premieres images. Sur iPhone, l'image restait parfois
+ * figee a cette taille provisoire : un petit rectangle en haut d'un ecran
+ * noir. Ancree aux quatre bords, la boite de la video vaut celle de la scene
+ * des le premier rendu, et ne bouge plus.
+ */
 .scanner__video {
+  position: absolute;
+  inset: 0;
+  display: block;
   width: 100%;
   height: 100%;
   /* `cover` : la video remplit le cadre sans bandes noires, quitte a rogner.

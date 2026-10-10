@@ -59,11 +59,30 @@ function sansTransition(basculer: () => void): void {
   })
 }
 
+/**
+ * Couleurs de la barre d'etat, celles des balises `theme-color` de index.html.
+ *
+ * Depuis que la barre d'etat est opaque (voir index.html), iOS la peint de
+ * `theme-color`. Or ces balises suivent la PREFERENCE DU TELEPHONE : un theme
+ * force dans l'application laissait une barre claire au-dessus d'un ecran
+ * sombre. On aligne les deux balises sur le choix, et on les rend au systeme
+ * sinon.
+ */
+const BARRE_ETAT = { light: '#f5f7f2', dark: '#11150b' } as const
+
+function alignerBarreEtat(choice: ThemeChoice): void {
+  document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]').forEach((meta) => {
+    const suitLeSombre = (meta.getAttribute('media') ?? '').includes('dark')
+    meta.content = BARRE_ETAT[choice === 'system' ? (suitLeSombre ? 'dark' : 'light') : choice]
+  })
+}
+
 function apply(choice: ThemeChoice): void {
   sansTransition(() => {
     if (choice === 'system') delete document.documentElement.dataset['theme']
     else document.documentElement.dataset['theme'] = choice
   })
+  alignerBarreEtat(choice)
   try {
     if (choice === 'system') localStorage.removeItem(STORAGE_KEY)
     else localStorage.setItem(STORAGE_KEY, choice)

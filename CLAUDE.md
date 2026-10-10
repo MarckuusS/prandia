@@ -633,6 +633,32 @@ Un seul flux caméra pour toute la vie de la page. Ce qui ne se devine pas :
 - Vérifié en local avec une fausse caméra : deux ouvertures du viseur, une seule demande, le
   même flux réutilisé. Sur iPhone, reste à observer le point vert d'iOS une fois le viseur fermé :
   s'il reste allumé, réduire `IDLE_STOP_MS`.
+- **La vidéo est ancrée en absolu aux quatre bords de la scène** (`.scanner__video`). En plein
+  écran, la scène tient sa hauteur d'un `flex: 1` dans un parent qui n'a qu'une `min-height` :
+  un `height: 100%` n'y trouve rien, la vidéo retombait sur sa taille propre (375 x 500 mesurés
+  pour une scène de 375 x 700) et l'iPhone montrait parfois un petit rectangle en haut d'un écran
+  noir. Ne pas la remettre dans le flux.
+
+## Se comporter comme une application (web)
+
+Ce qui trahissait une page web sur iPhone, et ce qui le corrige. Ce qui ne se devine pas :
+
+- **La barre d'état est `default`, pas `black-translucent`** (`web/index.html`). Depuis iOS 26,
+  une application installée qui passe sous la barre d'état reçoit un flou "Liquid Glass" sur la
+  centaine de pixels du haut : l'en-tête, ses icônes et le titre devenaient flous. Aucune règle
+  CSS ne le coupe. **iOS ne relit cette balise qu'à l'ajout à l'écran d'accueil** : une icône
+  déjà installée garde l'ancien réglage, il faut la supprimer et la rajouter.
+- La barre d'état opaque est peinte de `theme-color`. Ces balises suivant la préférence du
+  téléphone, `alignerBarreEtat()` (`web/src/lib/theme.ts`) les aligne sur le thème choisi dans
+  l'application, sinon un thème forcé laissait une barre claire sur un écran sombre.
+- **Le rebond se coupe sur `html`, pas sur `body`** : le défilement de la page est celui du
+  viewport, que Safari règle d'après l'élément racine seulement. La règle posée sur `body`
+  laissait tirer l'écran très loin.
+- **Pas de sélection hors des champs** : `user-select: none` sur `html`, rétabli EXPLICITEMENT
+  sur `input`, `textarea` et `contenteditable`. Sans ce rétablissement, iOS peut refuser le
+  curseur, la loupe, voire la frappe dans un champ. Le préfixe `-webkit-` reste nécessaire.
+- **Pas d'ascenseur au doigt**, mais seulement sous `(hover: none) and (pointer: coarse)` : à la
+  souris, l'application s'ouvre aussi sur l'ordinateur, et l'ascenseur y sert.
 
 ## Common commands
 

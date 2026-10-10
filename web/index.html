@@ -26,7 +26,14 @@
     <!-- Installation sur l'ecran d'accueil iOS. Safari ignore encore une partie
          du manifeste : ces balises font le travail sur iPhone. -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- `default` et NON `black-translucent`. Depuis iOS 26, une application
+         installee qui passe sous la barre d'etat recoit un flou "Liquid Glass"
+         sur la centaine de pixels du haut : l'en-tete, ses icones et le titre
+         devenaient flous et genaient le doigt. Aucune regle CSS ne le coupe.
+         Avec `default`, la page commence SOUS une barre d'etat opaque, peinte
+         de `theme-color`. iOS ne relit cette balise qu'a l'ajout a l'ecran
+         d'accueil : une icone deja installee garde l'ancien reglage. -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Prandia" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
 

@@ -526,6 +526,13 @@ html {
      Voir src/lib/gestures.ts : ceci couvre Chrome et Android, Safari demande
      un traitement en JavaScript. */
   touch-action: pan-x pan-y;
+
+  /* PAS DE REBOND ELASTIQUE, et c'est ICI qu'il faut le dire. La regle portee
+     par `body` plus bas ne suffisait pas : le defilement de la page est celui
+     du viewport, que Safari regle d'apres l'element racine seulement. On
+     pouvait tirer l'ecran tres loin vers le bas, et l'application se
+     trahissait comme une page web. */
+  overscroll-behavior: none;
 }
 
 /* Echappatoire pour ce qui gere ses propres gestes — un graphique qui veut le
@@ -559,6 +566,43 @@ body {
 button,
 a {
   -webkit-tap-highlight-color: transparent;
+}
+
+/* L'application se manipule, elle ne se lit pas comme une page : un appui long
+   ne doit ni selectionner un libelle ni ouvrir la bulle Copier / Rechercher.
+   Safari a longtemps exige la forme prefixee : on pose les deux. */
+html {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* LES CHAMPS RETROUVENT LA SELECTION, et explicitement. Sous iOS, un champ dont
+   un ancetre porte `user-select: none` peut refuser le curseur, la loupe, voire
+   la frappe. Ce qu'on saisit doit aussi pouvoir se corriger, se copier et se
+   coller. */
+input,
+textarea,
+[contenteditable]:not([contenteditable='false']) {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
+/* PAS D'ASCENSEUR AU DOIGT. Une application native n'en affiche pas pendant le
+   defilement. Reserve aux ecrans tactiles : a la souris, l'ascenseur reste un
+   moyen de se reperer et de se deplacer, et l'application s'ouvre aussi sur
+   l'ordinateur. Les deux formes, parce que Safari a longtemps ignore
+   `scrollbar-width`. */
+@media (hover: none) and (pointer: coarse) {
+  html,
+  * {
+    scrollbar-width: none;
+  }
+
+  ::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* Les liens n'avaient AUCUNE regle de couleur : ils tombaient sur le `#0000EE`
