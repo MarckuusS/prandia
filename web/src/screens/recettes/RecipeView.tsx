@@ -35,7 +35,9 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import {
+  COOKED_UNIT_CODE,
   SEASONING_MAX_G,
+  cookedWeightG,
   currentIsoWeek,
   feasibility,
   formatEuros,
@@ -78,6 +80,23 @@ const PORTEES = [
 ] as const
 
 type Portee = (typeof PORTEES)[number]['cle']
+
+/**
+ * La quantite d'une ligne, telle qu'on l'a saisie. Une ligne saisie EN CUIT se
+ * relit en cuit, le cru a cote : "200 g cuits · 67 g crus". La base ne garde
+ * que le cru (apports, prix et courses le lisent) ; l'ecrire seul ferait
+ * chercher a la fiche un poids que personne n'a tape.
+ */
+function quantiteLue(
+  ingredient: Recipe['lines'][number]['ingredient'],
+  unit: string | null,
+  crusG: number,
+): string {
+  if (unit === COOKED_UNIT_CODE && ingredient.cookedWeightPer100gRaw !== null) {
+    return `${formatGrams(cookedWeightG(ingredient, crusG))} cuits · ${formatGrams(crusG)} crus`
+  }
+  return formatGrams(crusG)
+}
 
 export function RecipeView() {
   const params = useParams()
@@ -335,7 +354,7 @@ function Fiche({ recipe }: { readonly recipe: Recipe }) {
                     {absent && <span className="badge-manque">Manquant</span>}
                   </span>
                   <span className="fiche-ingredient__quantite">
-                    {formatGrams(quantite)}
+                    {quantiteLue(line.ingredient, line.unit, quantite)}
                     {line.notes !== null && line.notes !== '' && ` · ${line.notes}`}
                   </span>
                 </span>

@@ -47,6 +47,19 @@ export const DEFAULT_UNIT_CODE = 'g'
  */
 export const PIECE_UNIT_CODE = '_piece'
 
+/**
+ * Code de l'unite "g cuits". Comme la piece, son facteur depend de
+ * l'ingredient : son rendement a la cuisson (`cookedWeightPer100gRaw`, 300
+ * pour le riz : 100 g crus donnent 300 g cuits).
+ *
+ * LA MASSE STOCKEE RESTE CRUE. Les valeurs nutritionnelles sont pour 100 g
+ * CRUS (CIQUAL), le prix aussi, et la liste de courses achete du cru : saisir
+ * "200 g cuits" de riz enregistre 66,7 g, et seule l'unite se souvient de la
+ * facon dont on l'a dit. C'est la meme regle que la piece, appliquee a la
+ * cuisson.
+ */
+export const COOKED_UNIT_CODE = '_cuit'
+
 export class UnknownUnitError extends Error {
   constructor(code: string) {
     super(`Unite inconnue : '${code}'`)
@@ -54,34 +67,59 @@ export class UnknownUnitError extends Error {
   }
 }
 
+/** Le rendement, ou une erreur : sans lui, des grammes cuits ne se convertissent pas. */
+function rendement(cookedPer100gRaw: number | null | undefined): number {
+  if (!cookedPer100gRaw || cookedPer100gRaw <= 0) {
+    throw new UnknownUnitError(`${COOKED_UNIT_CODE} (rendement à la cuisson inconnu)`)
+  }
+  return cookedPer100gRaw
+}
+
 /**
  * Convertit une valeur saisie dans `unitCode` en grammes.
  *
- * `pieceWeightG` n'est requis que pour l'unite « piece ». Le desktop laissait
- * cette conversion a un composant QML ; la centraliser ici evite la
- * divergence constatee dans l'import de recette par URL, qui traitait une
- * piece comme un gramme (annexe #6 de la spec).
+ * `pieceWeightG` n'est requis que pour l'unite piece, `cookedPer100gRaw`
+ * que pour les grammes cuits. Le desktop laissait cette conversion a un
+ * composant QML ; la centraliser ici evite la divergence constatee dans
+ * l'import de recette par URL, qui traitait une piece comme un gramme
+ * (annexe #6 de la spec).
  */
-export function toGrams(value: number, unitCode: string, pieceWeightG?: number | null): number {
+export function toGrams(
+  value: number,
+  unitCode: string,
+  pieceWeightG?: number | null,
+  cookedPer100gRaw?: number | null,
+): number {
   if (unitCode === PIECE_UNIT_CODE) {
     if (!pieceWeightG || pieceWeightG <= 0) {
       throw new UnknownUnitError(`${PIECE_UNIT_CODE} (poids unitaire inconnu)`)
     }
     return value * pieceWeightG
   }
+  if (unitCode === COOKED_UNIT_CODE) return (value * 100) / rendement(cookedPer100gRaw)
   const unit = UNIT_BY_CODE.get(unitCode)
   if (!unit) throw new UnknownUnitError(unitCode)
   return value * unit.gramsPerUnit
 }
 
-/** Reconvertit une masse stockee en grammes vers `unitCode`, pour l'affichage. */
-export function fromGrams(grams: number, unitCode: string, pieceWeightG?: number | null): number {
+/**
+ * Reconvertit une masse stockee en grammes vers `unitCode`, pour l'affichage.
+ * En grammes cuits, c'est exactement `cookedWeightG` (nutrition.ts) : un test
+ * garde l'egalite, pour que la fiche et le champ ne lisent pas deux poids.
+ */
+export function fromGrams(
+  grams: number,
+  unitCode: string,
+  pieceWeightG?: number | null,
+  cookedPer100gRaw?: number | null,
+): number {
   if (unitCode === PIECE_UNIT_CODE) {
     if (!pieceWeightG || pieceWeightG <= 0) {
       throw new UnknownUnitError(`${PIECE_UNIT_CODE} (poids unitaire inconnu)`)
     }
     return grams / pieceWeightG
   }
+  if (unitCode === COOKED_UNIT_CODE) return (grams * rendement(cookedPer100gRaw)) / 100
   const unit = UNIT_BY_CODE.get(unitCode)
   if (!unit) throw new UnknownUnitError(unitCode)
   return grams / unit.gramsPerUnit
@@ -91,13 +129,14 @@ export function labelFor(unitCode: string, pieceWeightG?: number | null): string
   if (unitCode === PIECE_UNIT_CODE) {
     return pieceWeightG ? `pièce (${formatGrams(pieceWeightG)})` : 'pièce'
   }
+  if (unitCode === COOKED_UNIT_CODE) return 'g cuits'
   const unit = UNIT_BY_CODE.get(unitCode)
   if (!unit) throw new UnknownUnitError(unitCode)
   return unit.label
 }
 
 export function isKnownUnit(unitCode: string): boolean {
-  return unitCode === PIECE_UNIT_CODE || UNIT_BY_CODE.has(unitCode)
+  return unitCode === PIECE_UNIT_CODE || unitCode === COOKED_UNIT_CODE || UNIT_BY_CODE.has(unitCode)
 }
 
 /**

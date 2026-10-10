@@ -537,6 +537,7 @@ function LineEditor({
           value={displayed}
           onChange={(grams) => onChange({ quantityG: grams })}
           pieceWeightG={line.ingredient.pieceWeightG}
+          cookedWeightPer100gRaw={line.ingredient.cookedWeightPer100gRaw}
           unit={line.unit}
           onUnitChange={(unit) => onChange({ unit })}
         />

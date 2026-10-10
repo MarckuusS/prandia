@@ -5,7 +5,9 @@
  */
 
 import { describe, expect, it } from 'vitest'
+import { cookedWeightG } from './nutrition.js'
 import {
+  COOKED_UNIT_CODE,
   DEFAULT_UNIT_CODE,
   PIECE_UNIT_CODE,
   UNITS,
@@ -136,5 +138,42 @@ describe('formatGrams', () => {
     // plus precis, et aucune lecture n'en devient fausse.
     expect(formatGrams(12.5)).toBe('12,5 g')
     expect(formatGrams(250.4)).toBe('250 g')
+  })
+})
+
+describe('l unite g cuits', () => {
+  // Riz : 100 g crus donnent 300 g cuits.
+  const RIZ = 300
+
+  it('enregistre la masse CRUE de ce qu on a saisi cuit', () => {
+    expect(toGrams(300, COOKED_UNIT_CODE, null, RIZ)).toBe(100)
+    expect(toGrams(200, COOKED_UNIT_CODE, null, RIZ)).toBeCloseTo(66.667, 3)
+  })
+
+  it('relit le cuit depuis le cru, comme le fait la fiche', () => {
+    expect(fromGrams(100, COOKED_UNIT_CODE, null, RIZ)).toBe(300)
+    // Le champ et la fiche ne doivent jamais lire deux poids differents.
+    for (const crus of [12.5, 66.667, 100, 250]) {
+      expect(fromGrams(crus, COOKED_UNIT_CODE, null, RIZ)).toBeCloseTo(
+        cookedWeightG({ cookedWeightPer100gRaw: RIZ }, crus),
+        9,
+      )
+    }
+  })
+
+  it('fait l aller-retour sans derive', () => {
+    expect(fromGrams(toGrams(200, COOKED_UNIT_CODE, null, RIZ), COOKED_UNIT_CODE, null, RIZ)).toBeCloseTo(200, 9)
+  })
+
+  it('refuse de convertir sans rendement', () => {
+    expect(() => toGrams(200, COOKED_UNIT_CODE)).toThrow(UnknownUnitError)
+    expect(() => fromGrams(200, COOKED_UNIT_CODE, 60, null)).toThrow(UnknownUnitError)
+    expect(() => toGrams(200, COOKED_UNIT_CODE, null, 0)).toThrow(UnknownUnitError)
+  })
+
+  it('a son libelle, et la piece ne s en trouve pas changee', () => {
+    expect(labelFor(COOKED_UNIT_CODE)).toBe('g cuits')
+    expect(isKnownUnit(COOKED_UNIT_CODE)).toBe(true)
+    expect(toGrams(2, PIECE_UNIT_CODE, 60, RIZ)).toBe(120)
   })
 })

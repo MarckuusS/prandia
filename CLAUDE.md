@@ -223,6 +223,15 @@ ou "Annuler" est reste inatteignable un moment.
   cote pour relire et rouvrir le repas en grammes ; aucun calcul ne la lit, le serveur la stocke
   telle quelle. Les portions gardent toute leur precision (0,8333...) : arrondies, 350 g se
   rouvriraient en 349. Sans ligne, une recette ne pese rien et ne se dose qu'en portions.
+- **Un ingredient qui a un rendement se saisit en cru OU en cuit** (`COOKED_UNIT_CODE` = `_cuit`,
+  `shared/src/units.ts`), sur le modele exact de la piece : un facteur qui vient de l'ingredient
+  (`cookedWeightPer100gRaw`) et non d'une table. **La base garde le CRU** : apports, prix et
+  courses le lisent, et la liste de courses achete du riz cru. "200 g cuits" de riz a 300
+  enregistre 66,7 g, l'unite `_cuit` a cote. Le champ relabellise alors "g" en "g crus", dit
+  sous lui ce qui part en base ("Soit 67 g crus"), et la fiche relit "200 g cuits · 67 g crus".
+  **Jamais un defaut** : une recette s'ecrit le plus souvent en cru. Seul l'editeur de recette
+  passe `cookedWeightPer100gRaw` a `QuantityField` ; une autre surface ne l'offre que si elle le
+  passe aussi. `fromGrams` en cuit vaut `cookedWeightG` au flottant pres, et un test le garde.
 
 ## Comptes et cuisines — `scripts/add-user.mjs`
 
