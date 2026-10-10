@@ -16,6 +16,7 @@ import { PantryScreen } from './screens/PantryScreen.js'
 import { RecipeDetailScreen } from './screens/RecipesScreen.js'
 import { Repertoire } from './screens/recettes/Repertoire.js'
 import { RecipeView } from './screens/recettes/RecipeView.js'
+import { ImportRecette } from './screens/recettes/ImportRecette.js'
 import { ActivityScreen } from './screens/ActivityScreen.js'
 import { ObjectifsScreen } from './screens/ObjectifsScreen.js'
 import { SettingsScreen } from './screens/SettingsScreen.js'
@@ -82,6 +83,7 @@ const TITLES: Array<[RegExp, string]> = [
   [/^\/ingredients\/[^/]+$/, 'Ingrédient'],
   [/^\/ingredients$/, 'Ingrédients'],
   [/^\/recettes\/[^/]+\/modifier$/, 'Modifier la recette'],
+  [/^\/recettes\/importer$/, 'Importer une recette'],
   [/^\/recettes\/[^/]+$/, 'Recette'],
   [/^\/recettes$/, 'Recettes'],
   [/^\/courses$/, 'Liste de courses'],
@@ -211,6 +213,7 @@ export function App() {
             {/* La LECTURE a l'adresse courte, l'editeur dessous : tous les
                 liens du projet pointent deja ici, et les inverser ferait
                 ouvrir un formulaire depuis le planning et l'accueil. */}
+            <Route path="/recettes/importer" element={<ImportRecette />} />
             <Route path="/recettes/:id" element={<RecipeView />} />
             <Route path="/recettes/:id/modifier" element={<RecipeDetailScreen />} />
             <Route path="/courses" element={<ShoppingScreen />} />

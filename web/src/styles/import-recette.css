@@ -1,0 +1,190 @@
+/* =============================================================================
+ * Importer une recette depuis un lien (ImportRecette.tsx)
+ * ========================================================================== */
+
+.import__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.import__actions .button {
+  flex: 1 1 10rem;
+}
+
+/* ---------- En-tete : photo, nom, portions ---------- */
+
+.import-entete__photo {
+  overflow: hidden;
+  margin-bottom: var(--space-md);
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-hover);
+  transition: opacity var(--duration-fast) var(--easing-standard);
+}
+
+.import-entete__photo img,
+.import-entete__attente {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Photo ecartee : elle reste visible, a demi, pour qu'on sache ce qu'on laisse. */
+.import-entete__photo--retiree {
+  opacity: 0.35;
+}
+
+.import-entete__source {
+  margin: 0 0 var(--space-sm);
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+}
+
+.import-bilan {
+  margin: 0;
+  padding: 0 var(--space-lg);
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+}
+
+/* ---------- Une ligne lue ---------- */
+
+.import-lignes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.import-ligne {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+/* Ce que le site a ecrit, tel quel : c'est la reference a laquelle on compare
+   la fiche retenue. */
+.import-ligne__brut {
+  margin: 0;
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+}
+
+.import-ligne--ignoree .import-ligne__brut {
+  text-decoration: line-through;
+}
+
+.import-ligne__reprendre {
+  display: flex;
+  gap: var(--space-md);
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+}
+
+/* Rien de retenu : la ligne se voit, sans couleur d'alerte en aplat. */
+.lien-fiche.import-ligne__fiche--vide {
+  color: var(--color-text-secondary);
+  background: transparent;
+  outline: 1px dashed var(--color-text-placeholder);
+  outline-offset: -1px;
+}
+
+/* "A verifier" : du texte ambre, jamais un aplat (voir CLAUDE.md, Ligne
+   visuelle). 5,02:1 sur une carte claire, 9,80:1 en sombre. */
+.import-ligne__badge {
+  flex: none;
+  padding: 1px var(--space-sm);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-warning);
+  border: 1px solid currentColor;
+  border-radius: var(--radius-full);
+}
+
+.button.import-ligne__ignorer {
+  align-self: flex-start;
+  min-height: var(--control-height-md);
+  padding: 0 var(--space-sm);
+  color: var(--color-text-secondary);
+}
+
+/* ---------- Etapes et fin ---------- */
+
+.import-etapes {
+  margin: 0;
+  padding-left: var(--space-xl);
+  line-height: 1.5;
+}
+
+.import-etapes li + li {
+  margin-top: var(--space-xs);
+}
+
+.import-fin {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+/* ---------- Choisir une fiche ---------- */
+
+.import-choix__brut {
+  margin: 0;
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+}
+
+.import-choix__brut span {
+  color: var(--color-text);
+}
+
+.import-choix {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.import-choix__ligne {
+  display: flex;
+  gap: var(--space-md);
+  align-items: center;
+  width: 100%;
+  min-height: var(--control-height-lg);
+  padding: var(--space-sm) var(--space-md);
+  font: inherit;
+  color: var(--color-text);
+  text-align: left;
+  background: var(--color-surface);
+  border: 0;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.import-choix__ligne:active {
+  background: var(--color-surface-pressed);
+}
+
+.import-choix__corps {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.import-choix__nom {
+  font-weight: var(--font-weight-medium);
+}
+
+.import-choix__meta {
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+}

@@ -730,6 +730,17 @@
   background: var(--color-surface-pressed);
 }
 
+/* La meme ligne portee par un <button> (choisir une fiche, importer depuis un
+   lien) : on retire ce que le navigateur pose sur un bouton. */
+.lien-fiche.lien-fiche--bouton {
+  width: 100%;
+  font-family: inherit;
+  font-size: inherit;
+  text-align: left;
+  border: 0;
+  cursor: pointer;
+}
+
 .lien-fiche__libelle {
   flex: 1;
   min-width: 0;

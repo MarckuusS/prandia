@@ -174,6 +174,42 @@ export class IngredientRepo {
   }
 
   /**
+   * Candidats d'une ligne de recette importee par lien : bibliotheque ET
+   * catalogue, sans distinction de source.
+   *
+   * L'ORDRE est ce qui compte, la limite coupant le reste : la bibliotheque
+   * d'abord, puis les fiches qui COMMENCENT par l'aliment, puis les plus
+   * courtes. Le catalogue CIQUAL range ses fiches par nom ("Lait demi-ecreme,
+   * pasteurise"), et la fiche generique est presque toujours la plus courte de
+   * celles qui commencent par le mot. Trie par ordre alphabetique, "lait"
+   * remontait "Boisson au lait" avant tout lait.
+   *
+   * `fts` est une requete en OU (`importFtsQuery`) : le classement fin se fait
+   * ensuite, en JavaScript, par `matchScore`.
+   */
+  async importCandidates(head: string, fts: string | null, limit = 60): Promise<Ingredient[]> {
+    const debut = `${escapeLike(head)}%`
+    const parMot = fts === null ? '' : 'OR i.id IN (SELECT rowid FROM ingredient_fts WHERE ingredient_fts MATCH ?)'
+    const args: unknown[] = [this.householdId, debut, ...(fts === null ? [] : [fts]), debut, limit]
+    // Meme remarque que `listPersonal` : le MATCH n'est pas cloisonne, c'est
+    // `i.household_id` qui borne le resultat.
+    const { results } = await this.db
+      .prepare(
+        `SELECT ${prefixed('i')}
+         FROM ingredient i
+         WHERE i.household_id = ?
+           AND (i.name_normalized LIKE ? ESCAPE '\\' ${parMot})
+         ORDER BY i.in_personal_library DESC,
+                  (i.name_normalized LIKE ? ESCAPE '\\') DESC,
+                  length(i.name)
+         LIMIT ?`,
+      )
+      .bind(...args)
+      .all<IngredientRow>()
+    return results.map(toIngredient)
+  }
+
+  /**
    * Catalogue complet — c'est ce que parcourt la fenetre « Importer ».
    *
    * Contrairement a `listPersonal`, aucun filtre sur `in_personal_library` :

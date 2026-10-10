@@ -17,7 +17,7 @@
  * serveur qui refuse un JPEG portant encore ces segments.
  */
 
-import { PHOTO, type PhotoSize, scaleFor } from '@prandia/shared'
+import { PHOTO, PHOTO_IMPORT_COVER, type PhotoSize, type PhotoSpec, scaleFor } from '@prandia/shared'
 
 /** Le fichier ne se decode pas : format inconnu du navigateur, ou fichier abime. */
 export class PhotoIllisibleError extends Error {
@@ -61,8 +61,9 @@ export interface PhotoReduite {
 async function dessiner(
   source: ImageBitmap,
   taille: PhotoSize,
+  spec: PhotoSpec = PHOTO[taille],
 ): Promise<{ blob: Blob; width: number; height: number }> {
-  const { width, height } = scaleFor(source.width, source.height, PHOTO[taille].maxSide)
+  const { width, height } = scaleFor(source.width, source.height, spec.maxSide)
 
   const canvas = document.createElement('canvas')
   canvas.width = width
@@ -76,7 +77,7 @@ async function dessiner(
   ctx.drawImage(source, 0, 0, width, height)
 
   const blob = await new Promise<Blob | null>((resoudre) => {
-    canvas.toBlob(resoudre, 'image/jpeg', PHOTO[taille].quality)
+    canvas.toBlob(resoudre, 'image/jpeg', spec.quality)
   })
   if (blob === null) throw new PhotoIllisibleError()
   if (blob.type !== 'image/jpeg') throw new PhotoIllisibleError()
@@ -98,7 +99,11 @@ async function dessiner(
  * n'est pas cuite dans les pixels, et effacer l'etiquette la rendrait
  * definitive.
  */
-export async function reduirePhoto(fichier: File | Blob): Promise<PhotoReduite> {
+export async function reduirePhoto(
+  fichier: File | Blob,
+  // 'import' : la photo d'une recette importee, plus compressee (PHOTO_IMPORT_COVER).
+  profil: 'saisie' | 'import' = 'saisie',
+): Promise<PhotoReduite> {
   let source: ImageBitmap
   try {
     source = await createImageBitmap(fichier, { imageOrientation: 'from-image' })
@@ -109,7 +114,7 @@ export async function reduirePhoto(fichier: File | Blob): Promise<PhotoReduite> 
   }
 
   try {
-    const grande = await dessiner(source, 'cover')
+    const grande = await dessiner(source, 'cover', profil === 'import' ? PHOTO_IMPORT_COVER : PHOTO.cover)
     // LA VIGNETTE PART DE LA GRANDE, deja reduite : redessiner depuis la source
     // native rejouerait le decodage de vingt-quatre megapixels pour une image
     // de trois cent vingt pixels.

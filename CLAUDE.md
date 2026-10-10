@@ -832,6 +832,56 @@ planificateur ne l'atteint pas. Ce qui ne se devine pas :
   dossier au chemin COURT avant de l'ouvrir : sous un chemin long, SQLite échoue en
   `SQLITE_CANTOPEN` (limite de 260 caractères de Windows, base comprise).
 
+## Importer une recette par lien (web) : `shared/src/importRecette.ts`, `screens/recettes/ImportRecette.tsx`
+
+Coller le lien d'une recette, relire, créer. Entrée en tête de "Nouvelle recette", écran
+`/recettes/importer` (accepte `?url=`). Ce qui ne se devine pas :
+
+- **Pas de "Partager vers Prandia" sur iPhone** : iOS ne laisse pas une app installée depuis
+  Safari apparaître dans le menu Partager (WebKit, bogue 194593, pas de `share_target`). Le geste
+  est "copier le lien, toucher Importer depuis un lien" : ce toucher lit le presse-papiers (iOS
+  demande "Coller"), et la lecture part d'elle-même si un lien s'y trouve. `lienRecette` retrouve
+  l'adresse dans un texte partagé ("Titre https://…") et refuse les hôtes locaux et privés.
+- **Le SERVEUR lit la page, jamais le navigateur** (CORS), et ne lit que le **bloc JSON-LD
+  `Recipe`** que les sites publient pour les moteurs de recherche. Deviner une recette dans la
+  mise en page casserait à la première refonte, en silence. Pas de `recipe-scrapers` (Python,
+  sans équivalent JS). Délai 15 s, page coupée à 3 Mo, photo refusée au-delà de 15 Mo.
+  `POST /api/recipe-import` n'ÉCRIT RIEN : il rend une proposition. La recette ne naît
+  qu'après la revue, par `POST /api/recipes`, qui revérifie chaque ingrédient.
+- **Une revue avant création, et c'est le cœur.** Chaque ligne arrive reconnue, à vérifier ou à
+  choisir ; "Créer" reste bloqué tant qu'une ligne est à choisir (la choisir ou l'ignorer). Un
+  "beurre" pris pour du beurre de cacahuète fausserait les macros sans que rien ne le signale.
+- **Le classement des candidats a été réglé sur de vraies pages** (Marmiton, CuisineAZ, 750g) et
+  chaque piège est un test :
+  - `importCandidates` trie la bibliothèque d'abord, puis les fiches qui COMMENCENT par l'aliment,
+    les plus courtes en tête. Par ordre alphabétique, "lait" remontait "Boisson au lait".
+  - `memeMot` : égalité ou féminin, PAS de préfixe libre ("lait" trouvait "laitue").
+  - Les qualificatifs CIQUAL ("80", "MG", "minimum", "UHT") ne coûtent rien ; seuls les mots qui
+    disent autre chose départagent ("salé" contre "doux").
+  - `PAR_DEFAUT` : "lait" est du demi-écrémé, "farine" de la farine de blé, "beurre" du doux.
+    Seulement pour une fiche de CET aliment : le "blanc" du sel ne doit pas servir au poivre.
+  - "Sûr" exige une note haute ET un écart net avec le second : "huile" va à l'olive comme au colza.
+  - Un candidat sans aucun mot commun n'est pas proposé (la mortadelle pour "trompette de la mort").
+- **Les quantités sans unité ont des règles, toutes marquées "à vérifier"** (`importAmount`) :
+  mots de portion pesés (`PORTIONS_G` : une gousse 5 g, une feuille 0,5 g, sinon 15 feuilles de
+  persil pesaient 1,5 kg), assaisonnements en pincées ("1 Sel poivre" ne fait pas 100 g de sel),
+  nombre nu de dix ou plus en grammes hors des rayons qu'on compte ("20 Beurre" : 20 g, mais 12
+  œufs restent douze pièces). Les rayons sont ceux de Prandia (`category_l1`), PAS les familles
+  CIQUAL, et le beurre du catalogue n'en a aucun.
+- **Les marques de pluriel des sites ("Escalope(s)") sont retirées AVANT tout** : la parenthèse
+  coupait le nom, et l'on cherchait "escalope" au lieu de "escalope de dinde".
+- **Deux images possibles** : celle du bloc recette, parfois une vignette de 290 px, puis
+  l'image de partage (`og:image`). L'écran garde la première d'au moins 600 px, à défaut la plus
+  grande. Elle passe par `POST /api/recipe-import/photo` (type tiré des OCTETS, `nosniff`, CSP
+  `sandbox`), puis par `reduirePhoto(blob, 'import')` : 1 080 px et qualité 0,72
+  (`PHOTO_IMPORT_COVER`), à la demande, pour gagner de la place. L'image d'un site est déjà
+  compressée, la réencoder à 0,82 ne rendait rien.
+- **Les fiches du catalogue retenues entrent dans la bibliothèque**, et deux lignes du même
+  ingrédient fusionnent (l'éditeur refuse les doublons). La photo est déposée AU MIEUX : manquée,
+  la recette existe quand même et un message le dit.
+- **Essayer en local demande le catalogue CIQUAL**, que la base de développement n'a pas : le
+  charger depuis `scripts/_dump/d1-seed.sql` (hors bibliothèque), puis le retirer.
+
 ## Common commands
 
 ```bash

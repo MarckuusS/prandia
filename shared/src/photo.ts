@@ -36,6 +36,18 @@ export const PHOTO = {
 
 export type PhotoSize = keyof typeof PHOTO
 
+/**
+ * La grande image d'une photo IMPORTEE avec une recette : plus petite et plus
+ * compressee, a la demande, pour economiser la place.
+ *
+ * L'argument qui tient la qualite de 0,82 pour une photo prise au telephone
+ * tombe ici : l'image d'un site est DEJA un JPEG compresse, souvent fortement,
+ * et la reencoder plus haut ne rend pas ce qui a ete perdu. 1 080 pixels
+ * couvrent encore la largeur d'un telephone sans agrandissement visible. La
+ * vignette, elle, ne change pas.
+ */
+export const PHOTO_IMPORT_COVER = { maxSide: 1080, quality: 0.72, maxBytes: PHOTO.cover.maxBytes } as const satisfies PhotoSpec
+
 /** Plafond du corps multipart : les deux parties, plus la place des frontieres. */
 export const PHOTO_BODY_MAX = PHOTO.cover.maxBytes + PHOTO.thumb.maxBytes + 8_192
 

@@ -26,6 +26,8 @@ import type { Recipe } from '@prandia/shared'
 import { NumberField, TextField } from '../components/Field.js'
 import { Sheet } from '../components/Sheet.js'
 import { EmptyState, ErrorState, LoadingRows } from '../components/States.js'
+import { Icon } from '../icons/index.js'
+import { lienDuPressePapiers } from '../lib/pressePapiers.js'
 import { useRecipe, useRecipes, useSaveRecipe, useTags, type RecipeSummary } from '../lib/queries.js'
 import { RecipeEditor } from './recettes/RecipeEditor.js'
 import { formatDay, plural } from './recettes/draft.js'
@@ -55,6 +57,12 @@ export function NewRecipeSheet({
   const [touched, setTouched] = useState(false)
 
   const problem = name.trim() === '' ? 'Le nom de la recette ne peut pas être vide.' : null
+
+  const importer = async () => {
+    const lien = await lienDuPressePapiers()
+    onClose()
+    void navigate(lien === null ? '/recettes/importer' : `/recettes/importer?url=${encodeURIComponent(lien)}`)
+  }
 
   const submit = () => {
     setTouched(true)
@@ -111,13 +119,24 @@ export function NewRecipeSheet({
       }
     >
       <div className="form">
+        {/* Le chemin le plus court pour une recette trouvee en ligne. Le toucher
+            lit le presse-papiers (iOS demande "Coller") : si un lien s'y trouve,
+            la lecture part directement, sinon l'ecran d'import attend le lien. */}
+        <button type="button" className="lien-fiche lien-fiche--bouton lien-surface" onClick={() => void importer()}>
+          <span className="icon-chip icon-chip--sm" aria-hidden="true">
+            <Icon name="ui-download" size={16} />
+          </span>
+          <span className="lien-fiche__libelle">Importer depuis un lien</span>
+          <Icon name="ui-chevron-right" size={18} className="lien-fiche__chevron" />
+        </button>
+        <p className="field__hint">Copie le lien d’une recette dans Safari, puis touche ici.</p>
+
         <TextField
           label="Nom"
           value={name}
           onChange={setName}
           placeholder="Gratin de courgettes"
           required
-          autoFocus
           error={touched ? problem : null}
         />
         <NumberField

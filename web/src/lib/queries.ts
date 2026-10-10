@@ -38,7 +38,7 @@ import {
 
   type WeighIn,} from '@prandia/shared'
 
-import { apiFetch } from './api.js'
+import { ApiError, apiFetch } from './api.js'
 
 // ---------------------------------------------------------------------------
 // Cles et invalidation
@@ -570,6 +570,82 @@ export function useSetRecipePhoto(recipeId: number) {
       )
     },
     onSuccess: ({ imageKey }) => rafraichirPhoto(client, recipeId, imageKey),
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Importer une recette par lien
+// ---------------------------------------------------------------------------
+
+/** Une ligne lue sur le site, et ce que le serveur propose pour elle. */
+export interface ImportLine {
+  readonly raw: string
+  readonly quantity: number | null
+  readonly unit: string | null
+  readonly name: string
+  /** Mot de portion lu ("gousse", "feuille"), pour estimer une masse sans unite. */
+  readonly portion: string | null
+  /** Du meilleur au moins bon, bibliotheque et catalogue confondus. */
+  readonly candidates: readonly Ingredient[]
+  /** `null` : rien d'assez proche, la ligne arrive "a choisir". */
+  readonly choiceId: number | null
+  /** La correspondance est nette ; sinon l'ecran dit "a verifier". */
+  readonly sure: boolean
+}
+
+export interface ImportProposal {
+  readonly recipe: {
+    readonly name: string
+    readonly portions: number
+    readonly prepTimeMin: number | null
+    readonly steps: readonly string[]
+    readonly imageUrl: string | null
+    /** Bloc recette puis image de partage : l'ecran garde la premiere assez grande. */
+    readonly imageUrls: readonly string[]
+    readonly sourceUrl: string
+  }
+  readonly lines: readonly ImportLine[]
+}
+
+/** Lire une page de recette. Rien n'est ecrit : c'est une proposition. */
+export const useReadRecipeLink = () =>
+  useMutation({ mutationFn: (url: string) => post<ImportProposal>('/api/recipe-import', { url }) })
+
+/**
+ * La photo du site, relayee par le serveur : le site interdit au navigateur de
+ * la lire lui-meme. Elle repart ensuite par `reduirePhoto`, comme une photo
+ * prise au telephone.
+ */
+export async function fetchImportPhoto(url: string): Promise<Blob> {
+  let reponse: Response
+  try {
+    reponse = await fetch('/api/recipe-import/photo', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ url }),
+    })
+  } catch {
+    throw new ApiError(0, 'network', 'Pas de connexion. Vérifie ton réseau.')
+  }
+  if (!reponse.ok) throw new ApiError(reponse.status, 'import_photo', 'La photo n’a pas pu être récupérée.')
+  return reponse.blob()
+}
+
+/**
+ * Deposer la photo d'une recette qui vient d'etre creee. `useSetRecipePhoto`
+ * veut l'identifiant a la creation du hook ; ici il n'existe qu'apres.
+ */
+export function useUploadRecipePhoto() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: ({ recipeId, cover, thumb }: { recipeId: number; cover: Blob; thumb: Blob }) => {
+      const form = new FormData()
+      form.append('cover', cover, 'cover.jpg')
+      form.append('thumb', thumb, 'thumb.jpg')
+      return postForm<{ id: number; imageKey: string }>(`/api/recipes/${recipeId}/image`, form)
+    },
+    onSuccess: ({ id, imageKey }) => rafraichirPhoto(client, id, imageKey),
   })
 }
 

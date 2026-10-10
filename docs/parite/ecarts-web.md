@@ -223,6 +223,8 @@ défilement Qt, dossier surveillé, `QSettings`, panneau latéral de pastilles.
 
 ### B1 Import de recette par URL (14)
 
+> Comblé le 2026-10-11 : écran `/recettes/importer`, entrée en tête de "Nouvelle recette". Lecture du bloc JSON-LD seul (pas de `recipe-scrapers`, sans équivalent en JavaScript), revue ligne à ligne avant création, photo relayée par le serveur puis réduite par le téléphone. Différences avec le bureau : la quantité d'une pièce est convertie (le bureau la prenait pour des grammes), le lien et le temps sont enregistrés, et il n'y a pas de création d'ingrédient manuel depuis la revue (la ligne s'ignore puis s'ajoute dans l'éditeur). Voir CLAUDE.md, "Importer une recette par lien".
+
 - **Coller une URL et extraire la recette** [absent / bloquant / effort eleve / Recettes]  
   Impossible de coller l'adresse d'une recette pour en recuperer nom, portions, instructions et lignes d'ingredients. Toute recette trouvee en ligne doit etre ressaisie a la main, ligne par ligne, au pouce.
   API deja servie : Aucune. Le champ sourceUrl existe deja en base et est affiche par l'editeur quand il est renseigne (web/src/screens/recettes/RecipeEditor.tsx:276-283), mais rien ne le remplit.
