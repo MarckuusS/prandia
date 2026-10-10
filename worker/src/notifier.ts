@@ -1,11 +1,19 @@
 /**
- * La planification des notifications : un Worker A PART, sur declencheur horaire.
+ * La planification des notifications : un Worker A PART, et une horloge.
  *
  * POURQUOI A PART. Le site et son API sont une Pages Function, et Pages ne sait
- * pas declencher une action a heure fixe. Ce Worker-ci n'a aucune route : il se
- * reveille toutes les cinq minutes (`notifier/wrangler.toml`), lit la meme base,
- * et envoie ce qui est du. Il se deploie par `wrangler deploy`, pas par le push
- * sur main : voir docs/deploiement.md.
+ * pas declencher une action a heure fixe. Ce Worker-ci n'a aucune route : il
+ * porte l'horloge, lit la meme base et envoie ce qui est du. Il se deploie par
+ * `wrangler deploy`, pas par le push sur main : voir docs/deploiement.md.
+ *
+ * POURQUOI UNE ALARME ET PAS UN DECLENCHEUR HORAIRE. Le plan gratuit de
+ * Cloudflare borne le COMPTE a cinq declencheurs (cron), et d'autres projets
+ * les occupent tous : le deploiement a ete refuse. L'horloge est donc un
+ * Durable Object dont l'alarme sonne toutes les cinq minutes ; une alarme ne
+ * consomme aucun declencheur. Elle se RE-ARME AVANT de travailler, et le
+ * travail ne leve jamais : une erreur d'envoi ne casse pas la chaine. Si elle
+ * se rompt quand meme, l'API la remonte a la visite suivante de l'ecran
+ * Notifications (worker/src/horloge.ts).
  *
  * L'ORDRE D'UN ENVOI EST LA SEULE GARANTIE CONTRE LE DOUBLON. On RESERVE d'abord
  * la cle dans `notification_log` (`INSERT OR IGNORE`) : de deux passages qui se
@@ -19,7 +27,7 @@
  * reposera pas la question pendant toute la fenetre.
  */
 
-import type { D1Database, ExecutionContext, ScheduledController } from '@cloudflare/workers-types'
+import type { D1Database, DurableObject, DurableObjectNamespace, DurableObjectState } from '@cloudflare/workers-types'
 import {
   NOTIFICATION_DEF,
   dueSlots,
@@ -31,16 +39,66 @@ import {
   type ParisClock,
 } from '@prandia/shared'
 
+import { remonterHorloge } from './horloge.js'
 import { sendPush, vapidFrom, type PushContent, type VapidEnv } from './push.js'
 import { recordDelivery } from './repos/notifications.js'
 
 export interface NotifierEnv extends VapidEnv {
   readonly DB: D1Database
+  readonly HORLOGE: DurableObjectNamespace
+}
+
+const PERIODE_MS = 5 * 60 * 1000
+
+/** Le multiple de cinq minutes qui suit : des passages a heure ronde. */
+export function prochainReveil(now: number): number {
+  return (Math.floor(now / PERIODE_MS) + 1) * PERIODE_MS
+}
+
+export class Horloge implements DurableObject {
+  private readonly state: DurableObjectState
+  private readonly env: NotifierEnv
+
+  constructor(state: DurableObjectState, env: NotifierEnv) {
+    this.state = state
+    this.env = env
+  }
+
+  /**
+   * Remonter : poser l'alarme si aucune n'attend, et dire quand elle sonnera.
+   * Une horloge qui n'avait rien de pose part TOUT DE SUITE : le premier
+   * passage n'attend pas le multiple de cinq minutes.
+   */
+  async fetch(): Promise<Response> {
+    let prochain = await this.state.storage.getAlarm()
+    if (prochain === null) {
+      prochain = Date.now()
+      await this.state.storage.setAlarm(prochain)
+    }
+    return Response.json({ prochain: new Date(prochain).toISOString() })
+  }
+
+  async alarm(): Promise<void> {
+    await this.state.storage.setAlarm(prochainReveil(Date.now()))
+    try {
+      await planifier(this.env, new Date())
+    } catch (error) {
+      // Lever ferait rejouer l'alarme par le runtime, en plus de celle qu'on
+      // vient de poser. On journalise et on attend le passage suivant.
+      console.error('notifier : passage en echec', error)
+    }
+  }
 }
 
 export default {
-  async scheduled(_controller: ScheduledController, env: NotifierEnv, ctx: ExecutionContext): Promise<void> {
-    ctx.waitUntil(planifier(env, new Date()))
+  /**
+   * Aucune adresse ne mene ici en production (`workers_dev` et `preview_urls`
+   * a false). En local, `wrangler dev` y repond : c'est la facon de remonter
+   * l'horloge a la main pour un essai.
+   */
+  async fetch(_request: Request, env: NotifierEnv): Promise<Response> {
+    await remonterHorloge(env.HORLOGE)
+    return new Response('horloge remontee\n')
   },
 }
 

@@ -2,9 +2,11 @@
  * Notifications : regler ce qu'on recoit, abonner un appareil, essayer.
  *
  * L'ENVOI PLANIFIE N'EST PAS ICI. Pages ne sait pas declencher une action a
- * heure fixe : c'est le Worker `notifier` (worker/src/notifier.ts) qui passe
- * toutes les cinq minutes. Ces routes ne font que preparer ce qu'il lira, et
- * envoyer une notification de test, a la demande, pour verifier la chaine.
+ * heure fixe : c'est l'horloge du Worker `notifier` (worker/src/notifier.ts)
+ * qui passe toutes les cinq minutes. Ces routes ne font que preparer ce
+ * qu'elle lira, envoyer une notification de test a la demande, et REMONTER
+ * l'horloge a chaque visite de l'ecran et a chaque reglage : une alarme
+ * jamais posee ne sonne jamais.
  */
 
 import { z } from 'zod'
@@ -15,7 +17,8 @@ import {
   parseTimes,
 } from '@prandia/shared'
 
-import { badRequest, HttpError, json, parseOrThrow, readJson, requireUser, route } from '../http.js'
+import { remonterHorloge } from '../horloge.js'
+import { badRequest, HttpError, json, parseOrThrow, readJson, requireUser, route, type Env } from '../http.js'
 import { sendPush, vapidFrom } from '../push.js'
 import { NotificationRepo, recordDelivery } from '../repos/notifications.js'
 
@@ -35,10 +38,18 @@ const abonnementSchema = z.object({
 
 const desabonnementSchema = z.object({ endpoint: z.string().url() })
 
+/**
+ * Au mieux : l'ecran doit marcher meme quand l'horloge ne repond pas (en
+ * local, tant que le Worker `notifier` ne tourne pas). L'echec se journalise,
+ * il ne remonte pas jusqu'a la personne, qui n'y peut rien.
+ */
+const remonter = (env: Env): Promise<void> =>
+  remonterHorloge(env.HORLOGE).catch((error: unknown) => console.error('horloge injoignable', error))
+
 route('GET', '/api/notifications', async ({ env, user }) => {
   const me = requireUser(user)
   const repo = new NotificationRepo(env.DB, me.id)
-  const [prefs, appareils] = await Promise.all([repo.prefs(), repo.subscriptions()])
+  const [prefs, appareils] = await Promise.all([repo.prefs(), repo.subscriptions(), remonter(env)])
   return json({
     // `null` tant que les cles ne sont pas posees : l'ecran dit alors que les
     // notifications ne sont pas encore disponibles, au lieu d'echouer a l'abonnement.
@@ -59,6 +70,7 @@ route('PUT', '/api/notifications/preferences/:kind', async ({ env, user, params,
   // Les heures repassent par `parseTimes` : triees, sans doublon.
   const times = body.times === null ? null : parseTimes(body.times.join(','), kind)
   await new NotificationRepo(env.DB, me.id).setPref(kind, body.enabled, times)
+  await remonter(env)
   return json({ kind, enabled: body.enabled, times: times ?? parseTimes(null, kind) })
 })
 
@@ -70,6 +82,7 @@ route('POST', '/api/notifications/abonnement', async ({ env, user, request }) =>
     p256dh: body.keys.p256dh,
     auth: body.keys.auth,
   })
+  await remonter(env)
   return json({ ok: true })
 })
 

@@ -168,11 +168,13 @@ Deux pièces, et seule la première part avec le push sur `main`.
 
 L'API (abonnement d'un appareil, préférences, bouton "Envoyer un test") est dans la Pages Function, comme le reste.
 
-La planification est un Worker à part, `prandia-notifier`, sans route : il se réveille toutes les cinq minutes, lit la base `prandia` et envoie les rappels dus. Il se déploie à la main, après chaque modification de `worker/src/notifier.ts`, `worker/src/push.ts` ou `shared/src/notifications.ts` :
+La planification est un Worker à part, `prandia-notifier`, sans route : son horloge, un Durable Object, se réveille toutes les cinq minutes par une alarme, lit la base `prandia` et envoie les rappels dus. Pas de déclencheur horaire (cron) : le plan gratuit en accorde cinq au compte entier, et d'autres projets les occupent. Il se déploie à la main, après chaque modification de `worker/src/notifier.ts`, `worker/src/push.ts` ou `shared/src/notifications.ts`, et avant le site la toute première fois, car le site se lie à son horloge :
 
 ```bash
 npx wrangler deploy --config notifier/wrangler.toml
 ```
+
+L'horloge démarre à la première ouverture de l'écran Notifications, et se relance d'elle-même à la visite suivante si elle s'est arrêtée.
 
 La clé privée VAPID est un secret, posé une fois de chaque côté, jamais écrit dans le dépôt :
 

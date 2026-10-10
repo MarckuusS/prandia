@@ -719,10 +719,22 @@ et le planificateur ne les atteint pas. Ce qui ne se devine pas :
 
 - **Deux déploiements, pas un.** L'API (abonnement, préférences, test) est dans la Pages
   Function et part avec le push sur `main`. La PLANIFICATION est un Worker à part,
-  `prandia-notifier` (`notifier/wrangler.toml`), sans route, réveillé toutes les cinq minutes :
-  Pages ne sait pas déclencher une action à heure fixe. Il se déploie par
-  `npx wrangler deploy --config notifier/wrangler.toml`, jamais tout seul. Une modification de
-  `notifier.ts`, de `push.ts` ou du calcul des heures demande les deux déploiements.
+  `prandia-notifier` (`notifier/wrangler.toml`), sans route : Pages ne sait pas déclencher une
+  action à heure fixe. Il se déploie par `npx wrangler deploy --config notifier/wrangler.toml`,
+  jamais tout seul, et **AVANT le site** la première fois : le site se lie à sa classe
+  `Horloge`. Une modification de `notifier.ts`, de `push.ts` ou du calcul des heures demande
+  les deux déploiements.
+- **Pas de déclencheur horaire (cron), et c'est forcé.** Le plan gratuit borne le COMPTE à cinq
+  crons, tous pris par d'autres projets : le premier déploiement a été refusé. L'horloge est un
+  **Durable Object** (stockage SQLite, le seul du plan gratuit) dont l'alarme sonne toutes les
+  cinq minutes, sur un multiple rond (`prochainReveil`). Elle se **re-arme AVANT de travailler**
+  et le travail ne lève jamais : lever ferait rejouer l'alarme par le runtime, ne pas se
+  re-armer la perdrait. Un test garde l'ordre, vu échouer à l'envers.
+- **Une alarme jamais posée ne sonne jamais.** L'API remonte l'horloge (`horloge.ts`) à chaque
+  ouverture de l'écran Notifications, à chaque réglage et à chaque abonnement. C'est idempotent :
+  une alarme qui attend n'est pas déplacée, sans quoi rouvrir l'écran décalerait les passages.
+  Une chaîne rompue se répare donc d'elle-même à la visite suivante. L'appel est au mieux : en
+  local, sans le Worker `notifier` lancé, l'écran fonctionne quand même.
 - **La clé privée VAPID est un secret, posé DEUX fois** : dans le projet Pages (le bouton
   "Envoyer un test") et dans le Worker planifié. La clé publique est dans les deux
   `wrangler.toml` et doit rester la même : changer de paire désabonne en silence tous les

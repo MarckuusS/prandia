@@ -48,6 +48,12 @@ export interface Env {
   readonly VAPID_PUBLIC_KEY?: string | undefined
   readonly VAPID_SUBJECT?: string | undefined
   readonly VAPID_PRIVATE_KEY?: string | undefined
+  /**
+   * L'horloge des notifications, Durable Object du Worker `prandia-notifier`.
+   * Optionnelle : absente des tests, et injoignable en local tant que ce
+   * Worker ne tourne pas. Voir horloge.ts.
+   */
+  readonly HORLOGE?: DurableObjectNamespace | undefined
 }
 
 // ---------------------------------------------------------------------------

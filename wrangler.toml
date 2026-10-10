@@ -78,6 +78,14 @@ VAPID_SUBJECT = "https://prandia.pages.dev"
 # La manoeuvre etait gratuite parce que le bucket etait VIDE : aucun code n'y
 # avait jamais ecrit. Elle ne le sera plus. Un bucket ne change pas de
 # juridiction apres coup, il faudrait recopier chaque objet.
+# L'horloge des notifications : un Durable Object du Worker `prandia-notifier`
+# (notifier/wrangler.toml), qui doit donc etre deploye AVANT ce site. L'API la
+# remonte quand on ouvre l'ecran Notifications. Voir worker/src/horloge.ts.
+[[durable_objects.bindings]]
+name = "HORLOGE"
+class_name = "Horloge"
+script_name = "prandia-notifier"
+
 [[r2_buckets]]
 binding = "MEDIA"
 bucket_name = "prandia-media"
