@@ -229,9 +229,15 @@ ou "Annuler" est reste inatteignable un moment.
   courses le lisent, et la liste de courses achete du riz cru. "200 g cuits" de riz a 300
   enregistre 66,7 g, l'unite `_cuit` a cote. Le champ relabellise alors "g" en "g crus", dit
   sous lui ce qui part en base ("Soit 67 g crus"), et la fiche relit "200 g cuits · 67 g crus".
-  **Jamais un defaut** : une recette s'ecrit le plus souvent en cru. Seul l'editeur de recette
-  passe `cookedWeightPer100gRaw` a `QuantityField` ; une autre surface ne l'offre que si elle le
-  passe aussi. `fromGrams` en cuit vaut `cookedWeightG` au flottant pres, et un test le garde.
+  **Jamais un defaut** : une recette s'ecrit le plus souvent en cru. Trois surfaces passent
+  `cookedWeightPer100gRaw` a `QuantityField` : l'editeur de recette, l'ajout et la modification
+  d'un repas au planning (`AddEntrySheet`, `EntrySheet`), ou la ligne se relit "150 g cuits"
+  (`entryAmountLabel`). Une autre surface ne l'offre que si elle le passe aussi : le frigo et les
+  courses ne le font pas, on y range et on y achete du cru. `fromGrams` en cuit vaut
+  `cookedWeightG` au flottant pres, et un test le garde.
+- **Tout brouillon qui recree une entree doit porter `unit`** : l'annulation d'une suppression
+  depuis l'Accueil l'oubliait, et un repas remis se relisait en grammes crus la ou l'on avait saisi
+  des pieces ou du cuit. Le Planning le portait deja.
 
 ## Comptes et cuisines — `scripts/add-user.mjs`
 

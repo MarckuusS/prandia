@@ -2,6 +2,12 @@
 
 <!-- Dernière entrée en haut. Une entrée par session de travail ou par décision. Date au format AAAA-MM-JJ. -->
 
+## 2026-10-11
+- Demande : la saisie en cru ou en cuit aussi au planning. Livrée à l'ajout et à la modification d'un repas-ingrédient : même unité "g cuits" que dans l'éditeur de recette, la base garde le cru, la ligne du planning se relit "150 g cuits". Le frigo et les courses ne la proposent pas : on y range et on y achète du cru.
+- Corrigé au passage : annuler la suppression d'un repas depuis l'Accueil recréait l'entrée sans son unité, qui se relisait alors en grammes crus là où l'on avait saisi des pièces ou du cuit. Le Planning portait déjà l'unité.
+- Vérifié en local en vue téléphone : riz basmati ajouté au lundi midi en 150 g cuits, enregistré 50 g crus avec l'unité, ligne lue "150 g cuits" à 175 kcal (calculées sur le cru), repas rouvert en 150 g cuits ; repas d'essai supprimé ensuite. Typecheck et tests verts. Le correctif de l'Accueil n'a pas été rejoué à l'écran, aucun repas d'essai ne tombant le jour même.
+- Reste à faire : tester sur l'iPhone (notifications, saisie en cuit dans les recettes et au planning) ; vérifier sur l'iPhone qu'aucune zone ne rebondit plus, qu'aucun rectangle n'apparaît plus et que le point vert s'éteint une trentaine de secondes après le scanner ; suppression des anciennes ressources Cloudflare toujours en attente d'accord ; renommer le dossier du projet ; ensuite la sauvegarde automatique des données.
+
 ## 2026-10-10
 - Nouveau site vérifié en production : connexion réussie par l'utilisateur, aucune erreur serveur sur quinze minutes de journaux, base D1 prandia bien branchée.
 - Demande : l'iPhone redemande l'accès à la caméra à chaque ouverture de l'app installée. Cause : défaut WebKit connu depuis 2018 en mode écran d'accueil, aggravé par le scanner qui rappelait `getUserMedia` à chaque ouverture du viseur. Aucun code web ne peut mémoriser l'autorisation.

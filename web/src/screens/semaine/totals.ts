@@ -11,10 +11,12 @@
  */
 
 import {
+  COOKED_UNIT_CODE,
   MEAL_SLOTS,
   ZERO_NUTRITION,
   addNutrition,
   cookedGramsPerPortion,
+  cookedWeightG,
   formatGrams,
   mealEntryNutrition,
   mealPlanEntryCost,
@@ -122,6 +124,11 @@ export function entryAmountLabel(entry: MealPlanEntry, data?: CalendarResponse):
     const portions = entry.portions ?? 1
     const value = portions.toLocaleString('fr-FR', { maximumFractionDigits: 2 })
     return `${value} portion${portions > 1 ? 's' : ''}`
+  }
+  // Un ingredient saisi EN CUIT se relit en cuit : la base ne garde que le cru.
+  const ingredient = entry.ingredientId === null ? undefined : data?.ingredients[String(entry.ingredientId)]
+  if (entry.unit === COOKED_UNIT_CODE && ingredient?.cookedWeightPer100gRaw) {
+    return `${formatGrams(cookedWeightG(ingredient, entry.quantityG ?? 0))} cuits`
   }
   return formatGrams(entry.quantityG ?? 0)
 }

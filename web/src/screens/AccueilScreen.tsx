@@ -149,6 +149,9 @@ export function AccueilScreen() {
               ingredientId: entry.ingredientId,
               quantityG: entry.quantityG,
               portions: entry.portions,
+              // Sans l'unite, un repas remis apres annulation se relirait en
+              // grammes crus ou en grammes la ou l'on avait saisi des pieces.
+              unit: entry.unit,
             }
             setOuverte(null)
             supprimer.mutate(entry.id, {
