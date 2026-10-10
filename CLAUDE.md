@@ -681,6 +681,12 @@ Ce qui trahissait une page web sur iPhone, et ce qui le corrige. Ce qui ne se de
   curseur, la loupe, voire la frappe dans un champ. Le préfixe `-webkit-` reste nécessaire.
 - **Pas d'ascenseur au doigt**, mais seulement sous `(hover: none) and (pointer: coarse)` : à la
   souris, l'application s'ouvre aussi sur l'ordinateur, et l'ascenseur y sert.
+- **Pas d'anneau de mise au point au doigt** (`:focus-visible`, même requête tactile, en
+  `!important`) : Safari iOS le dessinait autour de chaque champ touché, un rectangle de couleur.
+  Il reste au clavier sur ordinateur. Les champs signalent leur mise au point par leur bordure ;
+  un nouveau champ qui n'est pas un `.field__input` doit en faire autant ET couper l'anneau par
+  une règle à DEUX classes, car l'ordre des feuilles dans le paquet construit ne suit pas celui
+  des imports (le champ de recherche du choix de repas a perdu contre `:focus-visible`).
 
 ## Common commands
 

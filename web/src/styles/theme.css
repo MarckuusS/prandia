@@ -606,6 +606,18 @@ button {
   outline-offset: 2px;
 }
 
+/* AU DOIGT, PAS D'ANNEAU. Il dit a qui navigue au clavier ou il en est ; au
+   doigt, on sait ce qu'on vient de toucher, et Safari iOS le dessinait autour
+   de chaque champ touche (un rectangle de couleur, signale sur iPhone). Les
+   champs gardent leur propre signal de mise au point, leur bordure.
+   `!important` : les anneaux poses par des regles plus precises (reglages)
+   doivent suivre la meme politique. */
+@media (hover: none) and (pointer: coarse) {
+  :focus-visible {
+    outline: none !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

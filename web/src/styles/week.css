@@ -585,6 +585,15 @@
   appearance: none;
 }
 
+/* La pilule entiere signale la mise au point (`:focus-within` plus haut) : un
+   anneau autour du seul champ ferait un second cadre, decale, dans le premier.
+   Deux classes pour l'emporter sur `:focus-visible` de theme.css quel que soit
+   l'ordre des fichiers dans le paquet construit, qui ne suit pas celui des
+   imports. */
+.choix__recherche .choix__champ:focus-visible {
+  outline: none;
+}
+
 /* La croix native du champ de recherche ferait doublon avec la notre, qui a
    une vraie cible de doigt. */
 .choix__champ::-webkit-search-cancel-button {
