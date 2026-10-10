@@ -6,19 +6,24 @@
  * l'appareil s'abonne en haut, les types se reglent en dessous et valent pour
  * tous les appareils de la personne.
  *
- * ENREGISTREMENT AU FIL DES GESTES, sans bouton : chaque case et chaque heure
+ * ENREGISTREMENT AU FIL DES GESTES, sans bouton : chaque interrupteur et chaque heure
  * part tout de suite. Ce sont de petites ecritures independantes, et un ecran de
  * reglages qu'on quitte sans enregistrer perd ce qu'on croyait avoir regle.
  *
  * UN TYPE PAS ENCORE BRANCHE LE DIT ("Bientôt"). Il se regle deja, et partira
  * quand la planification saura le composer : laisser croire qu'il marche ferait
  * attendre une notification qui ne viendra pas.
+ *
+ * UNE HEURE PAR LIGNE, libelle a gauche, champ a droite, de largeur fixe : les
+ * heures s'alignent en une seule colonne d'une carte a l'autre. Elles
+ * s'enroulaient a la suite du libelle, la premiere a cote de lui et les
+ * suivantes en dessous, sans ordre lisible.
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { NOTIFICATION_DEFS, type NotificationDef } from '@prandia/shared'
 
-import { CheckboxField } from '../components/Field.js'
+import { SwitchField } from '../components/Field.js'
 import { ErrorState, LoadingRows } from '../components/States.js'
 import { useToast } from '../components/Toast.js'
 import {
@@ -39,6 +44,14 @@ const FAMILLES = [
 ] as const
 
 const JOURS = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche']
+
+/** Plusieurs heures dans la journee : on les nomme par leur rang. */
+const RANGS = ['Premier rappel', 'Deuxième rappel', 'Troisième rappel']
+
+function libelleHeure(def: NotificationDef, total: number, index: number): string {
+  if (total > 1) return RANGS[index] ?? `Rappel ${index + 1}`
+  return def.weekday === null ? 'Chaque jour à' : `Le ${JOURS[def.weekday] ?? 'dimanche'} à`
+}
 
 export function NotificationsScreen() {
   const reglages = useNotificationSettings()
@@ -101,36 +114,42 @@ function TypeNotification({
   readonly pref: NotificationPref
   readonly onChange: (pref: NotificationPref) => void
 }) {
-  const quand =
-    def.weekday === null ? 'Chaque jour' : `Le ${JOURS[def.weekday] ?? 'dimanche'}`
+  const prefixe = useId()
 
   return (
     <li className="card notif">
-      <CheckboxField
-        label={def.disponible ? def.label : `${def.label} · bientôt`}
+      <SwitchField
+        label={def.label}
+        badge={def.disponible ? undefined : 'Bientôt'}
         hint={def.description}
         checked={pref.enabled}
         onChange={(enabled) => onChange({ ...pref, enabled })}
       />
       {pref.enabled && (
-        <div className="notif__heures">
-          <span className="notif__quand">{quand}, à</span>
-          {pref.times.map((time, index) => (
-            <input
-              key={index}
-              type="time"
-              className="field__input notif__heure"
-              value={time}
-              step={300}
-              aria-label={`${def.label}, heure ${index + 1}`}
-              onChange={(event) => {
-                const valeur = event.target.value
-                if (!/^\d{2}:\d{2}$/.test(valeur)) return
-                onChange({ ...pref, times: pref.times.map((t, i) => (i === index ? valeur : t)) })
-              }}
-            />
-          ))}
-        </div>
+        <ul className="notif__heures">
+          {pref.times.map((time, index) => {
+            const id = `${prefixe}-heure-${index}`
+            return (
+              <li key={index} className="notif__ligne">
+                <label className="notif__quand" htmlFor={id}>
+                  {libelleHeure(def, pref.times.length, index)}
+                </label>
+                <input
+                  id={id}
+                  type="time"
+                  className="field__input notif__heure"
+                  value={time}
+                  step={300}
+                  onChange={(event) => {
+                    const valeur = event.target.value
+                    if (!/^\d{2}:\d{2}$/.test(valeur)) return
+                    onChange({ ...pref, times: pref.times.map((t, i) => (i === index ? valeur : t)) })
+                  }}
+                />
+              </li>
+            )
+          })}
+        </ul>
       )}
       {!def.disponible && pref.enabled && (
         <p className="field__hint">Réglé dès maintenant, envoyé dès que ce rappel sera prêt.</p>
@@ -202,7 +221,7 @@ function Appareil({ publicKey }: { readonly publicKey: string | null }) {
 
       {etat === 'actif' && (
         <>
-          <p className="card__lead">Cet appareil reçoit les notifications cochées ci-dessous.</p>
+          <p className="card__lead">Cet appareil reçoit les notifications activées ci-dessous.</p>
           <div className="notif__actions">
             <button
               type="button"

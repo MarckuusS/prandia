@@ -619,6 +619,75 @@ export function CheckboxField({
 }
 
 // ---------------------------------------------------------------------------
+// SwitchField
+// ---------------------------------------------------------------------------
+
+export interface SwitchFieldProps {
+  readonly label: string
+  readonly checked: boolean
+  readonly onChange: (checked: boolean) => void
+  readonly hint?: string | undefined
+  /**
+   * Petite etiquette a cote du libelle ("Bientôt"). Elle reste dans le nom
+   * accessible : un lecteur d'ecran doit l'entendre autant qu'on la voit.
+   */
+  readonly badge?: string | undefined
+  readonly disabled?: boolean | undefined
+  readonly id?: string | undefined
+}
+
+/**
+ * Un reglage qu'on ALLUME ou qu'on ETEINT, la ou la case a cocher dit qu'on
+ * CHOISIT. Texte a gauche, interrupteur a droite, centre sur le bloc de texte :
+ * d'une carte a l'autre, l'etat se lit au meme bord.
+ *
+ * Une vraie case `<input type="checkbox" role="switch">` porte l'etat, cachee
+ * sous le dessin : clavier, lecteur d'ecran et formulaire fonctionnent comme
+ * pour n'importe quelle case. Le rail et la pastille sont des `<span>`, et non
+ * des pseudo-elements de l'`<input>`, que tous les navigateurs ne dessinent pas.
+ */
+export function SwitchField({ label, checked, onChange, hint, badge, disabled, id }: SwitchFieldProps) {
+  const ids = useFieldIds(id, { hint, error: undefined })
+  // Le nom accessible est le libelle (et son etiquette), pas tout le texte du
+  // <label> : l'explication y passerait deux fois, en nom puis en description.
+  const labelId = `${ids.controlId}-label`
+  return (
+    <label className="switch-field" htmlFor={ids.controlId}>
+      <span className="switch-field__body">
+        <span className="switch-field__label" id={labelId}>
+          {label}
+          {/* Une espace dans le texte, invisible dans la boite flexible : sans elle
+              le nom se lirait "HydratationBientôt", d'un seul mot. */}
+          {badge && ' '}
+          {badge && <span className="switch-field__badge">{badge}</span>}
+        </span>
+        {hint && (
+          <span className="switch-field__hint" id={ids.hintId}>
+            {hint}
+          </span>
+        )}
+      </span>
+      <span className="switch">
+        <input
+          id={ids.controlId}
+          className="switch__input"
+          type="checkbox"
+          role="switch"
+          aria-labelledby={labelId}
+          checked={checked}
+          onChange={(event) => onChange(event.target.checked)}
+          disabled={disabled}
+          aria-describedby={ids.describedBy}
+        />
+        <span className="switch__track" aria-hidden="true">
+          <span className="switch__thumb" />
+        </span>
+      </span>
+    </label>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // DateField
 // ---------------------------------------------------------------------------
 

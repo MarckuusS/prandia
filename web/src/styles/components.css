@@ -188,6 +188,125 @@
   color: var(--color-text-secondary);
 }
 
+/* ---------- Interrupteur ---------- */
+
+.switch-field {
+  display: flex;
+  gap: var(--space-md);
+  /* L'interrupteur est centre sur le BLOC de texte, libelle et explication
+     ensemble, et pousse au bord droit : d'une carte a l'autre il tombe au meme
+     endroit, quelle que soit la longueur du texte. */
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--control-height-lg);
+  cursor: pointer;
+}
+
+.switch-field__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.switch-field__label {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs) var(--space-sm);
+  align-items: center;
+  color: var(--color-text);
+}
+
+.switch-field__hint {
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+}
+
+.switch-field__badge {
+  padding: 1px var(--space-sm);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  background: var(--color-surface-hover);
+  border-radius: var(--radius-full);
+}
+
+/*
+ * Les couleurs sont celles du theme, aucune nouvelle. Rail eteint sur
+ * `--color-text-placeholder`, le seul gris qui tienne 3:1 sur une carte dans
+ * les deux themes (3,53 clair, 4,57 sombre) : un rail gris pale comme celui
+ * d'iOS tombait sous 1,5:1, et l'interrupteur eteint disparaissait. Rail allume
+ * sur `--color-primary` (5,83 / 7,94). Pastille sur `--color-on-primary`, qui
+ * se retourne avec le theme : de 3,53 a 8,55 contre son rail.
+ */
+.switch {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+}
+
+/* La vraie case, invisible mais a sa place : elle recoit le toucher et la
+   mise au point, le dessin en dessous ne fait que la montrer. */
+.switch__input {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.switch__track {
+  display: block;
+  width: 52px;
+  height: 32px;
+  padding: 3px;
+  background: var(--color-text-placeholder);
+  border-radius: var(--radius-full);
+  transition: background-color var(--duration-fast) var(--easing-standard);
+}
+
+.switch__thumb {
+  display: block;
+  width: 26px;
+  height: 26px;
+  background: var(--color-on-primary);
+  border-radius: 50%;
+  box-shadow: var(--shadow-subtle);
+  transition: transform var(--duration-fast) var(--easing-standard);
+}
+
+.switch__input:checked + .switch__track {
+  background: var(--color-primary);
+}
+
+.switch__input:checked + .switch__track .switch__thumb {
+  transform: translateX(20px);
+}
+
+/* L'anneau est porte par le rail, la case etant invisible. Meme regle que
+   partout ailleurs (theme.css) : au clavier oui, au doigt non. */
+.switch__input:focus-visible + .switch__track {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .switch__input:focus-visible + .switch__track {
+    outline: none;
+  }
+}
+
+.switch__input:disabled {
+  cursor: default;
+}
+
+.switch__input:disabled + .switch__track {
+  opacity: 0.5;
+}
+
 /* ---------- Champ quantite ---------- */
 
 .quantity-field {

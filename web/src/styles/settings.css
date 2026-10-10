@@ -60,21 +60,46 @@
   gap: var(--space-sm);
 }
 
+/* Une heure par ligne, sous un filet : libelle a gauche, champ a droite. Les
+   heures s'enroulaient a la suite du libelle, la premiere a cote de lui et les
+   suivantes en dessous, sans colonne commune. */
 .notif__heures {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--color-border);
+}
+
+.notif__ligne {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   align-items: center;
+  justify-content: space-between;
+  padding-top: var(--space-sm);
+}
+
+.notif__ligne + .notif__ligne {
+  margin-top: var(--space-sm);
+  border-top: 1px solid var(--color-border);
 }
 
 .notif__quand {
   color: var(--color-text-secondary);
 }
 
-/* Assez large pour "17:30" et la petite horloge native, pas davantage : trois
-   heures d'hydratation tiennent sur une ligne de telephone. */
-.notif__heure {
-  width: 7.5rem;
+/* LARGEUR FIXE, et c'est ce qui aligne : d'une carte a l'autre, chaque heure
+   tombe dans la meme colonne au bord droit. Assez pour "17:30" a 16 px et la
+   marge du champ, pas davantage. Classe doublee : `.field__input` pose
+   `width: 100%`, et a specificite egale l'ordre des feuilles dans le paquet
+   construit ne suit pas celui des imports. */
+.field__input.notif__heure {
+  flex: none;
+  width: 6.5rem;
+  text-align: center;
+}
+
+.field__input.notif__heure::-webkit-date-and-time-value {
+  text-align: center;
 }
 
 .notif__actions {

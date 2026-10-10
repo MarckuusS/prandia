@@ -767,6 +767,15 @@ et le planificateur ne les atteint pas. Ce qui ne se devine pas :
 - **`web/public/push-sw.js` est importé dans le service worker généré** (`importScripts` dans
   `vite.config.ts`). Sans lui, une notification arriverait sans que rien ne sache l'afficher ni
   ouvrir l'écran visé au toucher.
+- **Un type se règle par un INTERRUPTEUR** (`SwitchField`, `components/Field.tsx`), pas par une
+  case : on allume un rappel, on ne le choisit pas dans une liste. Il est poussé au bord droit et
+  centré sur le bloc titre plus explication, pour tomber au même endroit d'une carte à l'autre.
+  Une vraie case `role="switch"` porte l'état sous le dessin ; rail et pastille sont des `<span>`
+  et non des pseudo-éléments de l'`<input>`, que tous les navigateurs ne dessinent pas. Rail
+  éteint sur `--color-text-placeholder` : le gris pâle d'iOS tombait sous 1,5:1 sur la carte.
+- **Une heure par ligne, sous un filet, champ de LARGEUR FIXE au bord droit** : les heures
+  forment une seule colonne sur tout l'écran. Elles s'enroulaient à la suite du libellé, sans
+  ordre lisible. Plusieurs heures se nomment par leur rang (premier, deuxième, troisième rappel).
 
 ## Common commands
 
