@@ -1,11 +1,11 @@
 /**
- * Choisir ce qu'on mange : la bibliotheque entiere, en tuiles.
+ * Choisir dans la bibliotheque entiere, en tuiles.
  *
- * Remplace deux choix qui se faisaient a l'etroit. Pour une recette, un menu
- * deroulant natif : la roue d'iOS, sans photo ni calories. Pour un ingredient,
- * une liste de suggestions coincee entre le champ et le clavier. Ici tout est
- * visible d'emblee sur deux colonnes, et la recherche filtre les deux a la
- * fois : "oeuf" ramene la recette de tartinable ET les oeufs.
+ * Deux usages. L'ajout d'un repas au planning (recettes ET ingredients, filtres
+ * par la meme recherche : "oeuf" ramene la recette de tartinable et les oeufs)
+ * et l'editeur de recette (ingredients seuls). Il remplace des choix qui se
+ * faisaient a l'etroit : un menu deroulant natif, sans photo ni calories, et
+ * une liste de suggestions coincee entre le champ et le clavier.
  *
  * LA RECHERCHE EST EN HAUT, et collante. En bas, elle aurait du remonter
  * au-dessus du clavier, ce qu'iOS ne fait pas pour un element fixe d'une
@@ -14,14 +14,19 @@
  *
  * PAS DE MISE AU POINT A L'OUVERTURE : le clavier masquerait la moitie des
  * tuiles, alors que parcourir est justement ce que cet ecran apporte.
+ *
+ * DOUBLON INTERDIT : un ingredient deja present (`ingredientsPris`) garde sa
+ * tuile, pour qu'on voie qu'il est la, mais marquee et inerte. La disparaitre
+ * ferait chercher un ingredient qu'on croit absent de la bibliotheque.
  */
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { formatGrams, photoPath, type Ingredient } from '@prandia/shared'
 
-import { Icon, RayonIcon } from '../../icons/index.js'
-import { useIngredients, useRecipes, type RecipeSummary } from '../../lib/queries.js'
-import { useRayonStyle } from '../../lib/useRayonStyle.js'
+import { Icon, RayonIcon } from '../icons/index.js'
+import { useIngredients, useRecipes, type RecipeSummary } from '../lib/queries.js'
+import { useRayonStyle } from '../lib/useRayonStyle.js'
+import '../styles/choix.css'
 
 type Filtre = 'tout' | 'recettes' | 'ingredients'
 
@@ -31,15 +36,19 @@ const FILTRES: ReadonlyArray<{ readonly cle: Filtre; readonly label: string }> =
   { cle: 'ingredients', label: 'Ingrédients' },
 ]
 
-export interface ChoixRepasProps {
-  readonly onRecette: (recette: RecipeSummary) => void
+export interface ChoixBibliothequeProps {
+  /** Absent : seuls les ingredients sont proposes (editeur de recette). */
+  readonly onRecette?: ((recette: RecipeSummary) => void) | undefined
   readonly onIngredient: (ingredient: Ingredient) => void
+  /** Ingredients deja presents : marques "Deja ajoute" et impossibles a rechoisir. */
+  readonly ingredientsPris?: ReadonlySet<number> | undefined
 }
 
-export function ChoixRepas({ onRecette, onIngredient }: ChoixRepasProps) {
+export function ChoixBibliotheque({ onRecette, onIngredient, ingredientsPris }: ChoixBibliothequeProps) {
+  const avecRecettes = onRecette !== undefined
   const [texte, setTexte] = useState('')
   const [differe, setDiffere] = useState('')
-  const [filtre, setFiltre] = useState<Filtre>('tout')
+  const [filtre, setFiltre] = useState<Filtre>(avecRecettes ? 'tout' : 'ingredients')
 
   // 200 ms, comme partout ailleurs : sans ce delai, chaque lettre part en
   // requete reseau.
@@ -51,14 +60,15 @@ export function ChoixRepas({ onRecette, onIngredient }: ChoixRepasProps) {
   const recettes = useRecipes(differe)
   const ingredients = useIngredients(differe)
 
-  const listeRecettes = recettes.data?.items ?? []
+  const listeRecettes = avecRecettes ? (recettes.data?.items ?? []) : []
   const listeIngredients = useMemo(
     () => (ingredients.data?.items ?? []).filter((item) => item.id !== null),
     [ingredients.data],
   )
 
-  const voirRecettes = filtre !== 'ingredients'
+  const voirRecettes = avecRecettes && filtre !== 'ingredients'
   const voirIngredients = filtre !== 'recettes'
+  const libelle = avecRecettes ? 'Rechercher une recette ou un ingrédient' : 'Rechercher un ingrédient'
 
   return (
     <div className="choix">
@@ -70,8 +80,8 @@ export function ChoixRepas({ onRecette, onIngredient }: ChoixRepasProps) {
             className="choix__champ"
             value={texte}
             onChange={(event) => setTexte(event.target.value)}
-            placeholder="Rechercher une recette ou un ingrédient"
-            aria-label="Rechercher une recette ou un ingrédient"
+            placeholder={libelle}
+            aria-label={libelle}
             autoComplete="off"
             autoCorrect="off"
             enterKeyHint="search"
@@ -88,22 +98,24 @@ export function ChoixRepas({ onRecette, onIngredient }: ChoixRepasProps) {
           )}
         </label>
 
-        <div className="segmented" role="group" aria-label="Afficher">
-          {FILTRES.map(({ cle, label }) => (
-            <button
-              key={cle}
-              type="button"
-              className={`segmented__tab${filtre === cle ? ' segmented__tab--active' : ''}`}
-              aria-pressed={filtre === cle}
-              onClick={() => setFiltre(cle)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        {avecRecettes && (
+          <div className="segmented" role="group" aria-label="Afficher">
+            {FILTRES.map(({ cle, label }) => (
+              <button
+                key={cle}
+                type="button"
+                className={`segmented__tab${filtre === cle ? ' segmented__tab--active' : ''}`}
+                aria-pressed={filtre === cle}
+                onClick={() => setFiltre(cle)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {voirRecettes && (
+      {voirRecettes && onRecette && (
         <Section
           titre="Recettes"
           nombre={listeRecettes.length}
@@ -126,7 +138,12 @@ export function ChoixRepas({ onRecette, onIngredient }: ChoixRepasProps) {
           vide={differe ? 'Aucun ingrédient de ta bibliothèque ne correspond.' : 'Ta bibliothèque est vide.'}
         >
           {listeIngredients.map((ingredient) => (
-            <TuileIngredient key={ingredient.id} ingredient={ingredient} onChoisir={onIngredient} />
+            <TuileIngredient
+              key={ingredient.id}
+              ingredient={ingredient}
+              pris={ingredient.id !== null && (ingredientsPris?.has(ingredient.id) ?? false)}
+              onChoisir={onIngredient}
+            />
           ))}
         </Section>
       )}
@@ -212,9 +229,11 @@ function TuileRecette({
 
 function TuileIngredient({
   ingredient,
+  pris,
   onChoisir,
 }: {
   readonly ingredient: Ingredient
+  readonly pris: boolean
   readonly onChoisir: (ingredient: Ingredient) => void
 }) {
   const styleOf = useRayonStyle()
@@ -222,9 +241,22 @@ function TuileIngredient({
 
   return (
     <li>
-      <button type="button" className="tuile" onClick={() => onChoisir(ingredient)}>
+      <button
+        type="button"
+        className={`tuile${pris ? ' tuile--pris' : ''}`}
+        onClick={() => onChoisir(ingredient)}
+        // `disabled` et non un simple style : un tap ne doit RIEN faire, et le
+        // lecteur d'ecran doit annoncer la tuile comme indisponible.
+        disabled={pris}
+        aria-label={pris ? `${ingredient.name}, déjà ajouté` : undefined}
+      >
         <span className="tuile__visuel tuile__visuel--pastille" {...rayon.tint} aria-hidden="true">
           <RayonIcon glyph={rayon.glyph} size={34} strokeWidth={1.5} />
+          {pris && (
+            <span className="tuile__pris">
+              <Icon name="ui-check" size={14} strokeWidth={2} /> Déjà ajouté
+            </span>
+          )}
         </span>
         <span className="tuile__nom">{ingredient.name}</span>
         <span className="tuile__meta">

@@ -20,7 +20,7 @@
  *      pour la meme action, on garde la plus proche de la facon de penser.
  *
  *   4. DEUX TEMPS, en plein ecran : choisir parmi la bibliotheque entiere en
- *      tuiles (`ChoixRepas`), puis doser. Le choix se faisait dans un menu
+ *      tuiles (`ChoixBibliotheque`), puis doser. Le choix se faisait dans un menu
  *      deroulant pour les recettes et dans une liste ecrasee par le clavier
  *      pour les ingredients.
  */
@@ -36,12 +36,12 @@ import {
   type MealSlot,
 } from '@prandia/shared'
 
+import { ChoixBibliotheque } from '../../components/ChoixBibliotheque.js'
 import { QuantityField } from '../../components/QuantityField.js'
 import { Sheet } from '../../components/Sheet.js'
 import { Icon, RayonIcon } from '../../icons/index.js'
 import { useAddEntry, useRecipe, type EntryDraft, type RecipeSummary } from '../../lib/queries.js'
 import { useRayonStyle } from '../../lib/useRayonStyle.js'
-import { ChoixRepas } from './ChoixRepas.js'
 import { PortionsOuGrammes } from './PortionsOuGrammes.js'
 import '../../styles/week.css'
 
@@ -131,7 +131,7 @@ export function AddEntrySheet({ isoWeek, dayOfWeek, slot, onClose }: AddEntryShe
       }
     >
       {choix === null ? (
-        <ChoixRepas
+        <ChoixBibliotheque
           onRecette={(recette) => {
             setPortions(1)
             setUnit(null)

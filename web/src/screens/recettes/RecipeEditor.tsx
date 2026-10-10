@@ -19,17 +19,18 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
-import { Icon } from '../../icons/index.js'
+import { Icon, RayonIcon, type RayonStyle } from '../../icons/index.js'
 import type { Ingredient, Recipe } from '@prandia/shared'
 
 import { NumberField, TextArea, TextField } from '../../components/Field.js'
-import { IngredientPicker } from '../../components/IngredientPicker.js'
+import { ChoixBibliotheque } from '../../components/ChoixBibliotheque.js'
 import { QuantityField } from '../../components/QuantityField.js'
-import { ConfirmDialog } from '../../components/Sheet.js'
+import { ConfirmDialog, Sheet } from '../../components/Sheet.js'
 import { useToast } from '../../components/Toast.js'
 import { MacrosDonut } from '../../components/MacrosDonut.js'
 import { ApiError } from '../../lib/api.js'
 import { useDeleteRecipe, useSaveRecipe } from '../../lib/queries.js'
+import { useRayonStyle } from '../../lib/useRayonStyle.js'
 import {
   CostCard,
   NutritionCard,
@@ -79,6 +80,10 @@ export function RecipeEditor({
   const [loadedUpdatedAt, setLoadedUpdatedAt] = useState<string | null>(recipe.updatedAt)
   /** Un autre appareil a enregistre entre-temps : on demande quoi faire. */
   const [conflict, setConflict] = useState(false)
+  /** La bibliotheque en plein ecran, et ce qui y a ete ajoute depuis son ouverture. */
+  const [bibliotheque, setBibliotheque] = useState(false)
+  const [ajoutes, setAjoutes] = useState(0)
+  const styleOf = useRayonStyle()
 
   const dirty = useMemo(() => draftSignature(draft) !== baseline, [draft, baseline])
   const problem = draftProblem(draft)
@@ -107,14 +112,27 @@ export function RecipeEditor({
       lines: current.lines.map((line) => (line.key === key ? { ...line, ...changes } : line)),
     }))
 
+  /**
+   * DOUBLON INTERDIT : la tuile d'un ingredient deja present est inerte, et ce
+   * garde-fou tient meme si deux taps partent avant le rendu qui la desactive.
+   */
   const addIngredient = (ingredient: Ingredient) =>
-    setDraft((current) => ({
-      ...current,
-      lines: [
-        ...current.lines,
-        newLine(ingredient, current.lines.reduce((max, l) => Math.max(max, l.ordinal + 1), 0)),
-      ],
-    }))
+    setDraft((current) =>
+      current.lines.some((l) => l.ingredient.id !== null && l.ingredient.id === ingredient.id)
+        ? current
+        : {
+            ...current,
+            lines: [
+              ...current.lines,
+              newLine(ingredient, current.lines.reduce((max, l) => Math.max(max, l.ordinal + 1), 0)),
+            ],
+          },
+    )
+
+  const ingredientsPris = useMemo(
+    () => new Set(draft.lines.flatMap((l) => (l.ingredient.id === null ? [] : [l.ingredient.id]))),
+    [draft.lines],
+  )
 
   /**
    * Envoie le tampon. `force` saute le controle de concurrence.
@@ -246,21 +264,29 @@ export function RecipeEditor({
           Ingrédients ({draft.lines.length})
         </h3>
 
-        <IngredientPicker
-          onPick={addIngredient}
-          label="Ajouter un ingrédient"
-          hint="Seule ta bibliothèque personnelle est proposée."
-        />
+        <button
+          type="button"
+          className="button button--secondary button--block"
+          onClick={() => {
+            setAjoutes(0)
+            setBibliotheque(true)
+          }}
+        >
+          <Icon name="ui-plus" size={18} className="icon--inline" /> Ajouter un ingrédient
+        </button>
 
         {draft.lines.length === 0 && (
           <p className="card__lead">
-            Aucun ingrédient pour l’instant. Cherche-en un ci-dessus pour composer la recette.
+            Aucun ingrédient pour l’instant. Ajoute-en depuis ta bibliothèque pour composer la recette.
           </p>
         )}
 
         {groups.map((group) => (
           <div key={group.rayon} className="editor-group">
-            <h4 className="section-header">{group.rayon}</h4>
+            <h4 className="section-header editor-group__titre">
+              <Pastille rayon={styleOf(group.categoryL1)} />
+              {group.rayon}
+            </h4>
             <ul className="editor-lines">
               {group.lines.map((line, index) => (
                 <LineEditor
@@ -352,6 +378,30 @@ export function RecipeEditor({
         }}
       />
 
+      {/* Plusieurs ajouts d'affilee : la feuille reste ouverte, chaque tuile
+          ajoutee passe aussitot en "Deja ajoute", et le pied compte ce qui a
+          ete pris. */}
+      <Sheet
+        open={bibliotheque}
+        onClose={() => setBibliotheque(false)}
+        title="Ajouter des ingrédients"
+        variant="plein"
+        actions={
+          <button type="button" className="button button--primary" onClick={() => setBibliotheque(false)}>
+            {ajoutes > 0 ? `Terminé · ${ajoutes} ajouté${ajoutes > 1 ? 's' : ''}` : 'Terminé'}
+          </button>
+        }
+      >
+        <ChoixBibliotheque
+          ingredientsPris={ingredientsPris}
+          onIngredient={(ingredient) => {
+            if (ingredient.id !== null && ingredientsPris.has(ingredient.id)) return
+            addIngredient(ingredient)
+            setAjoutes((n) => n + 1)
+          }}
+        />
+      </Sheet>
+
       <TagSheet
         open={tagsOpen}
         onClose={() => setTagsOpen(false)}
@@ -381,6 +431,8 @@ export function RecipeEditor({
 
 interface RayonGroup {
   readonly rayon: string
+  /** Celle de la premiere ligne : de quoi peindre la pastille de l'intertitre. */
+  readonly categoryL1: string | null
   readonly lines: DraftLine[]
 }
 
@@ -395,7 +447,7 @@ function groupByRayon(lines: readonly DraftLine[]): RayonGroup[] {
     const rayon = rayonLabel(line.ingredient.categoryL1)
     const last = groups[groups.length - 1]
     if (last && last.rayon === rayon) last.lines.push(line)
-    else groups.push({ rayon, lines: [line] })
+    else groups.push({ rayon, categoryL1: line.ingredient.categoryL1, lines: [line] })
   }
   return groups
 }
@@ -416,6 +468,7 @@ function LineEditor({
   readonly onRemove: () => void
 }) {
   const [noteOpen, setNoteOpen] = useState(false)
+  const rayon = useRayonStyle()(line.ingredient.categoryL1)
   const showNote = noteOpen || (line.notes !== null && line.notes !== '')
 
   // La quantite AFFICHEE suit la mise a l'echelle ; ce qui est stocke n'en
@@ -425,11 +478,24 @@ function LineEditor({
   return (
     <li className="editor-line">
       <div className="editor-line__head">
+        {/* La pastille du rayon d'abord : on reconnait un legume, un laitage ou
+            une epice a sa couleur avant d'avoir lu son nom. Puis le CHEVRON, le
+            signe habituel d'un lien vers une fiche : sans lui, rien ne disait
+            que le nom s'ouvre. */}
         {line.ingredient.id === null ? (
-          <span className="editor-line__name">{line.ingredient.name}</span>
+          <span className="editor-line__name">
+            <Pastille rayon={rayon} />
+            <span className="editor-line__libelle">{line.ingredient.name}</span>
+          </span>
         ) : (
-          <Link className="editor-line__name lien-surface" to={`/ingredients/${line.ingredient.id}`}>
-            {line.ingredient.name}
+          <Link
+            className="editor-line__name lien-surface"
+            to={`/ingredients/${line.ingredient.id}`}
+            aria-label={`${line.ingredient.name}, ouvrir la fiche`}
+          >
+            <Pastille rayon={rayon} />
+            <span className="editor-line__libelle">{line.ingredient.name}</span>
+            <Icon name="ui-chevron-right" size={16} className="editor-line__chevron" />
           </Link>
         )}
         <div className="editor-line__actions">
@@ -489,6 +555,15 @@ function LineEditor({
         </button>
       )}
     </li>
+  )
+}
+
+/** La pastille d'un rayon, en petit : celle des lignes et des intertitres. */
+function Pastille({ rayon }: { readonly rayon: RayonStyle }) {
+  return (
+    <span className="icon-chip icon-chip--sm" {...rayon.tint} aria-hidden="true">
+      <RayonIcon glyph={rayon.glyph} size={16} strokeWidth={1.8} />
+    </span>
   )
 }
 

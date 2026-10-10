@@ -225,14 +225,33 @@
 }
 
 .editor-line__name {
+  display: flex;
   flex: 1;
+  gap: var(--space-sm);
+  align-items: center;
   min-width: 0;
-  overflow: hidden;
   font-weight: var(--font-weight-medium);
   color: var(--color-primary-text);
   text-decoration: none;
+}
+
+/* Le nom seul se tronque : la pastille et le chevron gardent leur place. */
+.editor-line__libelle {
+  min-width: 0;
+  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.editor-line__chevron {
+  flex: none;
+  color: var(--color-text-secondary);
+}
+
+.editor-group__titre {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
 }
 
 .editor-line__actions {
