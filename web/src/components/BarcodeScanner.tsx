@@ -25,8 +25,12 @@
  *   - `getUserMedia` exige HTTPS. En developpement sur `localhost` c'est
  *     tolere, mais pas sur une adresse IP de reseau local — d'ou le message
  *     explicite plutot qu'un echec muet.
- *   - Le flux DOIT etre coupe a la fermeture. Une piste video laissee ouverte
- *     garde la diode allumee et vide la batterie, meme apres navigation.
+ *   - Le flux n'est JAMAIS ouvert ni coupe ici : il est emprunte a
+ *     `lib/camera.ts` et lui est rendu. Installee sur l'ecran d'accueil, la PWA
+ *     redemandait l'acces a chaque ouverture du viseur, parce que chacune
+ *     rappelait `getUserMedia`. `camera.ts` garde un seul flux, l'eteint a la
+ *     fermeture et ne l'arrete qu'apres quelques minutes sans viseur : la
+ *     diode et la batterie restent protegees.
  *   - L'autorisation refusee n'est pas rattrapable par le code : seule
  *     l'utilisateur peut la redonner dans les reglages du systeme. On le dit.
  */
@@ -34,6 +38,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Icon } from "../icons/index.js";
+import { camera } from "../lib/camera.js";
 import { Sheet } from "./Sheet.js";
 import { TextField } from "./Field.js";
 import "../styles/components.css";
@@ -115,13 +120,18 @@ export function BarcodeScanner({
   /** La saisie manuelle est repliee : c'est un recours, pas une etape. */
   const [manualOpen, setManualOpen] = useState(false);
 
-  /** Coupe la camera. Idempotent : appele a la fermeture ET au demontage. */
+  /**
+   * Arrete le decodage et rend la camera a `camera.ts`, qui l'eteint.
+   * Idempotent : appele a la fermeture ET au demontage, un seul rendu par
+   * emprunt puisque `streamRef` est vide au second appel.
+   */
   const stopCamera = useCallback(() => {
     stopRef.current?.();
     stopRef.current = null;
-    streamRef.current?.getTracks().forEach((track) => track.stop());
+    const stream = streamRef.current;
     streamRef.current = null;
     if (videoRef.current) videoRef.current.srcObject = null;
+    if (stream) camera().release(stream);
   }, []);
 
   const handleCode = useCallback(
@@ -172,16 +182,7 @@ export function BarcodeScanner({
 
       let stream: MediaStream;
       try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          // `ideal` et non `exact` : sur un ordinateur portable il n'y a pas de
-          // camera arriere, et `exact` ferait echouer au lieu de prendre celle
-          // qui existe.
-          video: {
-            facingMode: { ideal: "environment" },
-            width: { ideal: 1280 },
-          },
-          audio: false,
-        });
+        stream = await camera().acquire();
       } catch (error) {
         if (cancelled) return;
         const name = (error as Error).name;
@@ -199,7 +200,7 @@ export function BarcodeScanner({
       }
 
       if (cancelled) {
-        stream.getTracks().forEach((t) => t.stop());
+        camera().release(stream);
         return;
       }
 
