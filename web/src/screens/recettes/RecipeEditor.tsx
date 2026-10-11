@@ -20,7 +20,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { Icon, RayonIcon, type RayonStyle } from '../../icons/index.js'
-import type { Ingredient, Recipe } from '@prandia/shared'
+import { lienRecette, type Ingredient, type Recipe } from '@prandia/shared'
 
 import { NumberField, TextArea, TextField } from '../../components/Field.js'
 import { ChoixBibliotheque } from '../../components/ChoixBibliotheque.js'
@@ -146,6 +146,8 @@ export function RecipeEditor({
             lines: current.lines.map((l) => (l.key === key ? replaceIngredient(l, ingredient) : l)),
           },
     )
+
+  const lienSource = recipe.sourceUrl === null ? null : lienRecette(recipe.sourceUrl)
 
   const ingredientsPris = useMemo(
     () => new Set(draft.lines.flatMap((l) => (l.ingredient.id === null ? [] : [l.ingredient.id]))),
@@ -340,11 +342,14 @@ export function RecipeEditor({
       <CostCard derived={derived} />
 
 
-      {recipe.sourceUrl && (
+      {/* Repasse par `lienRecette` comme sur la fiche : la colonne est du texte
+          libre que le serveur accepte tel quel, et un "javascript:" pose dans
+          un `href` s'executerait au toucher. */}
+      {lienSource !== null && (
         <p className="note">
           Importée depuis{' '}
-          <a href={recipe.sourceUrl} target="_blank" rel="noreferrer noopener">
-            {recipe.sourceUrl}
+          <a href={lienSource} target="_blank" rel="noreferrer noopener">
+            {lienSource}
           </a>
         </p>
       )}

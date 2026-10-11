@@ -910,6 +910,13 @@ Coller le lien d'une recette, relire, créer. Entrée en tête de "Nouvelle rece
 - **Une phrase ne se coupe que devant une MAJUSCULE**, ce qui épargne "c. à s.", "env. 5 min" et
   "th. 6". Et sans assertion arrière (`(?<=`) : Safari ne la lit que depuis la 16.4, et une
   expression qu'il ne sait pas lire fait échouer tout le paquet, pas seulement l'écran.
+- **Le lien d'origine se retouche depuis la fiche** : une ligne "Voir la recette sur
+  hellofresh.fr" sous le titre, flèche de sortie au lieu du chevron, et le bandeau dit "Importée de
+  hellofresh.fr". Il n'apparaissait qu'en bas de l'éditeur. **Tout `href` tiré de `sourceUrl`
+  repasse par `lienRecette`** (fiche ET éditeur) : le serveur accepte n'importe quel texte dans
+  cette colonne, un `javascript:` compris (vérifié), et un tel `href` s'exécuterait au toucher.
+  Le contrôle est à l'affichage plutôt qu'au schéma : resserrer le schéma bloquerait
+  l'enregistrement d'une recette qui porterait déjà une valeur ancienne.
 - **Essayer en local demande le catalogue CIQUAL**, que la base de développement n'a pas : le
   charger depuis `scripts/_dump/d1-seed.sql` (hors bibliothèque), puis le retirer.
 

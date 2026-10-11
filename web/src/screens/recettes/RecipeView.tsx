@@ -42,6 +42,7 @@ import {
   feasibility,
   formatEuros,
   formatGrams,
+  lienRecette,
   pantryTotals,
   parseSteps,
   photoPath,
@@ -188,6 +189,17 @@ function Fiche({ recipe }: { readonly recipe: Recipe }) {
   const etapes = useMemo(() => parseSteps(recipe.instructions), [recipe.instructions])
   const ratio = portions / Math.max(recipe.defaultPortions, 1)
 
+  /*
+   * LE SITE D'ORIGINE, a re-toucher depuis la fiche : on y revient pour une
+   * photo d'etape, une astuce, les avis. Repasse par `lienRecette`, qui ne
+   * laisse sortir que du http(s) vers un hote public : la colonne est du texte
+   * libre, et un "javascript:" pose dans un `href` s'executerait au toucher.
+   */
+  const source = useMemo(() => {
+    const lien = recipe.sourceUrl === null ? null : lienRecette(recipe.sourceUrl)
+    return lien === null ? null : { href: lien, site: new URL(lien).hostname.replace(/^www\./, '') }
+  }, [recipe.sourceUrl])
+
   return (
     <section className="screen screen--recette">
       {/* ---------- Le bandeau ---------- */}
@@ -216,7 +228,7 @@ function Fiche({ recipe }: { readonly recipe: Recipe }) {
           <Icon name="ui-utensils" size={72} className="fiche-hero__filigrane" />
         )}
         <span className="fiche-hero__origine">
-          {recipe.sourceUrl === null ? 'Ma recette' : 'Importée'}
+          {recipe.sourceUrl === null ? 'Ma recette' : source === null ? 'Importée' : `Importée de ${source.site}`}
           {recipe.updatedAt !== null && ` · modifiée le ${jourCourt(recipe.updatedAt)}`}
         </span>
       </div>
@@ -232,6 +244,21 @@ function Fiche({ recipe }: { readonly recipe: Recipe }) {
           </span>
           {auPlanning !== null && <span className="fiche-titre__plan">Au planning {auPlanning}</span>}
         </p>
+        {/* Une ligne de navigation, comme pour aller voir une fiche, mais qui
+            SORT de l'application : la fleche de sortie remplace le chevron. */}
+        {source !== null && (
+          <a
+            href={source.href}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="lien-fiche lien-surface fiche-source"
+          >
+            <span className="lien-fiche__libelle">
+              Voir la recette sur <strong>{source.site}</strong>
+            </span>
+            <Icon name="ui-external-link" size={18} className="lien-fiche__chevron" />
+          </a>
+        )}
       </div>
 
       {/* ---------- Portions ---------- */}

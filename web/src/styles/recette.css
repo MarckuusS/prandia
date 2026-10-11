@@ -198,6 +198,19 @@
   color: var(--color-text-secondary);
 }
 
+/* Le titre est pose sur le PAPIER : le gris de ligne de `.lien-fiche` s'y
+   confondait, la ligne prend le blanc des cartes. Trois classes pour passer
+   devant la regle de base quel que soit l'ordre des feuilles. */
+.lien-fiche.lien-surface.fiche-source {
+  margin-top: var(--space-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-subtle);
+}
+
+.lien-fiche.lien-surface.fiche-source:active {
+  background: var(--color-surface-pressed);
+}
+
 .fiche-titre__plan {
   padding: 1px var(--space-sm);
   font-weight: var(--font-weight-semibold);
