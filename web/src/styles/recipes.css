@@ -293,6 +293,22 @@
   margin-top: 0;
 }
 
+/* La note a gauche, Remplacer a droite, sur la meme ligne : deux gestes
+   secondaires qui ne prennent pas plus de place que l'ancien bouton seul. */
+.editor-line__pied {
+  display: flex;
+  gap: var(--space-md);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.button.editor-line__remplacer {
+  margin-left: auto;
+  min-height: var(--control-height-md);
+  padding: 0;
+  font-size: var(--font-size-md);
+}
+
 .icon-action {
   display: grid;
   place-items: center;

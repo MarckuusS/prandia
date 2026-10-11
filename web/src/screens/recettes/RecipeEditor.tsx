@@ -46,6 +46,7 @@ import {
   newLine,
   plural,
   rayonLabel,
+  replaceIngredient,
   sortedByRayon,
   toDraft,
   toPayload,
@@ -126,6 +127,23 @@ export function RecipeEditor({
               ...current.lines,
               newLine(ingredient, current.lines.reduce((max, l) => Math.max(max, l.ordinal + 1), 0)),
             ],
+          },
+    )
+
+  /**
+   * Remplacer l'ingredient d'une ligne, sur place (`replaceIngredient`).
+   * Meme regle du doublon que l'ajout : la tuile d'un ingredient deja dans la
+   * recette est inerte, et ce garde-fou tient si deux taps partent.
+   */
+  const [remplacee, setRemplacee] = useState<string | null>(null)
+  const ligneRemplacee = remplacee === null ? undefined : draft.lines.find((l) => l.key === remplacee)
+  const remplacer = (key: string, ingredient: Ingredient) =>
+    setDraft((current) =>
+      current.lines.some((l) => l.key !== key && l.ingredient.id !== null && l.ingredient.id === ingredient.id)
+        ? current
+        : {
+            ...current,
+            lines: current.lines.map((l) => (l.key === key ? replaceIngredient(l, ingredient) : l)),
           },
     )
 
@@ -307,6 +325,7 @@ export function RecipeEditor({
                       lines: current.lines.filter((l) => l.key !== line.key),
                     }))
                   }
+                  onReplace={() => setRemplacee(line.key)}
                 />
               ))}
             </ul>
@@ -405,6 +424,34 @@ export function RecipeEditor({
         />
       </Sheet>
 
+      {/* Un seul choix, et la feuille se ferme : on remplace UNE ligne. La
+          ligne peut changer de rayon, donc de place dans la liste ; le message
+          dit ce qui est devenu quoi, pour qu'on ne la cherche pas. */}
+      <Sheet
+        open={ligneRemplacee !== undefined}
+        onClose={() => setRemplacee(null)}
+        title={ligneRemplacee === undefined ? 'Remplacer' : `Remplacer ${ligneRemplacee.ingredient.name}`}
+        variant="plein"
+        actions={
+          <button type="button" className="button button--secondary" onClick={() => setRemplacee(null)}>
+            Annuler
+          </button>
+        }
+      >
+        <ChoixBibliotheque
+          ingredientsPris={ingredientsPris}
+          onIngredient={(ingredient) => {
+            if (ligneRemplacee === undefined) return
+            if (ingredient.id !== null && ingredientsPris.has(ingredient.id)) return
+            remplacer(ligneRemplacee.key, ingredient)
+            setRemplacee(null)
+            // "X remplace Y" : un participe s'accorderait avec un nom dont on
+            // ne connait pas le genre ("Crème liquide remplacé").
+            toast.show({ message: `${ingredient.name} remplace ${ligneRemplacee.ingredient.name}.` })
+          }}
+        />
+      </Sheet>
+
       <TagSheet
         open={tagsOpen}
         onClose={() => setTagsOpen(false)}
@@ -462,6 +509,7 @@ function LineEditor({
   onChange,
   onMove,
   onRemove,
+  onReplace,
 }: {
   readonly line: DraftLine
   readonly canMoveUp: boolean
@@ -469,6 +517,7 @@ function LineEditor({
   readonly onChange: (changes: Partial<DraftLine>) => void
   readonly onMove: (delta: number) => void
   readonly onRemove: () => void
+  readonly onReplace: () => void
 }) {
   const [noteOpen, setNoteOpen] = useState(false)
   const rayon = useRayonStyle()(line.ingredient.categoryL1)
@@ -546,18 +595,32 @@ function LineEditor({
         />
       </div>
 
-      {showNote ? (
+      {showNote && (
         <TextField
           label={`Note pour ${line.ingredient.name}`}
           value={line.notes ?? ''}
           onChange={(notes) => onChange({ notes: notes.trim() === '' ? null : notes })}
           placeholder="égoutter, écraser, à température…"
         />
-      ) : (
-        <button type="button" className="button button--ghost editor-line__note-add" onClick={() => setNoteOpen(true)}>
-          + Ajouter une note
-        </button>
       )}
+
+      {/* Remplacer vit sous la quantite, pas avec les fleches : un quatrieme
+          bouton dans l'en-tete aurait encore rogne le nom, deja tronque. */}
+      <div className="editor-line__pied">
+        {!showNote && (
+          <button type="button" className="button button--ghost editor-line__note-add" onClick={() => setNoteOpen(true)}>
+            + Ajouter une note
+          </button>
+        )}
+        <button
+          type="button"
+          className="button button--ghost editor-line__remplacer"
+          onClick={onReplace}
+          aria-label={`Remplacer ${line.ingredient.name} par un autre ingrédient`}
+        >
+          <Icon name="ui-swap" size={16} className="icon--inline" /> Remplacer
+        </button>
+      </div>
     </li>
   )
 }

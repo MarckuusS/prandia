@@ -200,6 +200,14 @@ Deux ecrans, et c'est une decision, pas un accident :
 - **Chaque ligne porte la pastille de son rayon** (`useRayonStyle`), les intertitres aussi : on
   reconnaît un légume ou un laitage à sa couleur avant d'avoir lu son nom. Le nom est un lien
   vers la fiche, signalé par un **chevron** ; seul le libellé se tronque.
+- **Remplacer un ingrédient se fait sur place** (bouton "Remplacer" sous la quantité, à droite
+  de la note ; pas dans l'en-tête, où un quatrième bouton rognait le nom). Même bibliothèque
+  plein écran, un seul choix, même règle du doublon. `replaceIngredient` (`draft.ts`) GARDE CE
+  QUI SE LIT : trois cuillères restent trois cuillères, deux pièces restent deux pièces et les
+  grammes suivent la nouvelle pièce (deux échalotes ne pèsent pas deux oignons). Quand l'unité
+  n'a plus de sens (pièce sans poids unitaire, cuit sans rendement), c'est la MASSE qui est
+  gardée, en grammes. La ligne garde sa note et sa clé ; elle peut changer de rayon, donc de
+  place, et le message dit "X remplace Y" (un participe s'accorderait avec un genre inconnu).
 
 ## Pieds d'action fixes (web)
 

@@ -16,7 +16,16 @@
  * `draftProblem` refuse d'enregistrer une ligne restee vide.
  */
 
-import type { Ingredient, Recipe, RecipeLine, RecipeWrite } from '@prandia/shared'
+import {
+  COOKED_UNIT_CODE,
+  PIECE_UNIT_CODE,
+  fromGrams,
+  toGrams,
+  type Ingredient,
+  type Recipe,
+  type RecipeLine,
+  type RecipeWrite,
+} from '@prandia/shared'
 
 export interface DraftLine {
   /**
@@ -268,6 +277,47 @@ export function moveLine(lines: readonly DraftLine[], key: string, delta: number
     if (line.key === neighbour.key) return { ...line, ordinal: current.ordinal }
     return line
   })
+}
+
+const positif = (n: number | null | undefined): n is number => n !== null && n !== undefined && n > 0
+
+/**
+ * Remplacer l'ingredient d'une ligne : du beurre par de la margarine, de la
+ * creme liquide par de la creme epaisse.
+ *
+ * ON GARDE CE QUI SE LIT. "3 c. a cafe" restent trois cuilleres a cafe,
+ * "2 pieces" restent deux pieces, et ce sont les grammes qui suivent le
+ * nouvel ingredient : deux oignons remplaces par deux echalotes ne pesent pas
+ * pareil. Quand l'unite n'a plus de sens (une piece sans poids unitaire, du
+ * "cuit" sans rendement connu), on garde la MASSE, en grammes : la recette ne
+ * change pas de quantite en silence.
+ *
+ * La ligne garde sa cle (l'etat de saisie suit), sa note et son rang : une
+ * note "egoutter" vaut encore pour la creme qui remplace la creme.
+ */
+export function replaceIngredient(line: DraftLine, next: Ingredient): DraftLine {
+  const avant = line.ingredient
+  // `null` veut dire "l'heuristique" : la piece si l'ingredient en a une.
+  const unite = line.unit ?? (positif(avant.pieceWeightG) ? PIECE_UNIT_CODE : 'g')
+  const garderLaMasse = { ...line, ingredient: next, unit: 'g' }
+
+  if (unite === PIECE_UNIT_CODE || unite === COOKED_UNIT_CODE) {
+    const facteurNouveau = unite === PIECE_UNIT_CODE ? next.pieceWeightG : next.cookedWeightPer100gRaw
+    const facteurAncien = unite === PIECE_UNIT_CODE ? avant.pieceWeightG : avant.cookedWeightPer100gRaw
+    if (!positif(facteurNouveau)) return garderLaMasse
+    if (line.quantityG === null || !positif(facteurAncien)) return { ...line, ingredient: next, unit: unite }
+    const lu = fromGrams(line.quantityG, unite, avant.pieceWeightG, avant.cookedWeightPer100gRaw)
+    return {
+      ...line,
+      ingredient: next,
+      unit: unite,
+      quantityG: toGrams(lu, unite, next.pieceWeightG, next.cookedWeightPer100gRaw),
+    }
+  }
+
+  // Grammes, litres, cuilleres, pincees : la conversion ne depend pas de
+  // l'ingredient, les grammes ne bougent pas.
+  return { ...line, ingredient: next, unit: unite }
 }
 
 // ---------------------------------------------------------------------------

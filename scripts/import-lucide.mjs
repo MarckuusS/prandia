@@ -85,6 +85,8 @@ const MAP = {
   'ui-save': 'save',
   'ui-folder': 'folder',
   'ui-refresh': 'rotate-ccw',
+  // Remplacer un ingredient par un autre : `rotate-ccw` s'y lisait "annuler".
+  'ui-swap': 'arrow-left-right',
   'ui-download': 'download',
   'ui-share': 'share-2',
   'ui-external-link': 'external-link',
