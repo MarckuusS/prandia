@@ -29,6 +29,18 @@ describe('replaceIngredient', () => {
     })
   })
 
+  it('garde le NOMBRE de cuilleres, au poids de la cuillere du nouvel ingredient', () => {
+    // Trois cuilleres de farine (8 g) remplacees par du sucre (12 g).
+    const farine = fiche(1, 'Farine', { spoonWeightG: 8 })
+    const sucre = fiche(2, 'Sucre', { spoonWeightG: 12 })
+    expect(replaceIngredient(ligne(farine, 24, 'c_soupe'), sucre)).toMatchObject({
+      quantityG: 36,
+      unit: 'c_soupe',
+    })
+    // Sans poids de cuillere, une cuillere compte comme de l'eau.
+    expect(replaceIngredient(ligne(farine, 24, 'c_soupe'), fiche(3, 'Eau'))).toMatchObject({ quantityG: 45 })
+  })
+
   it('garde le NOMBRE de pieces, et repese avec la nouvelle piece', () => {
     // Deux oignons remplaces par deux echalotes ne pesent pas pareil.
     const oignon = fiche(1, 'Oignon', { pieceWeightG: 150 })

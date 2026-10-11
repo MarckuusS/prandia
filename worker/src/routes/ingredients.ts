@@ -128,7 +128,7 @@ const propositionSchema = z.object({
 route('POST', '/api/completion/proposition', async ({ repos, env, request }) => {
   const { nom, marque } = parseOrThrow(propositionSchema, await readJson(request))
   const completions = await demanderCompletion(env, repos, [{ id: 1, nom, marque: marque || null }], { relue: true })
-  return json(completions.get(1) ?? { rayon: null, poidsCuitG: null, moisSaison: null, poidsPieceG: null })
+  return json(completions.get(1) ?? { rayon: null, poidsCuitG: null, moisSaison: null, poidsPieceG: null, poidsCuillereG: null })
 })
 
 route('GET', '/api/ingredients/:id', async ({ repos, params }) => {
@@ -160,6 +160,12 @@ route('PATCH', '/api/ingredients/:id', async ({ repos, params, request, env, use
 
   const changed = await repos.ingredients.update(id, patch)
   if (!changed) return json(before)
+
+  // Le poids d'une cuillere a change : ce qui a ete saisi EN CUILLERES garde
+  // son nombre de cuilleres, et sa masse suit (repos/ingredients.ts).
+  if (patch.spoonWeightG !== undefined && patch.spoonWeightG !== before.spoonWeightG) {
+    await repos.ingredients.reechelonnerCuilleres(id, before.spoonWeightG, patch.spoonWeightG)
+  }
 
   await logActivity(env.DB, user, {
     action: 'update',

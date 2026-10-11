@@ -376,7 +376,12 @@ export function importAmount(
     readonly name?: string | undefined
     readonly portion?: string | null | undefined
   },
-  ingredient: { readonly pieceWeightG: number | null; readonly categoryL1?: string | null | undefined },
+  ingredient: {
+    readonly pieceWeightG: number | null
+    readonly categoryL1?: string | null | undefined
+    /** Poids d'une cuillere a soupe de la fiche : "2 c. a soupe" de farine font 16 g, pas 30. */
+    readonly spoonWeightG?: number | null | undefined
+  },
 ): ImportAmount {
   const piece = ingredient.pieceWeightG !== null && ingredient.pieceWeightG > 0 ? ingredient.pieceWeightG : null
   const tete = searchTerms(line.name ?? '')[0]
@@ -390,7 +395,9 @@ export function importAmount(
     if (piece !== null) return { grams: piece, unit: PIECE_UNIT_CODE, estimated: true }
     return { grams: PIECE_SUPPOSEE_G, unit: 'g', estimated: true }
   }
-  if (line.unit !== null) return { grams: toGrams(q, line.unit), unit: line.unit, estimated: false }
+  if (line.unit !== null) {
+    return { grams: toGrams(q, line.unit, null, null, ingredient.spoonWeightG ?? null), unit: line.unit, estimated: false }
+  }
   if (line.portion && EMBALLAGES.has(line.portion) && piece !== null) {
     return { grams: q * piece, unit: PIECE_UNIT_CODE, estimated: true }
   }

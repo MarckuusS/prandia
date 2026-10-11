@@ -87,7 +87,61 @@ export class PantryRepo {
       )
       .first<{ id: number }>()
     if (!row) throw new Error("INSERT pantry_stock n'a rien renvoye")
+    if (stock.storage !== null) await this.retenirLieu(row.id, stock.storage)
     return row.id
+  }
+
+  /**
+   * LA PLACE HABITUELLE d'un produit : la derniere ou l'un de ses lots a ete
+   * range (`ingredient.usual_storage`, 0020). Reecrite a chaque rangement,
+   * quel que soit le chemin (a l'ajout, depuis la fiche du lot, d'un geste dans
+   * "A ranger") : la derniere decision l'emporte, un poulet descendu au
+   * congelateur y retournera la prochaine fois. Le foyer filtre le lot ET la
+   * fiche.
+   */
+  private async retenirLieu(lotId: number, storage: StorageSpace): Promise<void> {
+    await this.db
+      .prepare(
+        `UPDATE ingredient SET usual_storage = ?
+          WHERE household_id = ?
+            AND id = (SELECT ingredient_id FROM pantry_stock WHERE id = ? AND household_id = ?)`,
+      )
+      .bind(storage, this.householdId, lotId, this.householdId)
+      .run()
+  }
+
+  /** Les lots pas encore ranges dont le produit a une place habituelle. */
+  private static readonly RANGEABLES = `household_id = ? AND storage IS NULL
+    AND EXISTS (SELECT 1 FROM ingredient i
+                 WHERE i.id = pantry_stock.ingredient_id
+                   AND i.household_id = pantry_stock.household_id
+                   AND i.usual_storage IN ('frigo', 'placard', 'congelateur'))`
+
+  /**
+   * "Ranger comme d'habitude" : chaque lot pas encore range rejoint la place
+   * habituelle de son produit. Rend combien, compte AVANT d'ecrire : le
+   * compteur d'une ecriture n'existe pas sur toutes les cibles.
+   */
+  async rangerCommeDHabitude(): Promise<number> {
+    const compte = await this.db
+      .prepare(`SELECT COUNT(*) AS n FROM pantry_stock WHERE ${PantryRepo.RANGEABLES}`)
+      .bind(this.householdId)
+      .first<{ n: number }>()
+    const n = compte?.n ?? 0
+    if (n === 0) return 0
+    await this.db
+      .prepare(
+        `UPDATE pantry_stock
+            SET storage = (SELECT i.usual_storage FROM ingredient i
+                            WHERE i.id = pantry_stock.ingredient_id
+                              AND i.household_id = pantry_stock.household_id),
+                storage_since = ${NOW_SQL},
+                updated_at = ${NOW_SQL}
+          WHERE ${PantryRepo.RANGEABLES}`,
+      )
+      .bind(this.householdId)
+      .run()
+    return n
   }
 
   /**
@@ -129,6 +183,7 @@ export class PantryRepo {
         this.householdId,
       )
       .run()
+    if (lieuChange && stock.storage !== null) await this.retenirLieu(id, stock.storage)
     return (result.meta.changes ?? 0) > 0
   }
 
@@ -148,6 +203,7 @@ export class PantryRepo {
       )
       .bind(storage, id, this.householdId)
       .run()
+    if (storage !== null) await this.retenirLieu(id, storage)
     return (result.meta.changes ?? 0) > 0
   }
 

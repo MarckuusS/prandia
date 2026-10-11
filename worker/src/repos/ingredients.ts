@@ -12,7 +12,7 @@
  */
 
 import type { Criterion, Ingredient } from '@prandia/shared'
-import { escapeLike, normalizeName, toFtsQuery } from '@prandia/shared'
+import { CUILLERE_SOUPE_G, CUILLERES, escapeLike, normalizeName, toFtsQuery } from '@prandia/shared'
 
 import { toIngredient, type IngredientRow } from '../rows.js'
 import { buildSet, NOW_SQL, placeholders, toInt } from './sql.js'
@@ -22,6 +22,7 @@ export const INGREDIENT_COLUMNS = `
   kcal_per_100g, proteins_g, carbs_g, sugars_g,
   fats_g, saturated_fats_g, fiber_g, salt_g,
   price_eur, price_quantity_g, piece_weight_g, cooked_weight_per_100g_raw,
+  spoon_weight_g, usual_storage,
   in_personal_library, category_l1, category_l2, season_months,
   restock_threshold_g, nutriscore_grade,
   created_at, updated_at`
@@ -44,6 +45,7 @@ const WRITABLE = {
   priceQuantityG: 'price_quantity_g',
   pieceWeightG: 'piece_weight_g',
   cookedWeightPer100gRaw: 'cooked_weight_per_100g_raw',
+  spoonWeightG: 'spoon_weight_g',
   inLibrary: 'in_personal_library',
   categoryL1: 'category_l1',
   categoryL2: 'category_l2',
@@ -468,6 +470,42 @@ export class IngredientRepo {
       )
       .bind(valeurs.rayon, valeurs.poidsCuitG, valeurs.saison, id, this.householdId)
       .run()
+  }
+
+  /**
+   * Le poids d'une cuillere vient de changer : les lignes de recette et les
+   * repas saisis EN CUILLERES gardent leur NOMBRE de cuilleres, et c'est leur
+   * masse qui suit. "2 c. a soupe" de farine enregistrees a 30 g (cuillere
+   * d'eau) passent a 16 g avec une cuillere de 8 g, au lieu de se relire
+   * "3,75 c. a soupe". L'unite dit comment la personne l'a ecrit : c'est le
+   * nombre de cuilleres qui faisait foi, pas des grammes calcules avec la
+   * densite de l'eau.
+   *
+   * Le foyer filtre les deux requetes ; `recipe_ingredient` ne le porte pas,
+   * il passe par sa recette.
+   */
+  async reechelonnerCuilleres(id: number, avant: number | null, apres: number | null): Promise<void> {
+    const ancien = avant !== null && avant > 0 ? avant : CUILLERE_SOUPE_G
+    const nouveau = apres !== null && apres > 0 ? apres : CUILLERE_SOUPE_G
+    if (ancien === nouveau) return
+    const facteur = nouveau / ancien
+    const cuilleres = Object.keys(CUILLERES)
+    const liste = placeholders(cuilleres.length)
+    await this.db.batch([
+      this.db
+        .prepare(
+          `UPDATE recipe_ingredient SET quantity_g = quantity_g * ?
+            WHERE ingredient_id = ? AND unit IN (${liste})
+              AND recipe_id IN (SELECT id FROM recipe WHERE household_id = ?)`,
+        )
+        .bind(facteur, id, ...cuilleres, this.householdId),
+      this.db
+        .prepare(
+          `UPDATE meal_plan_entry SET quantity_g = quantity_g * ?
+            WHERE ingredient_id = ? AND unit IN (${liste}) AND household_id = ?`,
+        )
+        .bind(facteur, id, ...cuilleres, this.householdId),
+    ])
   }
 
   /** Bascule l'appartenance a la bibliotheque personnelle. */

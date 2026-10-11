@@ -258,6 +258,20 @@ ou "Annuler" est reste inatteignable un moment.
   (`entryAmountLabel`). Une autre surface ne l'offre que si elle le passe aussi : le frigo et les
   courses ne le font pas, on y range et on y achete du cru. `fromGrams` en cuit vaut
   `cookedWeightG` au flottant pres, et un test le garde.
+- **Le poids d'une cuillere est propre a l'ingredient** (`spoonWeightG`, migration 0020) : farine
+  8 g, huile 13, miel 21 ; `null` = 15 g, l'eau. Il ne corrige QUE les cuilleres (`CUILLERES`,
+  `units.ts` ; une c. a cafe en vaut le tiers). Les litres et centilitres gardent 1 g/ml : ils
+  servent aux liquides, ou l'ecart reste de quelques pour cent, alors qu'une cuillere de farine
+  comptee comme de l'eau pesait presque le double. Le menu dit le poids ("c. a soupe (8 g)"),
+  comme celui d'une piece. Quatre surfaces le passent a `QuantityField` (editeur de recette,
+  revue d'import, ajout et modification d'un repas) ; `importAmount` et `replaceIngredient`
+  le lisent aussi (remplacer garde le NOMBRE de cuilleres).
+- **Changer le poids d'une cuillere garde le NOMBRE de cuilleres deja saisi**
+  (`reechelonnerCuilleres`, appele par le PATCH d'un ingredient) : les lignes de recette et les
+  repas en cuilleres voient leur masse multipliee par nouveau / ancien. Sans cela, "2 c. a soupe"
+  de farine enregistrees a 30 g (cuillere d'eau) se seraient relues "3,75 c. a soupe" : l'unite
+  dit comment la personne l'a ecrit, c'est le nombre de cuilleres qui faisait foi. Verifie sur la
+  base locale : 30 g, puis 16 g (8 g), 24 g (12 g), 30 g (efface).
 - **Tout brouillon qui recree une entree doit porter `unit`** : l'annulation d'une suppression
   depuis l'Accueil l'oubliait, et un repas remis se relisait en grammes crus la ou l'on avait saisi
   des pieces ou du cuit. Le Planning le portait deja.
@@ -991,6 +1005,14 @@ le prix. Ce qui ne se devine pas :
   nombre d'unités et contenance d'une unité, la masse se calcule (12 × 125 g, soit 1,5 kg). La
   contenance devient la PIÈCE de la ligne : elle se relit "12 pièces (125 g)", et une fiche créée à
   la validation garde 125 g pour pièce, pas le paquet.
+- **La place habituelle d'un produit est APPRISE** (`ingredient.usual_storage`, 0020) : chaque
+  rangement la reecrit, quel que soit le chemin (a l'ajout, depuis la fiche du lot, d'un geste dans
+  "À ranger" ; `retenirLieu`, `repos/pantry.ts`). La derniere decision l'emporte : un poulet
+  descendu au congelateur y retournera. La migration l'a amorcee avec les lots deja ranges. Dans
+  "À ranger", le bouton de cette place porte un trait olive et le mot "habituel" (MARQUEE, pas
+  choisie : un geste reste necessaire), et le bandeau offre "Tout ranger comme d'habitude"
+  (`POST /api/pantry/ranger-habituel`), qui ne touche que les lots dont le produit a deja une
+  place ; les autres restent a ranger. Pas d'IA ici : l'historique suffit et ne coute rien.
 - **Le poids du paquet scanné au frigo se perdait** : `toCreatePayload` (`ScanToStock.tsx`)
   oubliait `pieceWeightG`, et le lot partait à 100 g quand OpenFoodFacts disait 500.
 
@@ -1061,10 +1083,10 @@ jamais à la main, et que Claude connaît pour un produit courant. Ce qui ne se 
   simplement pas de champ rayon.
 - **DEUX REGISTRES** (`OptionsCompletion.relue`). Sans relecture (création, bibliothèque),
   "dans le doute, null" : rien ne repassera derrière. Pour la fiche OUVERTE, la personne relit :
-  on demande la meilleure estimation, et le POIDS UNITAIRE en plus. Le mode prudent laissait vides
+  on demande la meilleure estimation, et le POIDS UNITAIRE et le POIDS D'UNE CUILLERE en plus. Le mode prudent laissait vides
   des cas évidents (une échalote crue sans poids cuit). Le poids unitaire n'est JAMAIS écrit sans
   relecture : renseigné, il fait passer l'unité par défaut à la pièce partout où l'on saisit le
-  produit.
+  produit. Le poids d'une cuillère non plus : le changer recalcule les recettes en cuillères.
 - **Les noms CIQUAL en ", cru" / ", crue" sont expliqués au modèle** : c'est l'aliment AVANT
   cuisson, celui dont on veut justement le poids cuit. Sans la phrase, "Échalote, crue" pouvait se
   lire comme un aliment qui se mange cru.

@@ -608,6 +608,39 @@
   opacity: 0.5;
 }
 
+/* La place habituelle : un trait olive et le mot, pas un aplat. Le bouton
+   reste un choix parmi trois, il n'agit qu'au toucher. */
+.ranger-action.ranger-action--habituel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  box-shadow: inset 0 0 0 2px var(--color-primary-text);
+}
+
+.ranger-action__habituel {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.2;
+}
+
+/* Le bandeau "A ranger" porte son geste : le texte au-dessus, le bouton
+   en dessous sur toute la largeur. */
+.bandeau.bandeau--ranger {
+  flex-wrap: wrap;
+}
+
+.bandeau--ranger > span {
+  flex: 1;
+  min-width: 12rem;
+}
+
+.button.bandeau__action {
+  flex: 1 1 100%;
+  margin-top: var(--space-xs);
+}
+
 /* Une ligne de navigation sous les trois places, pas un quatrieme bouton :
    donner une date ouvre une feuille, ranger agit tout de suite. */
 .ranger-date {

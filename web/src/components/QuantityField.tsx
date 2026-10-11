@@ -44,6 +44,8 @@ import { FieldShell, useDecimalInput, useFieldIds } from './Field.js'
 interface Facteurs {
   readonly piece: number | null | undefined
   readonly cuit: number | null | undefined
+  /** Poids d'une cuillere a soupe : ne rend aucune unite convertible, il corrige les cuilleres. */
+  readonly cuillere?: number | null | undefined
 }
 
 const positif = (v: number | null | undefined): v is number => typeof v === 'number' && v > 0
@@ -81,7 +83,7 @@ function usableUnit(unitCode: string, f: Facteurs): string {
 /** Masse -> valeur affichee dans l'unite courante. `null` reste `null`. */
 function toDisplay(grams: number | null, unitCode: string, f: Facteurs): number | null {
   if (grams === null) return null
-  return fromGrams(grams, usableUnit(unitCode, f), f.piece ?? null, f.cuit ?? null)
+  return fromGrams(grams, usableUnit(unitCode, f), f.piece ?? null, f.cuit ?? null, f.cuillere ?? null)
 }
 
 export interface QuantityFieldProps {
@@ -97,6 +99,12 @@ export interface QuantityFieldProps {
    * cuit doit le passer, sinon le choix n'est simplement pas offert.
    */
   readonly cookedWeightPer100gRaw?: number | null | undefined
+  /**
+   * Poids d'une cuillere a soupe de l'ingredient. `null` : 15 g, l'eau. Toute
+   * surface qui saisit un ingredient en cuilleres doit le passer, sinon deux
+   * cuilleres de farine y pesent 30 g quand la recette en compte 16.
+   */
+  readonly spoonWeightG?: number | null | undefined
   /** Unite d'affichage souhaitee ('g', 'kg', '_piece'…). Prime sur l'heuristique. */
   readonly unit?: string | null | undefined
   /** Notifie le choix d'unite pour que le parent puisse le persister. */
@@ -115,6 +123,7 @@ export function QuantityField({
   onChange,
   pieceWeightG,
   cookedWeightPer100gRaw,
+  spoonWeightG,
   unit,
   onUnitChange,
   hint,
@@ -124,7 +133,7 @@ export function QuantityField({
   autoFocus,
   id,
 }: QuantityFieldProps) {
-  const facteurs: Facteurs = { piece: pieceWeightG, cuit: cookedWeightPer100gRaw }
+  const facteurs: Facteurs = { piece: pieceWeightG, cuit: cookedWeightPer100gRaw, cuillere: spoonWeightG }
   const [unitCode, setUnitCode] = useState(() => resolveUnit(unit, facteurs))
   const activeUnit = usableUnit(unitCode, facteurs)
 
@@ -132,7 +141,7 @@ export function QuantityField({
     onChange(
       displayed === null
         ? null
-        : toGrams(displayed, activeUnit, pieceWeightG ?? null, cookedWeightPer100gRaw ?? null),
+        : toGrams(displayed, activeUnit, pieceWeightG ?? null, cookedWeightPer100gRaw ?? null, spoonWeightG ?? null),
     ),
   )
 
@@ -143,10 +152,16 @@ export function QuantityField({
     unit: string | null | undefined
     piece: number | null | undefined
     cuit: number | null | undefined
-  }>(() => ({ unit, piece: pieceWeightG, cuit: cookedWeightPer100gRaw }))
+    cuillere: number | null | undefined
+  }>(() => ({ unit, piece: pieceWeightG, cuit: cookedWeightPer100gRaw, cuillere: spoonWeightG }))
 
-  if (sync.unit !== unit || sync.piece !== pieceWeightG || sync.cuit !== cookedWeightPer100gRaw) {
-    setSync({ unit, piece: pieceWeightG, cuit: cookedWeightPer100gRaw })
+  if (
+    sync.unit !== unit ||
+    sync.piece !== pieceWeightG ||
+    sync.cuit !== cookedWeightPer100gRaw ||
+    sync.cuillere !== spoonWeightG
+  ) {
+    setSync({ unit, piece: pieceWeightG, cuit: cookedWeightPer100gRaw, cuillere: spoonWeightG })
     const resolved = resolveUnit(unit, facteurs)
     setUnitCode(resolved)
     input.reset(toDisplay(value, resolved, facteurs))
@@ -162,12 +177,12 @@ export function QuantityField({
             { code: u.code, label: 'g crus' },
             { code: COOKED_UNIT_CODE, label: labelFor(COOKED_UNIT_CODE) },
           ]
-        : [{ code: u.code, label: u.label }],
+        : [{ code: u.code, label: labelFor(u.code, null, spoonWeightG) }],
     )
     return positif(pieceWeightG)
       ? [{ code: PIECE_UNIT_CODE, label: labelFor(PIECE_UNIT_CODE, pieceWeightG) }, ...base]
       : base
-  }, [pieceWeightG, cookedWeightPer100gRaw])
+  }, [pieceWeightG, cookedWeightPer100gRaw, spoonWeightG])
 
   const changeUnit = (next: string) => {
     setUnitCode(next)

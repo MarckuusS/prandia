@@ -429,6 +429,18 @@ export function IngredientForm({ ingredient }: IngredientFormProps) {
             hint="Ex : 300 pour du riz (100 g cru → 300 g cuit). Optionnel — sert à estimer le poids d’une portion servie. Les valeurs nutritionnelles restent par 100 g cru."
           />
           </ChampIA>
+          <ChampIA {...champIA('poidsCuillere')}>
+          <NumberField
+            label="Poids d’une cuillère à soupe"
+            value={draft.spoonWeightG}
+            onChange={(value) => saisir('poidsCuillere', { spoonWeightG: value })}
+            suffix="g"
+            min={0}
+            max={100}
+            decimals={1}
+            hint="Farine 8 g, sucre 12 g, huile 13 g, miel 21 g. Vide : 15 g, le poids de l’eau. Une cuillère à café en vaut le tiers. En le changeant, ce que tes recettes et ton planning comptent en cuillères garde son nombre de cuillères, et son poids suit."
+          />
+          </ChampIA>
         </fieldset>
 
         <fieldset className="ing-form__section">

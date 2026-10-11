@@ -95,7 +95,7 @@ describe('demanderCompletion', () => {
     const { repos, ecrits } = fauxDepots(['Epicerie'])
     claudeRepond([{ id: 1, rayon: 'Epicerie', poids_cuit: 300, mois_saison: null }])
     const rendu = await demanderCompletion(env, repos, [{ id: 1, nom: 'Riz', marque: null }])
-    expect(rendu.get(1)).toEqual({ rayon: 'Epicerie', poidsCuitG: 300, moisSaison: null, poidsPieceG: null })
+    expect(rendu.get(1)).toEqual({ rayon: 'Epicerie', poidsCuitG: 300, moisSaison: null, poidsPieceG: null, poidsCuillereG: null })
     expect(ecrits).toHaveLength(0)
   })
 

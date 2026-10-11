@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest'
 import { cookedWeightG } from './nutrition.js'
 import {
   COOKED_UNIT_CODE,
+  CUILLERE_SOUPE_G,
   DEFAULT_UNIT_CODE,
   PIECE_UNIT_CODE,
   UNITS,
@@ -175,5 +176,31 @@ describe('l unite g cuits', () => {
     expect(labelFor(COOKED_UNIT_CODE)).toBe('g cuits')
     expect(isKnownUnit(COOKED_UNIT_CODE)).toBe(true)
     expect(toGrams(2, PIECE_UNIT_CODE, 60, RIZ)).toBe(120)
+  })
+})
+
+describe('le poids d’une cuillere', () => {
+  it('corrige la cuillere a soupe et la cuillere a cafe, qui en vaut le tiers', () => {
+    expect(toGrams(2, 'c_soupe', null, null, 8)).toBe(16)
+    expect(toGrams(3, 'c_cafe', null, null, 9)).toBeCloseTo(9)
+    expect(fromGrams(16, 'c_soupe', null, null, 8)).toBe(2)
+  })
+
+  it('laisse les litres, les grammes et la pincee a leur valeur', () => {
+    expect(toGrams(25, 'cl', null, null, 8)).toBe(250)
+    expect(toGrams(100, 'g', null, null, 8)).toBe(100)
+    expect(toGrams(1, 'pincee', null, null, 8)).toBe(1)
+  })
+
+  it('compte une cuillere comme de l’eau quand l’ingredient n’en dit rien', () => {
+    expect(toGrams(2, 'c_soupe')).toBe(2 * CUILLERE_SOUPE_G)
+    expect(toGrams(2, 'c_soupe', null, null, null)).toBe(30)
+    expect(toGrams(2, 'c_soupe', null, null, 0)).toBe(30)
+  })
+
+  it('dit son poids dans le libelle, comme la piece', () => {
+    expect(labelFor('c_soupe', null, 8)).toBe('c. à soupe (8\u00a0g)')
+    expect(labelFor('c_soupe')).toBe('c. à soupe')
+    expect(labelFor('cl', null, 8)).toBe('cl')
   })
 })

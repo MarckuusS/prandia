@@ -18,6 +18,7 @@
 
 import {
   COOKED_UNIT_CODE,
+  CUILLERES,
   PIECE_UNIT_CODE,
   fromGrams,
   toGrams,
@@ -315,8 +316,15 @@ export function replaceIngredient(line: DraftLine, next: Ingredient): DraftLine 
     }
   }
 
-  // Grammes, litres, cuilleres, pincees : la conversion ne depend pas de
-  // l'ingredient, les grammes ne bougent pas.
+  // Les cuilleres gardent leur NOMBRE : trois cuilleres de farine remplacees
+  // par de la maizena restent trois cuilleres, au poids de la nouvelle.
+  if (CUILLERES[unite] !== undefined && line.quantityG !== null) {
+    const lu = fromGrams(line.quantityG, unite, null, null, avant.spoonWeightG)
+    return { ...line, ingredient: next, unit: unite, quantityG: toGrams(lu, unite, null, null, next.spoonWeightG) }
+  }
+
+  // Grammes, litres, pincees : la conversion ne depend pas de l'ingredient,
+  // les grammes ne bougent pas.
   return { ...line, ingredient: next, unit: unite }
 }
 

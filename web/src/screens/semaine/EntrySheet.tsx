@@ -100,6 +100,7 @@ export function EntrySheet({ isoWeek, entry, data, onClose, onDelete }: EntryShe
   )
   const pieceWeightG = target?.kind === 'ingredient' ? target.ingredient.pieceWeightG : null
   const rendement = target?.kind === 'ingredient' ? target.ingredient.cookedWeightPer100gRaw : null
+  const cuillere = target?.kind === 'ingredient' ? target.ingredient.spoonWeightG : null
   const error = move.error?.message ?? amount.error?.message
 
   return (
@@ -166,6 +167,7 @@ export function EntrySheet({ isoWeek, entry, data, onClose, onDelete }: EntryShe
             onChange={setQuantityG}
             pieceWeightG={pieceWeightG}
             cookedWeightPer100gRaw={rendement}
+            spoonWeightG={cuillere}
             unit={unit}
             onUnitChange={setUnit}
           />

@@ -636,6 +636,7 @@ export interface IngredientDraft {
   readonly salt: number | null
   readonly pieceWeightG: number | null
   readonly cookedWeightPer100gRaw: number | null
+  readonly spoonWeightG: number | null
   readonly categoryL1: string
   readonly months: readonly number[]
 }
@@ -654,6 +655,7 @@ export const EMPTY_DRAFT: IngredientDraft = {
   salt: null,
   pieceWeightG: null,
   cookedWeightPer100gRaw: null,
+  spoonWeightG: null,
   categoryL1: '',
   months: [],
 }
@@ -673,6 +675,7 @@ export function draftFromIngredient(ingredient: Ingredient): IngredientDraft {
     salt: ingredient.salt,
     pieceWeightG: ingredient.pieceWeightG,
     cookedWeightPer100gRaw: ingredient.cookedWeightPer100gRaw,
+    spoonWeightG: ingredient.spoonWeightG,
     categoryL1: ingredient.categoryL1 ?? '',
     months: parseSeasonMonths(ingredient),
   }
@@ -708,6 +711,7 @@ export function toWritePayload(draft: IngredientDraft): Partial<Ingredient> & { 
     salt: draft.salt,
     pieceWeightG: draft.pieceWeightG,
     cookedWeightPer100gRaw: draft.cookedWeightPer100gRaw,
+    spoonWeightG: draft.spoonWeightG,
     categoryL1: blankToNull(draft.categoryL1),
     categoryL2: null,
     seasonMonths: seasonCsv(draft.months),
@@ -734,9 +738,9 @@ export const catalogKey = (ingredient: Ingredient): string =>
 // ---------------------------------------------------------------------------
 
 /** Les champs de la fiche que l'IA sait remplir. */
-export type ChampIA = 'rayon' | 'poidsCuit' | 'saison' | 'poidsPiece'
+export type ChampIA = 'rayon' | 'poidsCuit' | 'saison' | 'poidsPiece' | 'poidsCuillere'
 
-export const CHAMPS_IA: readonly ChampIA[] = ['rayon', 'poidsPiece', 'poidsCuit', 'saison']
+export const CHAMPS_IA: readonly ChampIA[] = ['rayon', 'poidsPiece', 'poidsCuit', 'poidsCuillere', 'saison']
 
 /** Pour les phrases : "Demander le poids cuit a l'IA". */
 export const LIBELLES_IA: Readonly<Record<ChampIA, string>> = {
@@ -744,6 +748,7 @@ export const LIBELLES_IA: Readonly<Record<ChampIA, string>> = {
   poidsCuit: 'le poids cuit',
   saison: 'la saison',
   poidsPiece: 'le poids unitaire',
+  poidsCuillere: 'le poids d’une cuillère',
 }
 
 /** Les champs que l'IA sait remplir et qui sont encore vides dans la fiche. */
@@ -753,6 +758,7 @@ export function champsACompleter(draft: IngredientDraft): Readonly<Record<ChampI
     poidsCuit: draft.cookedWeightPer100gRaw === null,
     saison: draft.months.length === 0,
     poidsPiece: draft.pieceWeightG === null,
+    poidsCuillere: draft.spoonWeightG === null,
   }
 }
 
@@ -776,6 +782,10 @@ export function propositionPour(c: Completion, champ: ChampIA): Partial<Ingredie
       return Array.isArray(c.moisSaison) && c.moisSaison.length > 0 ? { months: [...c.moisSaison] } : null
     case 'poidsPiece':
       return typeof c.poidsPieceG === 'number' && Number.isFinite(c.poidsPieceG) ? { pieceWeightG: c.poidsPieceG } : null
+    case 'poidsCuillere':
+      return typeof c.poidsCuillereG === 'number' && Number.isFinite(c.poidsCuillereG)
+        ? { spoonWeightG: c.poidsCuillereG }
+        : null
   }
 }
 

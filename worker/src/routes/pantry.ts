@@ -161,6 +161,24 @@ route('PUT', '/api/pantry/:id/storage', async ({ repos, params, request, env, us
 })
 
 /**
+ * "Ranger comme d'habitude" : d'un geste, depuis "A ranger", chaque lot dont
+ * le produit a deja ete range quelque part rejoint cette place. Ceux qu'on n'a
+ * jamais ranges restent a ranger. Rend le frigo a jour, et combien.
+ */
+route('POST', '/api/pantry/ranger-habituel', async ({ repos, env, user }) => {
+  const ranges = await repos.pantry.rangerCommeDHabitude()
+  if (ranges > 0) {
+    await logActivity(env.DB, user, {
+      action: 'update',
+      entity: 'pantry_stock',
+      label: `${ranges} article${ranges > 1 ? 's' : ''} rangé${ranges > 1 ? 's' : ''} comme d’habitude`,
+      details: { ranges },
+    })
+  }
+  return json({ ranges, ...(await loadPantry(repos)) })
+})
+
+/**
  * Le bilan des sorties depuis une date.
  *
  * Une requete d'agregation, deux nombres. C'est pour cela que les mouvements

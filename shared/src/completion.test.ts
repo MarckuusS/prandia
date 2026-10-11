@@ -25,7 +25,14 @@ describe('completionTool', () => {
 describe('completionTool, fiche relue', () => {
   it('demande en plus le poids d’une piece', () => {
     const schema = completionTool(RAYONS, { relue: true }).input_schema as Schema
-    expect(schema.properties.fiches.items.required).toEqual(['id', 'poids_cuit', 'mois_saison', 'poids_piece', 'rayon'])
+    expect(schema.properties.fiches.items.required).toEqual([
+      'id',
+      'poids_cuit',
+      'mois_saison',
+      'poids_piece',
+      'poids_cuillere',
+      'rayon',
+    ])
   })
 })
 
@@ -72,8 +79,8 @@ describe('interpretCompletion', () => {
       RAYONS,
       [7, 9],
     )
-    expect(r.get(7)).toEqual({ rayon: 'Epicerie', poidsCuitG: 300, moisSaison: null, poidsPieceG: null })
-    expect(r.get(9)).toEqual({ rayon: 'Fruits et légumes', poidsCuitG: null, moisSaison: [6, 7, 8, 9], poidsPieceG: null })
+    expect(r.get(7)).toEqual({ rayon: 'Epicerie', poidsCuitG: 300, moisSaison: null, poidsPieceG: null, poidsCuillereG: null })
+    expect(r.get(9)).toEqual({ rayon: 'Fruits et légumes', poidsCuitG: null, moisSaison: [6, 7, 8, 9], poidsPieceG: null, poidsCuillereG: null })
   })
 
   it('ecarte un rayon invente, un poids hors bornes ou sans ecart, une saison de douze mois', () => {
@@ -89,9 +96,9 @@ describe('interpretCompletion', () => {
       [1, 2, 3],
     )
     // Rendu quand meme : le modele a repondu, on ne le reinterrogera pas.
-    expect(r.get(1)).toEqual({ rayon: null, poidsCuitG: null, moisSaison: null, poidsPieceG: null })
-    expect(r.get(2)).toEqual({ rayon: null, poidsCuitG: null, moisSaison: null, poidsPieceG: null })
-    expect(r.get(3)).toEqual({ rayon: 'Boucherie', poidsCuitG: 75, moisSaison: null, poidsPieceG: null })
+    expect(r.get(1)).toEqual({ rayon: null, poidsCuitG: null, moisSaison: null, poidsPieceG: null, poidsCuillereG: null })
+    expect(r.get(2)).toEqual({ rayon: null, poidsCuitG: null, moisSaison: null, poidsPieceG: null, poidsCuillereG: null })
+    expect(r.get(3)).toEqual({ rayon: 'Boucherie', poidsCuitG: 75, moisSaison: null, poidsPieceG: null, poidsCuillereG: null })
   })
 
   it('ignore un identifiant non demande, un doublon, et une reponse mal formee', () => {
@@ -129,6 +136,23 @@ describe('interpretCompletion, poids d’une piece', () => {
     expect(r.get(1)?.poidsPieceG).toBe(30)
     expect(r.get(2)?.poidsPieceG).toBeNull()
     expect(r.get(3)?.poidsPieceG).toBeNull()
+  })
+})
+
+describe('interpretCompletion, poids d’une cuillere', () => {
+  it('garde un poids de cuillere plausible, ecarte le reste', () => {
+    const r = interpretCompletion(
+      {
+        fiches: [
+          { id: 1, rayon: null, poids_cuit: null, mois_saison: null, poids_cuillere: 8 },
+          { id: 2, rayon: null, poids_cuit: null, mois_saison: null, poids_cuillere: 150 },
+        ],
+      },
+      RAYONS,
+      [1, 2],
+    )
+    expect(r.get(1)?.poidsCuillereG).toBe(8)
+    expect(r.get(2)?.poidsCuillereG).toBeNull()
   })
 })
 

@@ -600,6 +600,7 @@ function LigneImport({
             onChange={(grams) => onChange({ ...choix, grams, estimated: false, ia: false })}
             pieceWeightG={ingredient.pieceWeightG}
             cookedWeightPer100gRaw={ingredient.cookedWeightPer100gRaw}
+            spoonWeightG={ingredient.spoonWeightG}
             unit={choix.unit}
             onUnitChange={(unit) => onChange({ ...choix, unit })}
           />

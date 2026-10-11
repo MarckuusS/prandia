@@ -105,6 +105,18 @@ export const ingredientSchema = z.object({
   pieceWeightG: z.number().positive('Une quantité (g) doit être strictement positive.').nullable().default(null),
   /** Masse cuite pour 100 g cru (riz ~300). `null` = on assume 1:1. Les macros restent en cru. */
   cookedWeightPer100gRaw: z.number().positive('Une quantité (g) doit être strictement positive.').nullable().default(null),
+  /**
+   * Poids d'une cuillere a soupe de CE produit (farine 8 g, huile 13, miel
+   * 21). `null` = 15 g, celui de l'eau. Ne corrige que les cuilleres
+   * (units.ts) ; une cuillere a cafe en vaut le tiers.
+   */
+  spoonWeightG: z.number().positive('Une quantité (g) doit être strictement positive.').max(100).nullable().default(null),
+  /**
+   * La derniere place ou un lot de ce produit a ete range. APPRISE, jamais
+   * saisie : le rangement la reecrit, l'onglet "A ranger" la propose. Hors
+   * des schemas d'ecriture.
+   */
+  usualStorage: z.enum(['frigo', 'placard', 'congelateur']).nullable().default(null),
 
   /** Distingue la bibliotheque de travail de l'utilisateur du catalogue CIQUAL/OFF. */
   inLibrary: z.boolean().default(false),
@@ -143,6 +155,8 @@ export const ingredientCreateSchema = ingredientSchema.omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+  // Apprise au rangement, jamais saisie (voir plus haut).
+  usualStorage: true,
 })
 
 /**

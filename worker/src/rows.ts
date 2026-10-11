@@ -29,6 +29,8 @@ export interface IngredientRow {
   price_quantity_g: number | null
   piece_weight_g: number | null
   cooked_weight_per_100g_raw: number | null
+  spoon_weight_g: number | null
+  usual_storage: string | null
   in_personal_library: number
   category_l1: string | null
   category_l2: string | null
@@ -58,6 +60,8 @@ export function toIngredient(r: IngredientRow): Ingredient {
     priceQuantityG: r.price_quantity_g,
     pieceWeightG: r.piece_weight_g,
     cookedWeightPer100gRaw: r.cooked_weight_per_100g_raw,
+    spoonWeightG: r.spoon_weight_g,
+    usualStorage: isStorageSpace(r.usual_storage) ? r.usual_storage : null,
     // SQLite n'a pas de booleen : 0/1.
     inLibrary: r.in_personal_library === 1,
     categoryL1: r.category_l1,

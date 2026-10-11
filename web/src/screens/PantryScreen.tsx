@@ -41,10 +41,11 @@ import {
 
 import { SelectField } from '../components/Field.js'
 import { EmptyState, ErrorState, LoadingRows } from '../components/States.js'
+import { useToast } from '../components/Toast.js'
 import { Icon } from '../icons/index.js'
 import { RayonIcon } from '../icons/RayonIcon.js'
 import { useRayonStyle } from '../lib/useRayonStyle.js'
-import { useMovements, usePantry, useSetStorage } from '../lib/queries.js'
+import { useMovements, usePantry, useRangerHabituel, useSetStorage } from '../lib/queries.js'
 import { useScanParam, type ScanRequest } from '../lib/useScanParam.js'
 import { AddStockSheet } from './frigo/AddStockSheet.js'
 import { DateLotSheet } from './frigo/DateLotSheet.js'
@@ -251,7 +252,12 @@ export function PantryScreen() {
             ))}
           </nav>
 
-          {espace === null && <ARangerBandeau count={duLieu.length} />}
+          {espace === null && (
+            <ARangerBandeau
+              count={duLieu.length}
+              habituels={duLieu.filter((lot) => lot.ingredient?.usualStorage != null).length}
+            />
+          )}
 
           {espace === 'frigo' && pressent > 0 && <UrgenceBandeau count={pressent} />}
 
@@ -346,18 +352,47 @@ export function PantryScreen() {
 
 // ---------------------------------------------------------------------------
 
-function ARangerBandeau({ count }: { readonly count: number }) {
+/**
+ * `habituels` : ceux dont le produit a deja ete range quelque part. Un geste
+ * les y remet tous ; les autres restent ici, ou leur premiere place s'apprend.
+ * La date se donne alors depuis la fiche du lot : ranger d'un geste, c'est
+ * renoncer a la ligne "Ajouter la date" de cet onglet, et le bouton le dit.
+ */
+function ARangerBandeau({ count, habituels }: { readonly count: number; readonly habituels: number }) {
+  const ranger = useRangerHabituel()
+  const toast = useToast()
   return (
-    <p className="bandeau bandeau--ranger">
+    <div className="bandeau bandeau--ranger">
       <Icon name="ui-cart" size={18} className="icon--inline" />
       <span>
         <strong>
           {count} article{count > 1 ? 's' : ''}
         </strong>{' '}
-        {count > 1 ? 'arrivent' : 'arrive'} des courses. Donne-leur une place, et la date lue sur
-        l’emballage.
+        {count > 1 ? 'arrivent des courses. Donne-leur' : 'arrive des courses. Donne-lui'} une place, et la
+        date lue sur l’emballage.
       </span>
-    </p>
+      {habituels > 0 && (
+        <button
+          type="button"
+          className="button button--secondary bandeau__action"
+          disabled={ranger.isPending}
+          onClick={() =>
+            ranger.mutate(undefined, {
+              onSuccess: ({ ranges }) =>
+                toast.show({
+                  message: `${ranges} article${ranges > 1 ? 's' : ''} rangé${ranges > 1 ? 's' : ''} à ${ranges > 1 ? 'leur' : 'sa'} place habituelle.`,
+                }),
+            })
+          }
+        >
+          {ranger.isPending
+            ? 'Rangement…'
+            : habituels === count
+              ? 'Tout ranger comme d’habitude'
+              : `Ranger ${habituels} article${habituels > 1 ? 's' : ''} comme d’habitude`}
+        </button>
+      )}
+    </div>
   )
 }
 
@@ -662,7 +697,7 @@ function LotRow({
           sur un article qui vient d'arriver, et il se repete huit fois de
           suite. Passer par la fiche pour chacun rendrait la file decourageante,
           et une file qu'on ne vide pas ne sert a rien. */}
-      {espace === null && <BoutonsRangement lotId={lot.id} />}
+      {espace === null && <BoutonsRangement lotId={lot.id} habituel={lot.ingredient?.usualStorage ?? null} />}
 
       {/* La date, au meme endroit et au meme moment : c'est en rangeant qu'on a
           l'emballage en main. Seulement tant qu'il n'en a pas ; ensuite le
@@ -677,7 +712,12 @@ function LotRow({
   )
 }
 
-function BoutonsRangement({ lotId }: { readonly lotId: number }) {
+/**
+ * La place habituelle du produit (`usualStorage`, la derniere ou il a ete
+ * range) est MARQUEE, pas choisie : un geste reste necessaire, et l'on peut
+ * toujours en prendre une autre, celle-la devenant la nouvelle habitude.
+ */
+function BoutonsRangement({ lotId, habituel }: { readonly lotId: number; readonly habituel: StorageSpace | null }) {
   const ranger = useSetStorage()
   return (
     <div className="ranger-actions">
@@ -685,11 +725,17 @@ function BoutonsRangement({ lotId }: { readonly lotId: number }) {
         <button
           key={espace}
           type="button"
-          className="ranger-action"
+          className={`ranger-action${espace === habituel ? ' ranger-action--habituel' : ''}`}
           disabled={ranger.isPending}
           onClick={() => ranger.mutate({ id: lotId, storage: espace })}
+          aria-label={espace === habituel ? `${espaceLabel(espace)}, sa place habituelle` : undefined}
         >
           {espaceLabel(espace)}
+          {espace === habituel && (
+            <span className="ranger-action__habituel" aria-hidden="true">
+              habituel
+            </span>
+          )}
         </button>
       ))}
     </div>

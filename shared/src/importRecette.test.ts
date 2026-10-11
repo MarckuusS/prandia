@@ -141,6 +141,14 @@ describe('importAmount', () => {
     })
   })
 
+  it('pese les cuilleres au poids de la cuillere de la fiche choisie', () => {
+    expect(importAmount({ quantity: 2, unit: 'c_soupe' }, { pieceWeightG: null, spoonWeightG: 8 })).toEqual({
+      grams: 16,
+      unit: 'c_soupe',
+      estimated: false,
+    })
+  })
+
   it('pese des pieces avec le poids de l’ingredient', () => {
     expect(importAmount({ quantity: 3, unit: null }, { pieceWeightG: 60 })).toEqual({
       grams: 180,

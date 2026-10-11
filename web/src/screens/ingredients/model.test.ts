@@ -228,7 +228,7 @@ describe('URL', () => {
 })
 
 describe('appliquerCompletion', () => {
-  const proposition = { rayon: 'Epicerie', poidsCuitG: 300, moisSaison: [6, 7, 8, 9], poidsPieceG: 30 }
+  const proposition = { rayon: 'Epicerie', poidsCuitG: 300, moisSaison: [6, 7, 8, 9], poidsPieceG: 30, poidsCuillereG: 8 }
 
   it('remplit les champs vides et dit lesquels', () => {
     const { patch, champs } = appliquerCompletion(EMPTY_DRAFT, proposition)
@@ -237,17 +237,25 @@ describe('appliquerCompletion', () => {
       cookedWeightPer100gRaw: 300,
       months: [6, 7, 8, 9],
       pieceWeightG: 30,
+      spoonWeightG: 8,
     })
-    expect(champs).toEqual(['rayon', 'poidsPiece', 'poidsCuit', 'saison'])
+    expect(champs).toEqual(['rayon', 'poidsPiece', 'poidsCuit', 'poidsCuillere', 'saison'])
   })
 
   it('ne remplace jamais une saisie', () => {
-    const draft = { ...EMPTY_DRAFT, categoryL1: 'Vrac', cookedWeightPer100gRaw: 250, months: [5], pieceWeightG: 40 }
+    const draft = {
+      ...EMPTY_DRAFT,
+      categoryL1: 'Vrac',
+      cookedWeightPer100gRaw: 250,
+      months: [5],
+      pieceWeightG: 40,
+      spoonWeightG: 9,
+    }
     expect(appliquerCompletion(draft, proposition)).toEqual({ patch: {}, champs: [] })
   })
 
   it('laisse vide ce que l’IA ne sait pas', () => {
-    const rien = { rayon: null, poidsCuitG: null, moisSaison: null, poidsPieceG: null }
+    const rien = { rayon: null, poidsCuitG: null, moisSaison: null, poidsPieceG: null, poidsCuillereG: null }
     expect(appliquerCompletion(EMPTY_DRAFT, rien)).toEqual({ patch: {}, champs: [] })
   })
 
@@ -262,11 +270,12 @@ describe('appliquerCompletion', () => {
 
 describe('propositionPour', () => {
   it('rend la valeur d’un seul champ, meme si la fiche en a deja une', () => {
-    const c = { rayon: 'Boucherie', poidsCuitG: 75, moisSaison: null, poidsPieceG: null }
+    const c = { rayon: 'Boucherie', poidsCuitG: 75, moisSaison: null, poidsPieceG: null, poidsCuillereG: 13 }
     expect(propositionPour(c, 'rayon')).toEqual({ categoryL1: 'Boucherie' })
     expect(propositionPour(c, 'poidsCuit')).toEqual({ cookedWeightPer100gRaw: 75 })
     expect(propositionPour(c, 'saison')).toBeNull()
     expect(propositionPour(c, 'poidsPiece')).toBeNull()
+    expect(propositionPour(c, 'poidsCuillere')).toEqual({ spoonWeightG: 13 })
   })
 })
 

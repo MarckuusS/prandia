@@ -1250,6 +1250,15 @@ export const useSetStorage = () =>
     put<PantryResponse>(`/api/pantry/${id}/storage`, { storage }),
   )
 
+/**
+ * "Ranger comme d'habitude" : chaque lot pas encore range rejoint la place
+ * habituelle de son produit, la ou il a ete range la derniere fois.
+ */
+export const useRangerHabituel = () =>
+  usePantryMutation<void, PantryResponse & { readonly ranges: number }>(() =>
+    post<PantryResponse & { readonly ranges: number }>('/api/pantry/ranger-habituel', {}),
+  )
+
 /** Le bilan des sorties depuis une date. Deux nombres, une requete. */
 export const useMovements = (since: string) =>
   useQuery({

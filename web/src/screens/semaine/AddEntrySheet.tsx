@@ -173,6 +173,7 @@ export function AddEntrySheet({ isoWeek, dayOfWeek, slot, onClose }: AddEntryShe
                 onChange={setQuantityG}
                 pieceWeightG={choix.ingredient.pieceWeightG}
                 cookedWeightPer100gRaw={choix.ingredient.cookedWeightPer100gRaw}
+                spoonWeightG={choix.ingredient.spoonWeightG}
                 unit={unit}
                 onUnitChange={setUnit}
                 required

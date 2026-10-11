@@ -6,8 +6,11 @@
  * l'affichage, restituee au rechargement via `recipe_ingredient.unit`.
  *
  * Les conversions volume -> masse supposent une densite de 1 g/ml (celle de
- * l'eau). Pour les liquides a densite connue il faudrait un champ sur
- * `Ingredient` ; ce defaut est celui de la plupart des applications de cuisine.
+ * l'eau), SAUF pour les cuilleres quand l'ingredient connait le poids de la
+ * sienne (`spoonWeightG`) : une cuillere de farine pese 8 g, une d'huile 13,
+ * une de miel 21. Les litres et centilitres gardent 1 g/ml : ils servent aux
+ * liquides, ou l'ecart reste de quelques pour cent, alors qu'une cuillere de
+ * farine comptee comme de l'eau pesait presque le double.
  */
 
 export interface Unit {
@@ -40,6 +43,19 @@ export const UNITS: readonly Unit[] = [
 export const UNIT_BY_CODE: ReadonlyMap<string, Unit> = new Map(UNITS.map((u) => [u.code, u]))
 
 export const DEFAULT_UNIT_CODE = 'g'
+
+/** Une cuillere a soupe d'eau : le poids suppose quand l'ingredient n'en dit rien. */
+export const CUILLERE_SOUPE_G = 15
+
+/** Les deux unites que le poids d'une cuillere corrige. Une c. a cafe vaut le tiers d'une c. a soupe. */
+export const CUILLERES: Readonly<Record<string, number>> = { c_soupe: 1, c_cafe: 1 / 3 }
+
+/** Les grammes d'une unite tabulee, corriges par le poids d'une cuillere s'il est connu. */
+function grammesPar(unit: Unit, spoonWeightG: number | null | undefined): number {
+  const part = CUILLERES[unit.code]
+  if (part !== undefined && spoonWeightG && spoonWeightG > 0) return spoonWeightG * part
+  return unit.gramsPerUnit
+}
 
 /**
  * Code de l'unite « piece », qui n'est pas dans UNITS : son facteur depend de
@@ -79,7 +95,8 @@ function rendement(cookedPer100gRaw: number | null | undefined): number {
  * Convertit une valeur saisie dans `unitCode` en grammes.
  *
  * `pieceWeightG` n'est requis que pour l'unite piece, `cookedPer100gRaw`
- * que pour les grammes cuits. Le desktop laissait cette conversion a un
+ * que pour les grammes cuits. `spoonWeightG` corrige les cuilleres ; absent,
+ * elles comptent comme de l'eau. Le desktop laissait cette conversion a un
  * composant QML ; la centraliser ici evite la divergence constatee dans
  * l'import de recette par URL, qui traitait une piece comme un gramme
  * (annexe #6 de la spec).
@@ -89,6 +106,7 @@ export function toGrams(
   unitCode: string,
   pieceWeightG?: number | null,
   cookedPer100gRaw?: number | null,
+  spoonWeightG?: number | null,
 ): number {
   if (unitCode === PIECE_UNIT_CODE) {
     if (!pieceWeightG || pieceWeightG <= 0) {
@@ -99,7 +117,7 @@ export function toGrams(
   if (unitCode === COOKED_UNIT_CODE) return (value * 100) / rendement(cookedPer100gRaw)
   const unit = UNIT_BY_CODE.get(unitCode)
   if (!unit) throw new UnknownUnitError(unitCode)
-  return value * unit.gramsPerUnit
+  return value * grammesPar(unit, spoonWeightG)
 }
 
 /**
@@ -112,6 +130,7 @@ export function fromGrams(
   unitCode: string,
   pieceWeightG?: number | null,
   cookedPer100gRaw?: number | null,
+  spoonWeightG?: number | null,
 ): number {
   if (unitCode === PIECE_UNIT_CODE) {
     if (!pieceWeightG || pieceWeightG <= 0) {
@@ -122,16 +141,21 @@ export function fromGrams(
   if (unitCode === COOKED_UNIT_CODE) return (grams * rendement(cookedPer100gRaw)) / 100
   const unit = UNIT_BY_CODE.get(unitCode)
   if (!unit) throw new UnknownUnitError(unitCode)
-  return grams / unit.gramsPerUnit
+  return grams / grammesPar(unit, spoonWeightG)
 }
 
-export function labelFor(unitCode: string, pieceWeightG?: number | null): string {
+export function labelFor(unitCode: string, pieceWeightG?: number | null, spoonWeightG?: number | null): string {
   if (unitCode === PIECE_UNIT_CODE) {
     return pieceWeightG ? `pièce (${formatGrams(pieceWeightG)})` : 'pièce'
   }
   if (unitCode === COOKED_UNIT_CODE) return 'g cuits'
   const unit = UNIT_BY_CODE.get(unitCode)
   if (!unit) throw new UnknownUnitError(unitCode)
+  // Le poids d'une cuillere se lit dans le menu, comme celui d'une piece :
+  // "c. à soupe (8 g)" dit pourquoi deux cuilleres de farine font 16 g.
+  if (CUILLERES[unitCode] !== undefined && spoonWeightG && spoonWeightG > 0) {
+    return `${unit.label} (${formatGrams(grammesPar(unit, spoonWeightG))})`
+  }
   return unit.label
 }
 
