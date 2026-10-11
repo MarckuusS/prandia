@@ -188,6 +188,12 @@ export interface HandlerContext {
   readonly request: Request
   /** `null` uniquement sur les routes publiques. */
   readonly user: SessionUser | null
+  /**
+   * Poursuit un travail APRES la reponse (`ctx.waitUntil` du runtime) : ranger
+   * un produit cree dans un rayon ne doit pas faire attendre la creation.
+   * Absent hors du runtime (tests) : l'appelant attend alors la promesse.
+   */
+  readonly waitUntil?: ((travail: Promise<unknown>) => void) | undefined
 }
 
 export type Handler = (ctx: HandlerContext) => Promise<Response>

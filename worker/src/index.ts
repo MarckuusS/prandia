@@ -72,7 +72,7 @@ const PUBLIC_ROUTES = new Set([
 ])
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx?: { waitUntil(travail: Promise<unknown>): void }): Promise<Response> {
     const url = new URL(request.url)
 
     // Tout ce qui n'est pas de l'API repart vers les fichiers statiques.
@@ -111,6 +111,7 @@ export default {
         params: found.params,
         request,
         user,
+        waitUntil: ctx === undefined ? undefined : (travail) => ctx.waitUntil(travail),
       })
     } catch (error) {
       if (error instanceof HttpError) {

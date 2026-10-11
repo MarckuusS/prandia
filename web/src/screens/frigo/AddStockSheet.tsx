@@ -33,6 +33,7 @@ import { useState } from 'react'
 import { formatEuros, lastPaidPrice, type Ingredient } from '@prandia/shared'
 
 import { DatePeremption } from '../../components/DatePeremption.js'
+import { BoutonScan } from '../../components/ScanEtiquette.js'
 import { TextField } from '../../components/Field.js'
 import { IngredientPicker } from '../../components/IngredientPicker.js'
 import { QuantityField } from '../../components/QuantityField.js'
@@ -263,6 +264,39 @@ export function AddStockSheet({ onClose, initialScan }: AddStockSheetProps) {
         required
         error={attempted && missingQuantity ? 'Indique une quantité supérieure à zéro.' : null}
       />
+
+      {/* Le poids imprime sur l'emballage ("12 x 125 g"), ou l'etiquette d'une
+          balance (boucherie, fromage a la coupe) qui donne aussi le prix. Le
+          prix lu ouvre le bloc du prix paye : c'est un geste de la personne,
+          pas une proposition. */}
+      <div className="scan-ligne scan-ligne--deux">
+        <BoutonScan
+          quoi="quantite"
+          libelle="Scanner le poids"
+          className="chip-toggle"
+          onLu={(lu) => {
+            if (lu.kind !== 'quantite' || lu.contenanceG === null) return
+            setQuantityG((lu.nombre ?? 1) * lu.contenanceG)
+            setUnit(ingredient?.pieceWeightG === lu.contenanceG ? '_piece' : 'g')
+          }}
+        />
+        <BoutonScan
+          quoi="pesee"
+          libelle="Étiquette de pesée"
+          className="chip-toggle"
+          onLu={(lu) => {
+            if (lu.kind !== 'pesee') return
+            if (lu.poidsG !== null) {
+              setQuantityG(lu.poidsG)
+              setUnit('g')
+            }
+            if (lu.prixEur !== null && ingredient !== null) {
+              setPrice({ ...EMPTY_PRICE_DRAFT, amountEur: lu.prixEur, store: magasinEnCours ?? '' })
+              setPriceOpen(true)
+            }
+          }}
+        />
+      </div>
 
       <DatePeremption
         value={expiryDate}

@@ -10,15 +10,40 @@
   aspect-ratio: 3 / 1;
 }
 
-.viseur.viseur--prix {
+.viseur.viseur--prix,
+.viseur.viseur--pesee {
   width: 80%;
   max-width: 380px;
   aspect-ratio: 3 / 2;
 }
 
+/* Un emballage entier ou un tableau nutritionnel : une scene en hauteur, pour
+   que le rectangle soit assez grand et le texte assez net. */
+.scan-etiquette--produit .scanner__stage,
+.scan-etiquette--nutrition .scanner__stage {
+  aspect-ratio: 3 / 4;
+}
+
+.viseur.viseur--produit {
+  width: 80%;
+  max-width: 360px;
+  aspect-ratio: 1;
+}
+
+.viseur.viseur--nutrition {
+  width: 78%;
+  max-width: 340px;
+  aspect-ratio: 3 / 4;
+}
+
 /* Un bouton Scanner pose seul sous un champ : a sa taille, pas etire. */
 .scan-ligne {
   display: flex;
+}
+
+.scan-ligne--deux {
+  flex-wrap: wrap;
+  gap: var(--space-sm);
 }
 
 /* Le bouton seul, a cote d'un champ : la hauteur du champ, une icone olive.

@@ -39,10 +39,17 @@
  * n'ont ou aller.
  */
 
-import { parisClock, sessionItemWriteSchema, sessionStartSchema, type ShoppingSession } from '@prandia/shared'
+import {
+  parisClock,
+  sessionItemWriteSchema,
+  sessionStartSchema,
+  type ProduitARanger,
+  type ShoppingSession,
+} from '@prandia/shared'
 
 import { logActivity } from '../activity.js'
 import { HttpError, json, notFound, parseOrThrow, readJson, route } from '../http.js'
+import { rangerEnArrierePlan } from '../rangement.js'
 import type { Repositories } from '../repos/index.js'
 
 const KEY = 'shopping.session'
@@ -194,7 +201,7 @@ route('DELETE', '/api/courses', async ({ repos, env, user }) => {
  * poses, de prix releves. Apres trente scans, « c'est enregistré » ne suffit
  * pas a rassurer.
  */
-route('POST', '/api/courses/commit', async ({ repos, env, user }) => {
+route('POST', '/api/courses/commit', async ({ repos, env, user, waitUntil }) => {
   const session = await load(repos)
   if (session === null) throw notFound('Aucune session de courses en cours.')
   if (session.items.length === 0) {
@@ -210,6 +217,8 @@ route('POST', '/api/courses/commit', async ({ repos, env, user }) => {
   let stocked = 0
   let priced = 0
   const ingredientIds: number[] = []
+  // Les fiches creees ici, rangees dans un rayon apres la reponse.
+  const aRanger: ProduitARanger[] = []
 
   for (const item of session.items) {
     let ingredientId = item.ingredientId
@@ -240,6 +249,7 @@ route('POST', '/api/courses/commit', async ({ repos, env, user }) => {
             ...(item.macros ?? {}),
           })
           created += 1
+          aRanger.push({ id: ingredientId, nom: item.name, marque: item.brand })
         }
       }
     }
@@ -294,6 +304,9 @@ route('POST', '/api/courses/commit', async ({ repos, env, user }) => {
     label: `Courses chez ${session.store}`,
     details: { articles: session.items.length, fiches_creees: created, lots: stocked, prix: priced },
   })
+
+  // 6. Les fiches nees de ce chariot recoivent un rayon, apres la reponse.
+  await rangerEnArrierePlan({ env, repos, waitUntil }, aRanger)
 
   return json({
     active: false,

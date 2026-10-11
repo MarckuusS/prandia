@@ -13,10 +13,12 @@ import {
   parseCriteria,
   parseQuantityToGrams,
   priceHistoryEntrySchema,
+  RANGEMENT_MAX,
 } from '@prandia/shared'
 
 import { logActivity } from '../activity.js'
 import { badRequest, HttpError, intParam, json, notFound, parseOrThrow, readJson, route } from '../http.js'
+import { rangerEnArrierePlan, rangerProduits } from '../rangement.js'
 
 // ---------------------------------------------------------------------------
 // Bibliotheque personnelle
@@ -27,7 +29,7 @@ route('GET', '/api/ingredients', async ({ repos, url }) => {
   return json({ items, totalCount: items.length })
 })
 
-route('POST', '/api/ingredients', async ({ repos, request, env, user }) => {
+route('POST', '/api/ingredients', async ({ repos, request, env, user, waitUntil }) => {
   const payload = parseOrThrow(ingredientCreateSchema, await readJson(request))
 
   // Un doublon exact de nom rend la bibliotheque inutilisable : deux "Tomate"
@@ -57,7 +59,30 @@ route('POST', '/api/ingredients', async ({ repos, request, env, user }) => {
     label: payload.name,
   })
 
+  // Sans rayon choisi, Claude en propose un apres la reponse (rangement.ts).
+  // La creation n'attend pas, et n'echoue jamais pour ca.
+  if (payload.categoryL1 === null) {
+    await rangerEnArrierePlan({ env, repos, waitUntil }, [{ id, nom: payload.name, marque: payload.brand }])
+  }
+
   return json(await repos.ingredients.get(id), 201)
+})
+
+/**
+ * Ranger dans un rayon les produits de la bibliotheque qui n'en ont pas, par
+ * lots de `RANGEMENT_MAX`. Rend combien ont ete ranges et combien restent :
+ * l'ecran relance tant qu'il en reste et que le dernier lot a avance.
+ */
+route('POST', '/api/rangement', async ({ repos, env }) => {
+  const sansRayon = (await repos.ingredients.listPersonal(null)).filter(
+    (i): i is typeof i & { id: number } => i.id !== null && (i.categoryL1 === null || i.categoryL1.trim() === ''),
+  )
+  const ranges = await rangerProduits(
+    env,
+    repos,
+    sansRayon.slice(0, RANGEMENT_MAX).map((i) => ({ id: i.id, nom: i.name, marque: i.brand })),
+  )
+  return json({ ranges, restants: sansRayon.length - ranges })
 })
 
 route('GET', '/api/ingredients/:id', async ({ repos, params }) => {

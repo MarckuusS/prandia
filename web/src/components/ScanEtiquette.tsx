@@ -16,7 +16,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { ScanKind, ScanResult } from '@prandia/shared'
+import { isEmptyScan, type ScanKind, type ScanResult } from '@prandia/shared'
 
 import { Icon } from '../icons/index.js'
 import { camera } from '../lib/camera.js'
@@ -37,20 +37,43 @@ const LIBELLES: Readonly<Record<ScanKind, { titre: string; consigne: string; vid
     vide: 'Aucun prix lisible. Cadre l’étiquette de plus près, et réessaie.',
   },
   quantite: {
-    titre: 'Scanner la quantité',
+    titre: 'Scanner le poids',
     consigne: 'Cadre le poids ou le "12 x 125 g"',
-    vide: 'Aucune quantité lisible. Cadre la mention du poids, et réessaie.',
+    vide: 'Aucun poids lisible. Cadre la mention du poids, et réessaie.',
+  },
+  pesee: {
+    titre: 'Étiquette de pesée',
+    consigne: 'Cadre l’étiquette de la balance',
+    vide: 'Rien de lisible. Cadre l’étiquette entière, poids et prix, et réessaie.',
+  },
+  produit: {
+    titre: 'Remplir avec une photo',
+    consigne: 'Cadre le devant de l’emballage',
+    vide: 'Rien de lisible. Cadre le nom et le poids du produit, et réessaie.',
+  },
+  nutrition: {
+    titre: 'Lire le tableau nutritionnel',
+    consigne: 'Cadre le tableau entier',
+    vide: 'Tableau illisible, ou seulement par portion. Rapproche-toi, et réessaie.',
   },
 }
 
-/** Le plus grand cote envoye : assez pour une date en petits points. */
-const COTE_MAX = 1024
+/**
+ * Le plus grand cote envoye. Une date ou un prix se lisent a 1 024 px ; un
+ * tableau nutritionnel, aux lignes serrees, demande la pleine definition
+ * qu'accepte le modele.
+ */
+const COTE_MAX: Readonly<Record<ScanKind, number>> = {
+  date: 1024,
+  prix: 1024,
+  quantite: 1024,
+  pesee: 1024,
+  produit: 1280,
+  nutrition: 1568,
+}
 
 /** Marge ajoutee autour du rectangle : on cadre toujours un peu court. */
 const MARGE = 0.15
-
-const resultatVide = (r: ScanResult): boolean =>
-  r.kind === 'date' ? r.texte === null : r.kind === 'prix' ? r.prixEur === null : r.contenanceG === null
 
 /**
  * La partie de l'image sous le rectangle, en JPEG.
@@ -59,7 +82,12 @@ const resultatVide = (r: ScanResult): boolean =>
  * centree, a l'echelle `max(scene / video)`. On refait ce calcul a l'envers
  * pour savoir quels pixels de la camera sont sous le rectangle.
  */
-async function decouper(video: HTMLVideoElement, scene: HTMLElement, cadre: HTMLElement): Promise<Blob> {
+async function decouper(
+  video: HTMLVideoElement,
+  scene: HTMLElement,
+  cadre: HTMLElement,
+  coteMax: number,
+): Promise<Blob> {
   const vw = video.videoWidth
   const vh = video.videoHeight
   const s = scene.getBoundingClientRect()
@@ -73,7 +101,7 @@ async function decouper(video: HTMLVideoElement, scene: HTMLElement, cadre: HTML
   const sy = Math.max(0, (c.top - s.top - margeY + decalY) / echelle)
   const sw = Math.min(vw - sx, (c.width + 2 * margeX) / echelle)
   const sh = Math.min(vh - sy, (c.height + 2 * margeY) / echelle)
-  const reduction = Math.min(1, COTE_MAX / Math.max(sw, sh))
+  const reduction = Math.min(1, coteMax / Math.max(sw, sh))
   const toile = document.createElement('canvas')
   toile.width = Math.round(sw * reduction)
   toile.height = Math.round(sh * reduction)
@@ -157,9 +185,9 @@ function Viseur({
     setEtat('lecture')
     setMessage(null)
     try {
-      const image = await decouper(video, scene, cadre)
+      const image = await decouper(video, scene, cadre, COTE_MAX[quoi])
       const resultat = await scanEtiquette(quoi, image)
-      if (resultatVide(resultat)) {
+      if (isEmptyScan(resultat)) {
         setMessage(libelles.vide)
         setEtat('pret')
         return
@@ -174,7 +202,7 @@ function Viseur({
   }
 
   return (
-    <div className="scanner scan-etiquette">
+    <div className={`scanner scan-etiquette scan-etiquette--${quoi}`}>
       {etat === 'refus' || etat === 'erreur' ? (
         <div className="scanner__stage scanner__stage--message">
           <p className="status status--error" role="alert">

@@ -45,6 +45,7 @@ import {
   TextField,
   useFieldIds,
 } from '../../components/Field.js'
+import { BoutonScan } from '../../components/ScanEtiquette.js'
 import { ConfirmDialog } from '../../components/Sheet.js'
 import { SourceBadge } from '../../components/States.js'
 import { Icon } from '../../icons/index.js'
@@ -269,6 +270,25 @@ export function IngredientForm({ ingredient }: IngredientFormProps) {
             Laisse un champ vide quand la valeur est inconnue : « — » et « 0 » ne disent pas la même
             chose, et un zéro inventé fausserait tous les totaux de la semaine.
           </p>
+          {/* Le tableau de l'emballage, lu pour 100 g. Une ligne illisible
+              laisse sa valeur actuelle : on ne remplace jamais un chiffre par
+              un vide. Rien n'est enregistre avant le bouton de la fiche. */}
+          <div className="scan-ligne">
+            <BoutonScan
+              quoi="nutrition"
+              libelle="Lire le tableau nutritionnel"
+              className="chip-toggle"
+              onLu={(lu) => {
+                if (lu.kind !== 'nutrition') return
+                const lus: { -readonly [K in NutrientKey]?: number } = {}
+                for (const { key } of NUTRIENTS) {
+                  const valeur = lu[key]
+                  if (valeur !== null) lus[key] = valeur
+                }
+                patch(lus)
+              }}
+            />
+          </div>
           {NUTRIENTS.map((nutrient) => (
             <div key={nutrient.key} className={nutrient.sub ? 'ing-form__sub' : undefined}>
               <NumberField
@@ -495,6 +515,25 @@ function Identity({
         onChange={(value) => onPatch({ brand: value })}
         placeholder="Ex : Pâturages, Carrefour Bio… (optionnel)"
       />
+
+      {/* Le devant de l'emballage : nom, marque et poids d'un coup, pour un
+          produit qu'OpenFoodFacts ne connait pas. Le poids d'une unite devient
+          le poids unitaire ("12 x 125 g" : 125 g la piece). */}
+      <div className="scan-ligne">
+        <BoutonScan
+          quoi="produit"
+          libelle="Remplir avec une photo"
+          className="chip-toggle"
+          onLu={(lu) => {
+            if (lu.kind !== 'produit') return
+            onPatch({
+              ...(lu.nom === null ? {} : { name: lu.nom }),
+              ...(lu.marque === null ? {} : { brand: lu.marque }),
+              ...(lu.contenanceG === null ? {} : { pieceWeightG: lu.contenanceG }),
+            })
+          }}
+        />
+      </div>
 
       {ingredient === null ? (
         <>

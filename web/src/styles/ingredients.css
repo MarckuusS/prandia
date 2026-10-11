@@ -267,6 +267,32 @@
 
 /* ---------- Bandeau d'annulation ---------- */
 
+/* Les produits sans rayon, et le geste qui les range : une ligne de carte,
+   pas une alerte. Rien n'est en erreur, il manque un rangement. */
+.ing-ranger {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm) var(--space-md);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-subtle);
+}
+
+.ing-ranger__texte {
+  flex: 1;
+  min-width: 10rem;
+  margin: 0;
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+}
+
+.button.ing-ranger__action {
+  flex: none;
+}
+
 .ing-undo {
   display: flex;
   flex-wrap: wrap;

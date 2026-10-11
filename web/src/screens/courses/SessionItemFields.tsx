@@ -96,6 +96,30 @@ export function SessionItemFields({
         </p>
       )}
 
+      {/* Un produit que ni la bibliotheque ni OpenFoodFacts ne connaissent :
+          une photo de l'emballage remplit le nom, la marque et le poids. */}
+      {draft.ingredientId === null && (
+        <div className="scan-ligne">
+          <BoutonScan
+            quoi="produit"
+            libelle="Remplir avec une photo"
+            className="chip-toggle"
+            onLu={(lu) => {
+              if (lu.kind !== 'produit') return
+              const quantite = lu.contenanceG === null ? null : (lu.nombre ?? 1) * lu.contenanceG
+              onChange({
+                ...draft,
+                name: lu.nom ?? draft.name,
+                brand: lu.marque ?? draft.brand,
+                quantityG: quantite ?? draft.quantityG,
+                pieceWeightG: lu.contenanceG ?? draft.pieceWeightG,
+              })
+            }}
+            disabled={disabled}
+          />
+        </div>
+      )}
+
       <TextField
         label="Nom"
         value={draft.name}
@@ -206,6 +230,23 @@ export function SessionItemFields({
           className="chip-toggle"
           onLu={(lu) => {
             if (lu.kind === 'prix' && lu.prixEur !== null) set('priceEur', lu.prixEur)
+          }}
+          disabled={disabled}
+        />
+        {/* Vrac, boucherie, fromage a la coupe : l'etiquette de la balance
+            donne le poids ET le prix d'un seul scan. Le poids se relit en
+            grammes : un poids pese n'est pas une piece. */}
+        <BoutonScan
+          quoi="pesee"
+          libelle="Étiquette de pesée"
+          className="chip-toggle"
+          onLu={(lu) => {
+            if (lu.kind !== 'pesee') return
+            onChange({
+              ...draft,
+              quantityG: lu.poidsG ?? draft.quantityG,
+              priceEur: lu.prixEur ?? draft.priceEur,
+            })
           }}
           disabled={disabled}
         />

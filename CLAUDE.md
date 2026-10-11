@@ -1008,7 +1008,32 @@ payé au frigo) et de la quantité (chariot, qui remplit le lot). Ce qui ne se d
 - **La clé est un secret Pages (`ANTHROPIC_API_KEY`)**, jamais dans le dépôt ; absente, la route
   répond 503 "pas encore configurée". Plafond de 150 lectures par jour et par cuisine, compté
   AVANT l'appel ; le vrai garde-fou est le plafond de dépense de l'espace de travail Anthropic. Le
-  corps d'erreur d'Anthropic ne remonte jamais tel quel : il peut citer l'organisation.
+  corps d'erreur d'Anthropic ne remonte jamais tel quel : il peut citer l'organisation. Clé,
+  modèle, plafond et erreurs vivent dans `worker/src/anthropic.ts`, partagé avec le rangement.
+- **Six lectures** : date, prix, quantité (le poids imprimé, aussi à l'ajout au frigo), étiquette
+  de PESÉE (poids net ET prix à payer d'un scan, jamais le prix au kilo ; le poids se relit en
+  grammes, une pesée n'est pas une pièce), PRODUIT (nom sans la marque, marque, poids ; "12 x
+  125 g" donne 125 g de poids unitaire ; au chariot pour un produit inconnu, et dans la fiche),
+  NUTRITION (le tableau pour 100 g, jamais par portion ; une ligne illisible ne vide jamais une
+  valeur déjà saisie ; des sucres au-dessus des glucides, des saturés au-dessus des lipides
+  reviennent vides). Le viseur prend la forme de ce qu'on lit, et la pleine définition (1 568 px)
+  pour un tableau aux lignes serrées.
+
+## Le rayon automatique : `shared/src/rayonAuto.ts`, `worker/src/rangement.ts`
+
+- **Un produit créé sans rayon en reçoit un, choisi par Claude** parmi les rayons DE LA CUISINE,
+  après la réponse (`ctx.waitUntil`, passé aux routes par `HandlerContext.waitUntil`) : à la
+  création d'une fiche (`POST /api/ingredients`) et à la validation des courses. Une erreur n'y
+  fait JAMAIS échouer la création : au pire, le produit reste sans rayon.
+- **L'outil porte la liste des rayons en `enum`**, et `interpretClassement` la revérifie : un
+  rayon inventé créerait une catégorie que l'écran des rayons ne connaît pas. Une cuisine sans
+  rayon ne pose pas la question.
+- **Pas de détour par les catégories d'OpenFoodFacts** : elles disent "en:yogurts", pas le nom
+  que la personne a donné à son rayon ; il faudrait de toute façon traduire, ce que fait le
+  modèle, pour quelques millièmes de centime.
+- **Les produits déjà sans rayon se rangent d'un geste** (bandeau de la bibliothèque,
+  `POST /api/rangement`), par lots de 40 (`RANGEMENT_MAX`) : la liste des rayons n'est payée
+  qu'une fois par lot.
 
 ## Common commands
 

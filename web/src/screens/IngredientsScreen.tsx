@@ -35,6 +35,7 @@ import {
   useCreateIngredient,
   useIngredient,
   useIngredients,
+  useRangerProduits,
 } from '../lib/queries.js'
 import { CriteriaFields } from './ingredients/CriteriaFields.js'
 import { ImportSheet } from './ingredients/ImportSheet.js'
@@ -194,6 +195,11 @@ export function IngredientsScreen() {
           Nouveau
         </Link>
       </div>
+
+      {/* Les produits sans rayon (crees avant le rangement automatique, ou
+          importes) se rangent d'un geste. La recherche filtre la liste : on
+          ne compte que sur la bibliotheque entiere. */}
+      {view.query === '' && <RangerSansRayon items={list.data?.items ?? []} />}
 
       <div className="ing-chips" role="group" aria-label="Filtres rapides">
         {QUICK_TOGGLES.map((toggle) => (
@@ -630,6 +636,62 @@ function readSnapshot(state: unknown): DeletionSnapshot | null {
  * RECREEE et repart avec un nouvel identifiant. Les references qui pointaient
  * sur l'ancien sont alors perdues : c'est pourquoi le message le dit.
  */
+/**
+ * Ranger d'un geste les produits sans rayon (worker/src/rangement.ts).
+ *
+ * Le serveur traite un lot de quarante par appel : on relance tant qu'il en
+ * reste et que le lot precedent a avance, cinq fois au plus. Un produit que
+ * le modele ne sait pas ranger reste sans rayon, plutot que d'atterrir dans un
+ * rayon qui ne lui va pas.
+ */
+function RangerSansRayon({ items }: { readonly items: readonly Ingredient[] }) {
+  const ranger = useRangerProduits()
+  const [bilan, setBilan] = useState<string | null>(null)
+  const [enCours, setEnCours] = useState(false)
+  const sansRayon = items.filter((i) => i.categoryL1 === null || i.categoryL1.trim() === '').length
+  if (sansRayon === 0 && bilan === null) return null
+
+  const lancer = async () => {
+    setEnCours(true)
+    setBilan(null)
+    let total = 0
+    try {
+      for (let tour = 0; tour < 5; tour++) {
+        const r = await ranger.mutateAsync()
+        total += r.ranges
+        if (r.restants === 0 || r.ranges === 0) break
+      }
+      setBilan(
+        total === 0
+          ? 'Aucun de tes rayons ne leur convenait. Crée le rayon qui manque, puis réessaie.'
+          : `${total} produit${total > 1 ? 's' : ''} rangé${total > 1 ? 's' : ''}. Un rayon se change dans la fiche.`,
+      )
+    } catch (erreur) {
+      setBilan(erreur instanceof Error ? erreur.message : 'Le rangement a échoué.')
+    } finally {
+      setEnCours(false)
+    }
+  }
+
+  return (
+    <div className="ing-ranger" role="status">
+      <p className="ing-ranger__texte">
+        {bilan ?? `${sansRayon} produit${sansRayon > 1 ? 's' : ''} sans rayon.`}
+      </p>
+      {sansRayon > 0 && (
+        <button
+          type="button"
+          className="button button--secondary ing-ranger__action"
+          onClick={() => void lancer()}
+          disabled={enCours}
+        >
+          {enCours ? 'Rangement…' : 'Les ranger'}
+        </button>
+      )}
+    </div>
+  )
+}
+
 function UndoBanner() {
   const location = useLocation()
   const navigate = useNavigate()

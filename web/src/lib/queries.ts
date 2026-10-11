@@ -843,6 +843,18 @@ export function useUpdateRayon() {
   })
 }
 
+/**
+ * Ranger dans un rayon, par Claude, les produits de la bibliotheque qui n'en
+ * ont pas. Un appel traite un lot ; `restants` dit s'il faut relancer.
+ */
+export function useRangerProduits() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: () => post<{ ranges: number; restants: number }>('/api/rangement', {}),
+    onSuccess: () => rayonTouches(client),
+  })
+}
+
 export function useDeleteRayon() {
   const client = useQueryClient()
   return useMutation({
