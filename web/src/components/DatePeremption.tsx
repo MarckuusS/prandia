@@ -1,15 +1,18 @@
 /**
- * La date de peremption, saisie de TROIS facons, de la plus rapide a la plus
- * longue :
+ * La date de peremption, saisie de QUATRE facons :
  *
  *   1. toucher le jour dans la rangee des trois semaines a venir : on lit
  *      "14/10" sur le pot, on touche "14". Un geste, et c'est le cas courant,
  *      les produits frais ;
- *   2. la faire LIRE par l'iPhone : toucher le champ, puis "Scanner le texte".
- *      C'est la lecture de texte du systeme, offerte dans tout champ de texte ;
- *      elle colle ce qu'elle voit ("A consommer jusqu'au 14/10/26 L5285"), et
- *      `parseExpiryText` en retrouve la date ;
- *   3. la taper : "14/10/26", "141026", "03/2027" pour une date au mois.
+ *   2. la SCANNER (bouton a droite du champ, `ScanEtiquette.tsx`) : une photo
+ *      lue par le serveur, sur iPhone comme sur Android ;
+ *   3. la faire lire par l'iPhone, sans reseau : deuxieme toucher dans le
+ *      champ, Remplissage automatique, Scanner le texte (iOS 17 et plus). Elle
+ *      colle ce qu'elle voit ("A consommer jusqu'au 14/10/26 L5285") ;
+ *   4. la taper : "14/10/26", "141026", "03/2027" pour une date au mois.
+ *
+ * Dans les trois derniers cas, c'est `parseExpiryText` qui retrouve la date
+ * dans le texte : un seul chemin de lecture, quelle que soit la source.
  *
  * LE CHAMP EST UN TEXTE, PAS UN `type="date"`, et c'est tout le point : le
  * selecteur natif d'iOS impose trois roues, et la lecture du systeme ne sait
@@ -30,6 +33,7 @@ import {
 } from '@prandia/shared'
 
 import { Icon } from '../icons/index.js'
+import { BoutonScan } from './ScanEtiquette.js'
 import '../styles/peremption.css'
 
 /** Trois semaines : la duree de vie d'a peu pres tout ce qui a une DLC. */
@@ -140,6 +144,7 @@ export function DatePeremption({
       </label>
 
       <div className="peremption__saisie">
+        <div className="peremption__champ">
         <input
           id={id}
           className="field__input peremption__texte"
@@ -172,6 +177,16 @@ export function DatePeremption({
             <Icon name="ui-close" size={18} />
           </button>
         )}
+        </div>
+        {/* La photo, lue par le serveur : le texte lu arrive dans le champ et
+            suit le meme chemin qu'une saisie ("Lu : ..." ou l'annee douteuse). */}
+        <BoutonScan
+          quoi="date"
+          onLu={(lu) => {
+            if (lu.kind === 'date' && lu.texte !== null) saisir(lu.texte)
+          }}
+          disabled={disabled}
+        />
       </div>
 
       <p
@@ -183,7 +198,8 @@ export function DatePeremption({
           ? anneeDouteuse !== null
             ? `L’année ${anneeDouteuse} paraît mal lue : corrige-la dans le champ.`
             : 'Date non reconnue. Écris-la comme sur l’emballage, par exemple 14/10/26.'
-          : (lecture ?? `${hint === undefined ? '' : `${hint} `}Touche le jour, ou tape la date.`)}
+          : (lecture ??
+            `${hint === undefined ? '' : `${hint} `}Touche le jour, tape la date, ou scanne-la avec l’appareil photo.`)}
       </p>
 
       {/* LE CHEMIN EXACT, parce qu'iOS le cache. Depuis iOS 17, "Scanner le
@@ -192,7 +208,7 @@ export function DatePeremption({
           puis Scanner le texte" ouvrait le clavier, et l'on s'arretait la
           (constate sur iPhone le 2026-10-11). Replie : on le lit une fois. */}
       <details className="peremption__aide">
-        <summary>Faire lire la date par l’iPhone</summary>
+        <summary>Ou la faire lire par l’iPhone, sans réseau</summary>
         <ol>
           <li>Touche le champ, puis touche-le une seconde fois : un petit menu apparaît.</li>
           <li>

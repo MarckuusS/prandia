@@ -981,6 +981,35 @@ le prix. Ce qui ne se devine pas :
 - **Le poids du paquet scanné au frigo se perdait** : `toCreatePayload` (`ScanToStock.tsx`)
   oubliait `pieceWeightG`, et le lot partait à 100 g quand OpenFoodFacts disait 500.
 
+## Scanner une étiquette (web) : `components/ScanEtiquette.tsx`, `worker/src/routes/scan.ts`, `shared/src/scan.ts`
+
+Un bouton Scanner à côté de la date (tous les champs `DatePeremption`), du prix (chariot, prix
+payé au frigo) et de la quantité (chariot, qui remplit le lot). Ce qui ne se devine pas :
+
+- **Pourquoi un modèle et pas la lecture du téléphone.** Celle d'Apple est cachée dans un sous-menu
+  depuis iOS 17 et n'existe pas sur Android ; un moteur embarqué (Tesseract) lit mal les dates en
+  points. L'utilisateur a fixé le budget : 500 lectures par mois, moins d'un euro. Claude Haiku 5.5
+  coûte quelques centièmes de centime par lecture, et les crédits API inclus dans son abonnement
+  Max (100 $ par mois) le couvrent. Cloudflare Workers AI (gratuit) était l'autre piste, gardée en
+  réserve. Le bouton est un RACCOURCI : la saisie à la main reste entière, ce n'est pas un chemin
+  critique (la règle "pas de LLM dans les chemins critiques" d'architecture.md tient).
+- **Un viseur DANS l'application**, sur la caméra partagée de `camera.ts` (pas de nouvelle demande
+  d'autorisation), et non `<input capture>` : l'appareil photo du système rend douze mégapixels où
+  l'étiquette occupe un coin. **Seul le rectangle part**, marge de 15 % comprise, réduit à 1 024 px :
+  environ 500 tokens, et le prix au kilo imprimé à côté reste hors champ. Le recadrage refait à
+  l'envers le calcul de `object-fit: cover`.
+- **Une question et un OUTIL à schéma forcé par lecture** (`SCAN_QUESTIONS`), puis
+  `interpretScan` vérifie tout : prix entre un centime et 500 €, unité de 1 g à 20 kg, au plus
+  100 unités. Hors bornes, le champ revient VIDE plutôt que faux.
+- **La date revient en TEXTE**, tel qu'imprimé, et passe par `parseExpiryText` comme une saisie :
+  un seul chemin de lecture, et l'année douteuse est signalée de la même façon.
+- **Rien n'est écrit en base par la lecture** : la valeur va dans le champ, et ne part qu'avec le
+  bouton de la feuille. La photo n'est conservée nulle part.
+- **La clé est un secret Pages (`ANTHROPIC_API_KEY`)**, jamais dans le dépôt ; absente, la route
+  répond 503 "pas encore configurée". Plafond de 150 lectures par jour et par cuisine, compté
+  AVANT l'appel ; le vrai garde-fou est le plafond de dépense de l'espace de travail Anthropic. Le
+  corps d'erreur d'Anthropic ne remonte jamais tel quel : il peut citer l'organisation.
+
 ## Common commands
 
 ```bash

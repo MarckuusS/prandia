@@ -35,8 +35,10 @@ import {
   type ShoppingList,
   formatCriteria,
   type Criterion,
-
-  type WeighIn,} from '@prandia/shared'
+  type ScanKind,
+  type ScanResult,
+  type WeighIn,
+} from '@prandia/shared'
 
 import { ApiError, apiFetch } from './api.js'
 
@@ -616,6 +618,17 @@ export const useReadRecipeLink = () =>
  * la lire lui-meme. Elle repart ensuite par `reduirePhoto`, comme une photo
  * prise au telephone.
  */
+/**
+ * Faire lire une photo d'etiquette (date, prix, quantite) par le serveur.
+ * Rien n'est ecrit : la reponse va dans un champ, que l'utilisateur valide.
+ */
+export const scanEtiquette = (quoi: ScanKind, image: Blob): Promise<ScanResult> =>
+  apiFetch<ScanResult>(`/api/scan?quoi=${quoi}`, {
+    method: 'POST',
+    headers: { 'content-type': image.type || 'image/jpeg' },
+    body: image,
+  })
+
 export async function fetchImportPhoto(url: string): Promise<Blob> {
   let reponse: Response
   try {

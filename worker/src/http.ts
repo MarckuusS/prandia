@@ -54,6 +54,13 @@ export interface Env {
    * Worker ne tourne pas. Voir horloge.ts.
    */
   readonly HORLOGE?: DurableObjectNamespace | undefined
+  /**
+   * Lecture des photos d'etiquette (date, prix, quantite) par Claude. SECRET,
+   * pose par `wrangler pages secret put ANTHROPIC_API_KEY`, jamais dans le
+   * depot ni dans `wrangler.toml`. Absente : le bouton Scanner repond que la
+   * lecture n'est pas configuree. Voir routes/scan.ts.
+   */
+  readonly ANTHROPIC_API_KEY?: string | undefined
 }
 
 // ---------------------------------------------------------------------------

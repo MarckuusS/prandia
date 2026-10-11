@@ -51,6 +51,7 @@ import './routes/pantry.js'
 import './routes/shopping.js'
 import './routes/courses.js'
 import './routes/notifications.js'
+import './routes/scan.js'
 
 /**
  * Routes accessibles sans session. Tout le reste est protege par defaut.

@@ -19,6 +19,7 @@ import { useState } from 'react'
 import { formatEuros, formatGrams } from '@prandia/shared'
 
 import { DatePeremption } from '../../components/DatePeremption.js'
+import { BoutonScan } from '../../components/ScanEtiquette.js'
 import { NumberField, TextField } from '../../components/Field.js'
 import { QuantityField } from '../../components/QuantityField.js'
 import { Icon } from '../../icons/index.js'
@@ -154,14 +155,29 @@ export function SessionItemFields({
           )}
         </div>
       ) : (
-        <button
-          type="button"
-          className="button button--ghost session-lot__ouvrir"
-          onClick={ouvrirLot}
-          disabled={disabled}
-        >
-          + Saisir un lot (ex. 12 × 125 g)
-        </button>
+        <div className="session-lot__actions">
+          <button
+            type="button"
+            className="button button--ghost session-lot__ouvrir"
+            onClick={ouvrirLot}
+            disabled={disabled}
+          >
+            + Saisir un lot (ex. 12 × 125 g)
+          </button>
+          {/* "12 x 125 g" lu sur l'emballage remplit le lot ; "500 g", une
+              unite de 500 g. La valeur reste modifiable avant l'ajout. */}
+          <BoutonScan
+            quoi="quantite"
+            libelle="Scanner"
+            className="button button--ghost session-lot__ouvrir"
+            onLu={(lu) => {
+              if (lu.kind !== 'quantite' || lu.contenanceG === null) return
+              setLotOuvert(true)
+              changerLot({ nombre: lu.nombre ?? 1, contenanceG: lu.contenanceG })
+            }}
+            disabled={disabled}
+          />
+        </div>
       )}
 
       <NumberField
@@ -181,19 +197,32 @@ export function SessionItemFields({
 
       {/* Un prix PROPOSE, jamais pre-rempli : il ne part qu'au toucher. Le
           bouton disparait une fois le champ rempli, de la main ou par lui. */}
-      {proposition !== null && proposition !== undefined && draft.priceEur === null && (
-        <div className="session-proposition">
-          <button
-            type="button"
-            className="chip-toggle"
-            onClick={() => set('priceEur', proposition.priceEur)}
-            disabled={disabled}
-          >
-            Reprendre {formatEuros(proposition.priceEur.toFixed(2))}
-          </button>
-          <span className="session-proposition__source">{proposition.source}</span>
-        </div>
-      )}
+      <div className="session-proposition">
+        {/* L'etiquette du rayon, lue par le serveur : le prix de l'ARTICLE,
+            jamais le prix au kilo imprime a cote. */}
+        <BoutonScan
+          quoi="prix"
+          libelle="Scanner le prix"
+          className="chip-toggle"
+          onLu={(lu) => {
+            if (lu.kind === 'prix' && lu.prixEur !== null) set('priceEur', lu.prixEur)
+          }}
+          disabled={disabled}
+        />
+        {proposition !== null && proposition !== undefined && draft.priceEur === null && (
+          <>
+            <button
+              type="button"
+              className="chip-toggle"
+              onClick={() => set('priceEur', proposition.priceEur)}
+              disabled={disabled}
+            >
+              Reprendre {formatEuros(proposition.priceEur.toFixed(2))}
+            </button>
+            <span className="session-proposition__source">{proposition.source}</span>
+          </>
+        )}
+      </div>
 
       {observedPending === true && <p className="field__hint">Recherche des prix constatés…</p>}
 

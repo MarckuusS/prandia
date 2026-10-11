@@ -444,6 +444,13 @@
   font-size: var(--font-size-md);
 }
 
+.session-lot__actions {
+  display: flex;
+  gap: var(--space-md);
+  align-items: center;
+  justify-content: space-between;
+}
+
 .session-lot {
   display: flex;
   flex-direction: column;

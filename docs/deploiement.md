@@ -194,6 +194,18 @@ Pour lire ce que fait le planificateur en direct :
 npx wrangler tail prandia-notifier
 ```
 
+## 7. La lecture des étiquettes (bouton Scanner)
+
+Le bouton Scanner (date, prix, quantité) envoie une photo recadrée à la Pages Function, qui la fait lire par Claude Haiku 5.5. La clé est un secret du projet Pages, jamais écrite dans le dépôt, qui est public :
+
+```bash
+npx wrangler pages secret put ANTHROPIC_API_KEY --project-name prandia
+```
+
+Un secret ne s'applique qu'aux déploiements suivants : après l'avoir posé, il faut redéployer (un nouveau push sur `main`, ou "Retry deployment" dans le tableau de bord). Sans clé, le bouton répond que la lecture n'est pas configurée, et rien d'autre ne change.
+
+La clé vient d'un espace de travail "Prandia" de la Console Anthropic, avec un plafond de dépense mensuel : c'est le vrai garde-fou des crédits. Le serveur ajoute le sien, 150 lectures par jour et par cuisine. Une lecture coûte environ 500 tokens d'image, soit quelques centièmes de centime.
+
 ---
 
 ## Avant chaque mise en production

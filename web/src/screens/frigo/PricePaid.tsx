@@ -19,6 +19,7 @@
 import { todayLocalIsoDate, type PaidPriceSuggestion } from '@prandia/shared'
 
 import { NumberField, TextField } from '../../components/Field.js'
+import { BoutonScan } from '../../components/ScanEtiquette.js'
 import { QuantityField } from '../../components/QuantityField.js'
 
 // ---------------------------------------------------------------------------
@@ -158,6 +159,18 @@ export function PricePaidFields({
         error={error}
         autoFocus
       />
+
+      <div className="scan-ligne">
+        <BoutonScan
+          quoi="prix"
+          libelle="Scanner le prix"
+          className="chip-toggle"
+          onLu={(lu) => {
+            if (lu.kind === 'prix' && lu.prixEur !== null) onChange({ ...draft, amountEur: lu.prixEur })
+          }}
+          disabled={disabled}
+        />
+      </div>
 
       <QuantityField
         label="Pour cette quantité"

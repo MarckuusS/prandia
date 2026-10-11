@@ -1,0 +1,44 @@
+/* ---------- Scanner une etiquette (components/ScanEtiquette.tsx) ---------- */
+
+/* Le rectangle de lecture prend la forme de ce qu'on lit : une date ou un
+   poids tiennent sur une ligne, une etiquette de prix est plus haute. Seul ce
+   rectangle part au serveur, marge comprise. */
+.viseur.viseur--date,
+.viseur.viseur--quantite {
+  width: 86%;
+  max-width: 420px;
+  aspect-ratio: 3 / 1;
+}
+
+.viseur.viseur--prix {
+  width: 80%;
+  max-width: 380px;
+  aspect-ratio: 3 / 2;
+}
+
+/* Un bouton Scanner pose seul sous un champ : a sa taille, pas etire. */
+.scan-ligne {
+  display: flex;
+}
+
+/* Le bouton seul, a cote d'un champ : la hauteur du champ, une icone olive.
+   Pas d'aplat : la feuille garde le sien pour son action principale. */
+.bouton-scan {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--control-height-lg);
+  height: var(--control-height-lg);
+  color: var(--color-primary-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-hover);
+  border-radius: var(--radius-md);
+}
+
+.bouton-scan:active {
+  background: var(--color-surface-pressed);
+}
+
+.bouton-scan:disabled {
+  opacity: 0.5;
+}
