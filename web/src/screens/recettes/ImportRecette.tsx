@@ -33,14 +33,19 @@ import { Icon, RayonIcon } from '../../icons/index.js'
 import { reduirePhoto } from '../../lib/photo.js'
 import {
   fetchImportPhoto,
+  lookupBarcode,
   useAddToLibrary,
   useCatalog,
+  useCreateIngredient,
+  useIngredients,
+  useOffSearch,
   useReadRecipeLink,
   useSaveRecipe,
   useUploadRecipePhoto,
   type ImportLine,
   type ImportProposal,
 } from '../../lib/queries.js'
+import { offCreatePayload } from '../../lib/offPayload.js'
 import { lienDuPressePapiers } from '../../lib/pressePapiers.js'
 import { useRayonStyle } from '../../lib/useRayonStyle.js'
 import { EtapesRecette } from './EtapesRecette.js'
@@ -235,6 +240,7 @@ function Revue({ proposition, onRecommencer }: { readonly proposition: ImportPro
   const toast = useToast()
   const save = useSaveRecipe()
   const ajouter = useAddToLibrary()
+  const creerFiche = useCreateIngredient()
   const deposer = useUploadRecipePhoto()
 
   const [nom, setNom] = useState(recipe.name)
@@ -263,7 +269,29 @@ function Revue({ proposition, onRecommencer }: { readonly proposition: ImportPro
     setEnCours(true)
     setErreur(null)
     try {
-      const retenues = actives.filter((c) => c.ingredient !== null)
+      /*
+       * Un produit du commerce (OpenFoodFacts) n'existe pas encore en base :
+       * il est CREE ici, a la creation de la recette et pas au choix, pour
+       * qu'une revue abandonnee ne laisse rien dans la bibliotheque. Deux
+       * lignes qui ont choisi le meme produit ne le creent qu'une fois.
+       */
+      const crees = new Map<string, Ingredient>()
+      const retenues: Choix[] = []
+      for (const c of actives) {
+        const choisi = c.ingredient
+        if (choisi === null) continue
+        if (choisi.id !== null) {
+          retenues.push(c)
+          continue
+        }
+        const cle = choisi.sourceRef ?? choisi.name
+        let fiche = crees.get(cle)
+        if (fiche === undefined) {
+          fiche = await creerFiche.mutateAsync(offCreatePayload(choisi))
+          crees.set(cle, fiche)
+        }
+        retenues.push({ ...c, ingredient: fiche })
+      }
       // Les fiches du catalogue retenues entrent dans la bibliotheque : c'est
       // la qu'on les retrouve ensuite, dans les recettes comme au planning.
       const aAjouter = new Map<number, Ingredient>()
@@ -457,7 +485,12 @@ function LigneImport({
             <Icon name="ui-search" size={16} />
           </span>
         )}
-        <span className="lien-fiche__libelle">{ingredient?.name ?? 'Choisir l’ingrédient'}</span>
+        <span className="lien-fiche__libelle">
+          {ingredient?.name ?? 'Choisir l’ingrédient'}
+          {ingredient !== null && ingredient.brand !== null && ingredient.brand !== '' && (
+            <span className="import-choix__marque">{ingredient.brand}</span>
+          )}
+        </span>
         {aVerifier && <span className="import-ligne__badge">À vérifier</span>}
         <Icon name="ui-chevron-right" size={18} className="lien-fiche__chevron" />
       </button>
@@ -503,29 +536,95 @@ function ChoixIngredient({
     const minuterie = setTimeout(() => setRequete(texte.trim()), 250)
     return () => clearTimeout(minuterie)
   }, [texte])
-  const catalogue = useCatalog(requete, { pageSize: 20 })
+  const [source, setSource] = useState<'catalogue' | 'commerce'>('catalogue')
+  const catalogue = useCatalog(requete, { pageSize: 20, enabled: source === 'catalogue' })
   const dejaProposees = new Set(line.candidates.map((c) => c.id))
   const resultats = (catalogue.data?.pages.flatMap((p) => p.items) ?? []).filter((i) => !dejaProposees.has(i.id))
 
-  const rangee = (ingredient: Ingredient) => (
-    <li key={ingredient.id}>
-      <button type="button" className="import-choix__ligne" onClick={() => onChoisir(ingredient)}>
-        <Pastille ingredient={ingredient} />
-        <span className="import-choix__corps">
-          <span className="import-choix__nom">{ingredient.name}</span>
-          <span className="import-choix__meta">
-            {[
-              ingredient.kcal !== null ? `${Math.round(ingredient.kcal)} kcal / 100 g` : null,
-              ingredient.pieceWeightG !== null ? `1 pièce = ${formatGrams(ingredient.pieceWeightG)}` : null,
-              ingredient.inLibrary ? 'Ma bibliothèque' : null,
-            ]
-              .filter(Boolean)
-              .join(' · ')}
+  /*
+   * LES PRODUITS DU COMMERCE, avec leur marque et leur contenance
+   * (OpenFoodFacts). La recherche ne part que sur un geste (l'onglet, Entree,
+   * le bouton) : OpenFoodFacts bride les clients anonymes, et une requete par
+   * lettre tapee le ferait vite. Un produit deja dans la bibliotheque (meme
+   * code-barres) est rendu par SA fiche : le recreer buterait sur l'unicite.
+   */
+  const [requeteCommerce, setRequeteCommerce] = useState('')
+  const commerce = useOffSearch(requeteCommerce, source === 'commerce' && requeteCommerce.length >= 2)
+  const produits = commerce.data?.pages.flatMap((p) => p.items) ?? []
+  const bibliotheque = useIngredients('')
+  const parCode = useMemo(() => {
+    const index = new Map<string, Ingredient>()
+    for (const i of bibliotheque.data?.items ?? []) if (i.sourceRef !== null) index.set(i.sourceRef, i)
+    return index
+  }, [bibliotheque.data])
+  const chercherEnLigne = () => {
+    if (texte.trim().length >= 2) setRequeteCommerce(texte.trim())
+  }
+
+  /*
+   * La recherche d'OpenFoodFacts ne rend PAS la contenance du paquet, quels
+   * que soient les champs demandes : seule la fiche du produit, lue par son
+   * code-barres, la donne. On la lit au choix, une requete par produit
+   * retenu, et "1 sachet de salade" se dose alors au sachet reel. Une fiche
+   * illisible laisse le resultat de recherche tel quel.
+   */
+  const [completant, setCompletant] = useState<string | null>(null)
+  const choisir = async (ingredient: Ingredient) => {
+    if (ingredient.id !== null || ingredient.sourceRef === null || ingredient.pieceWeightG !== null) {
+      onChoisir(ingredient)
+      return
+    }
+    setCompletant(ingredient.sourceRef)
+    let complet: Ingredient = ingredient
+    try {
+      complet = await lookupBarcode(ingredient.sourceRef)
+    } catch {
+      // Code inconnu de la fiche produit, ou reseau : le resultat suffit.
+    }
+    setCompletant(null)
+    onChoisir(complet)
+  }
+
+  const rangee = (ingredient: Ingredient) => {
+    const connu = ingredient.id === null && ingredient.sourceRef !== null ? parCode.get(ingredient.sourceRef) : undefined
+    const choisi = connu ?? ingredient
+    const paquet = choisi.source === 'openfoodfacts'
+    const enLecture = completant !== null && completant === choisi.sourceRef
+    return (
+      <li key={choisi.id ?? `off-${choisi.sourceRef ?? choisi.name}`}>
+        <button
+          type="button"
+          className="import-choix__ligne"
+          onClick={() => void choisir(choisi)}
+          disabled={completant !== null}
+          aria-busy={enLecture || undefined}
+        >
+          <Pastille ingredient={choisi} />
+          <span className="import-choix__corps">
+            <span className="import-choix__nom">{choisi.name}</span>
+            {choisi.brand !== null && choisi.brand !== '' && (
+              <span className="import-choix__marque">{choisi.brand}</span>
+            )}
+            <span className="import-choix__meta">
+              {[
+                enLecture ? 'Lecture de la fiche…' : null,
+                choisi.kcal !== null ? `${Math.round(choisi.kcal)} kcal / 100 g` : null,
+                choisi.pieceWeightG !== null
+                  ? paquet
+                    ? `paquet de ${formatGrams(choisi.pieceWeightG)}`
+                    : `1 pièce = ${formatGrams(choisi.pieceWeightG)}`
+                  : null,
+                choisi.nutriscoreGrade !== null ? `Nutri-Score ${choisi.nutriscoreGrade.toUpperCase()}` : null,
+                choisi.inLibrary ? 'Ma bibliothèque' : null,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            </span>
           </span>
-        </span>
-      </button>
-    </li>
-  )
+        </button>
+      </li>
+    )
+  }
 
   return (
     <Sheet open onClose={onClose} title="Choisir l’ingrédient" variant="plein">
@@ -538,11 +637,94 @@ function ChoixIngredient({
           <ul className="import-choix">{line.candidates.map(rangee)}</ul>
         </>
       )}
-      <TextField label="Chercher dans la bibliothèque et CIQUAL" type="search" value={texte} onChange={setTexte} />
-      {catalogue.isFetching && resultats.length === 0 && <LoadingRows rows={3} />}
-      {resultats.length > 0 && <ul className="import-choix">{resultats.map(rangee)}</ul>}
-      {requete !== '' && !catalogue.isFetching && resultats.length === 0 && (
-        <p className="field__hint">Rien d’autre ne correspond. Tu peux ignorer cette ligne et l’ajouter ensuite.</p>
+
+      <div className="segmented" role="group" aria-label="Où chercher">
+        <button
+          type="button"
+          className={`segmented__tab${source === 'catalogue' ? ' segmented__tab--active' : ''}`}
+          aria-pressed={source === 'catalogue'}
+          onClick={() => setSource('catalogue')}
+        >
+          Aliments
+        </button>
+        <button
+          type="button"
+          className={`segmented__tab${source === 'commerce' ? ' segmented__tab--active' : ''}`}
+          aria-pressed={source === 'commerce'}
+          onClick={() => {
+            setSource('commerce')
+            chercherEnLigne()
+          }}
+        >
+          Marques
+        </button>
+      </div>
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          if (source === 'commerce') chercherEnLigne()
+        }}
+      >
+        <TextField
+          label={
+            source === 'catalogue'
+              ? 'Chercher dans ta bibliothèque et CIQUAL'
+              : 'Chercher un produit du commerce (OpenFoodFacts)'
+          }
+          type="search"
+          value={texte}
+          onChange={setTexte}
+          enterKeyHint="search"
+        />
+      </form>
+
+      {source === 'catalogue' && (
+        <>
+          {catalogue.isFetching && resultats.length === 0 && <LoadingRows rows={3} />}
+          {resultats.length > 0 && <ul className="import-choix">{resultats.map(rangee)}</ul>}
+          {requete !== '' && !catalogue.isFetching && resultats.length === 0 && (
+            <p className="field__hint">
+              Rien d’autre ne correspond. Essaie l’onglet Marques, ou ignore cette ligne et
+              ajoute-la ensuite.
+            </p>
+          )}
+        </>
+      )}
+
+      {source === 'commerce' && (
+        <>
+          {texte.trim() !== requeteCommerce && (
+            <button
+              type="button"
+              className="button button--secondary button--block"
+              onClick={chercherEnLigne}
+              disabled={texte.trim().length < 2}
+            >
+              Chercher “{texte.trim()}” sur OpenFoodFacts
+            </button>
+          )}
+          {commerce.isFetching && produits.length === 0 && <LoadingRows rows={3} />}
+          {commerce.isError && <p className="text-error">{commerce.error.message}</p>}
+          {produits.length > 0 && <ul className="import-choix">{produits.map(rangee)}</ul>}
+          {commerce.hasNextPage && (
+            <button
+              type="button"
+              className="button button--ghost button--block"
+              onClick={() => void commerce.fetchNextPage()}
+              disabled={commerce.isFetchingNextPage}
+            >
+              {commerce.isFetchingNextPage ? 'Chargement…' : 'Voir plus de produits'}
+            </button>
+          )}
+          {requeteCommerce !== '' && commerce.isSuccess && produits.length === 0 && (
+            <p className="field__hint">OpenFoodFacts ne connaît aucun produit à ce nom.</p>
+          )}
+          <p className="field__hint">
+            Le produit choisi entrera dans ta bibliothèque à la création de la recette, avec sa
+            marque, ses valeurs et la contenance de son paquet.
+          </p>
+        </>
       )}
     </Sheet>
   )

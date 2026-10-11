@@ -36,6 +36,7 @@ import {
   useCreateIngredient,
   useIngredients,
 } from '../../lib/queries.js'
+import { offCreatePayload } from '../../lib/offPayload.js'
 
 export interface ScanToStockProps {
   /** Appele avec l'ingredient resolu — la feuille le traite comme un choix du picker. */
@@ -182,26 +183,6 @@ function useLibraryByBarcode(): { byRef: ReadonlyMap<string, Ingredient>; pendin
 // Le produit lu
 // ---------------------------------------------------------------------------
 
-/** Un candidat OpenFoodFacts n'existe pas en base : il faut le CREER, macros comprises. */
-const toCreatePayload = (candidate: Ingredient): Partial<Ingredient> & { name: string } => ({
-  name: candidate.name,
-  source: candidate.source,
-  sourceRef: candidate.sourceRef,
-  brand: candidate.brand,
-  kcal: candidate.kcal,
-  proteins: candidate.proteins,
-  carbs: candidate.carbs,
-  sugars: candidate.sugars,
-  fats: candidate.fats,
-  saturatedFats: candidate.saturatedFats,
-  fiber: candidate.fiber,
-  salt: candidate.salt,
-  // La contenance du paquet : sans elle, un produit scanne au frigo arrivait a
-  // 100 g quand OpenFoodFacts disait 500 g, et la fiche perdait sa piece.
-  pieceWeightG: candidate.pieceWeightG,
-  nutriscoreGrade: candidate.nutriscoreGrade,
-})
-
 function ScannedProduct({
   ean,
   onPick,
@@ -279,7 +260,7 @@ function ScannedProduct({
     // Une fiche qui existe deja (ligne de catalogue) se REVENDIQUE, elle ne se
     // recree pas : la creer buterait sur l'unicite du nom.
     if (product.id !== null) addToLibrary.mutate(product.id, { onSuccess: done })
-    else create.mutate(toCreatePayload(product), { onSuccess: done })
+    else create.mutate(offCreatePayload(product), { onSuccess: done })
   }
 
   return (

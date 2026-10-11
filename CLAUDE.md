@@ -910,6 +910,20 @@ Coller le lien d'une recette, relire, créer. Entrée en tête de "Nouvelle rece
 - **Une phrase ne se coupe que devant une MAJUSCULE**, ce qui épargne "c. à s.", "env. 5 min" et
   "th. 6". Et sans assertion arrière (`(?<=`) : Safari ne la lit que depuis la 16.4, et une
   expression qu'il ne sait pas lire fait échouer tout le paquet, pas seulement l'écran.
+- **Choisir un ingrédient se fait dans deux sources** : onglet "Aliments" (bibliothèque et
+  CIQUAL, recherche à la frappe) et onglet "Marques" (OpenFoodFacts, avec marque, contenance et
+  Nutri-Score). Ce dernier ne cherche que sur un GESTE (l'onglet, Entrée, le bouton) : OpenFoodFacts
+  bride les clients anonymes. **La recherche d'OpenFoodFacts ne rend pas toujours la contenance**,
+  et aucun paramètre de champs ne la force (vérifié) : au choix d'un produit sans contenance, sa
+  fiche est relue par code-barres (`lookupBarcode`). Un produit déjà en bibliothèque (même code)
+  est rendu par SA fiche. Le produit retenu n'est CRÉÉ qu'à "Créer la recette"
+  (`offCreatePayload`, `lib/offPayload.ts`), une fois par produit : une revue abandonnée ne laisse
+  rien. **Les marques arrivent en LISTE de la recherche et en CHAÎNE de la fiche produit** :
+  `marques()` (`worker/src/routes/ingredients.ts`) accepte les deux ; lues comme une chaîne
+  seulement, elles manquaient à TOUS les résultats de recherche, bibliothèque comprise.
+- **"1 sachet", "1 pot", "1 boîte" prennent la contenance du produit choisi** quand il en a une
+  (`EMBALLAGES`, `importAmount`) : un sachet de salade de 200 g n'est pas un sachet de levure de
+  10 g. Toujours "à vérifier" : la contenance d'un lot de quatre pots est celle du lot.
 - **Le lien d'origine se retouche depuis la fiche** : une ligne "Voir la recette sur
   hellofresh.fr" sous le titre, flèche de sortie au lieu du chevron, et le bandeau dit "Importée de
   hellofresh.fr". Il n'apparaissait qu'en bas de l'éditeur. **Tout `href` tiré de `sourceUrl`

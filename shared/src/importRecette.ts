@@ -317,6 +317,14 @@ export const PORTIONS_G: Readonly<Record<string, number>> = {
   boite: 400,
 }
 
+/**
+ * Les mots de portion qui designent l'EMBALLAGE du produit lui-meme : "1 sachet
+ * de salade", "1 pot de creme". Quand la fiche choisie connait sa contenance,
+ * ce qu'a tout produit du commerce, elle vaut mieux que l'ordre de grandeur de
+ * `PORTIONS_G` : un sachet de salade de 200 g n'est pas un sachet de levure.
+ */
+const EMBALLAGES = new Set(['sachet', 'pot', 'brique', 'boite', 'paquet', 'barquette', 'bouteille'])
+
 /** "gousses" et "gousse" : le meme mot de portion. */
 const singulierPortion = (mot: string): string => (mot.length > 3 && mot.endsWith('s') ? mot.slice(0, -1) : mot)
 
@@ -383,6 +391,9 @@ export function importAmount(
     return { grams: PIECE_SUPPOSEE_G, unit: 'g', estimated: true }
   }
   if (line.unit !== null) return { grams: toGrams(q, line.unit), unit: line.unit, estimated: false }
+  if (line.portion && EMBALLAGES.has(line.portion) && piece !== null) {
+    return { grams: q * piece, unit: PIECE_UNIT_CODE, estimated: true }
+  }
   if (poidsPortion !== undefined) return { grams: q * poidsPortion, unit: 'g', estimated: true }
   if (piece !== null) return { grams: q * piece, unit: PIECE_UNIT_CODE, estimated: false }
   if (assaisonnement) return { grams: toGrams(q, 'pincee'), unit: 'pincee', estimated: true }

@@ -185,6 +185,20 @@ describe('importAmount', () => {
     expect(importAmount(ail, { pieceWeightG: 50 })).toEqual({ grams: 10, unit: 'g', estimated: true })
   })
 
+  it('prend la contenance du produit choisi quand la portion est son emballage', () => {
+    // "1 sachet de salade" : un produit du commerce de 200 g, pas un sachet de
+    // levure de 10 g. Sans contenance connue, l'ordre de grandeur reste.
+    const salade = parseIngredientLine('1 sachet(s) Salade en sachet')
+    expect(salade.portion).toBe('sachet')
+    expect(importAmount(salade, { pieceWeightG: 200 })).toEqual({ grams: 200, unit: '_piece', estimated: true })
+    expect(importAmount(salade, { pieceWeightG: null })).toEqual({ grams: 10, unit: 'g', estimated: true })
+    expect(importAmount(parseIngredientLine('2 pots de crème fraîche'), { pieceWeightG: 200 })).toEqual({
+      grams: 400,
+      unit: '_piece',
+      estimated: true,
+    })
+  })
+
   it('dose un assaisonnement compte en pincees', () => {
     expect(importAmount(parseIngredientLine('1 Sel poivre'), { pieceWeightG: null })).toEqual({
       grams: 1,

@@ -179,3 +179,17 @@
   font-size: var(--font-size-md);
   color: var(--color-text-secondary);
 }
+
+/* La marque, sur sa ligne, a l'encre : c'est ce qui distingue deux produits
+   du commerce au meme nom ("Salade Iceberg" de deux enseignes). */
+.import-choix__marque {
+  display: block;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+}
+
+.lien-fiche__libelle .import-choix__marque {
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-secondary);
+}

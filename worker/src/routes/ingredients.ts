@@ -464,6 +464,25 @@ route('GET', '/api/prices/observed/:ean', async ({ params, env }) => {
  * une valeur inconnue n'est pas zero, et ecrire 0 kcal fausserait tous les
  * totaux de la semaine sans que rien ne le signale.
  */
+/**
+ * Les marques, en texte. La fiche produit (`/api/v2/product`) les donne en
+ * chaine ("Bonduelle, Carrefour"), la RECHERCHE (Search-a-licious) en liste
+ * (["Bonduelle"]) : lues comme une chaine seulement, elles disparaissaient de
+ * tous les resultats de recherche (constate le 2026-10-11).
+ */
+function marques(valeur: unknown): string | null {
+  const texte = Array.isArray(valeur)
+    ? valeur
+        .filter((m): m is string => typeof m === 'string')
+        .map((m) => m.trim())
+        .filter((m) => m !== '')
+        .join(', ')
+    : typeof valeur === 'string'
+      ? valeur
+      : ''
+  return texte.trim() === '' ? null : texte.trim()
+}
+
 function toOffCandidate(raw: unknown): Record<string, unknown> {
   const p = (raw ?? {}) as Record<string, unknown>
   const n = (p['nutriments'] ?? {}) as Record<string, unknown>
@@ -482,7 +501,7 @@ function toOffCandidate(raw: unknown): Record<string, unknown> {
     name,
     source: 'openfoodfacts',
     sourceRef: typeof p['code'] === 'string' ? p['code'] : null,
-    brand: typeof p['brands'] === 'string' ? p['brands'] : null,
+    brand: marques(p['brands']),
     kcal: num('energy-kcal_100g'),
     proteins: num('proteins_100g'),
     carbs: num('carbohydrates_100g'),

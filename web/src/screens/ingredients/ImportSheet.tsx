@@ -40,6 +40,7 @@ import {
   useOffSearch,
   type BarcodeResult,
 } from '../../lib/queries.js'
+import { offCreatePayload } from '../../lib/offPayload.js'
 import { CriteriaFields } from './CriteriaFields.js'
 import { CATALOG_CRITERION_FIELDS, catalogKey } from './model.js'
 import { ScanReview } from './ScanReview.js'
@@ -186,22 +187,6 @@ const isKnown = (candidate: Ingredient, library: LibraryIndex): boolean => {
 // Import, a l'unite et en lot
 // ---------------------------------------------------------------------------
 
-/** Un candidat OFF n'existe pas en base : il faut le creer, macros comprises. */
-const toCreatePayload = (candidate: Ingredient): Partial<Ingredient> & { name: string } => ({
-  name: candidate.name,
-  source: candidate.source,
-  sourceRef: candidate.sourceRef,
-  brand: candidate.brand,
-  kcal: candidate.kcal,
-  proteins: candidate.proteins,
-  carbs: candidate.carbs,
-  sugars: candidate.sugars,
-  fats: candidate.fats,
-  saturatedFats: candidate.saturatedFats,
-  fiber: candidate.fiber,
-  salt: candidate.salt,
-})
-
 function SelectionBar({
   selected,
   onClear,
@@ -231,7 +216,7 @@ function SelectionBar({
     for (const candidate of selected.values()) {
       try {
         if (candidate.id !== null) await addToLibrary.mutateAsync(candidate.id)
-        else await create.mutateAsync(toCreatePayload(candidate))
+        else await create.mutateAsync(offCreatePayload(candidate))
         done += 1
       } catch (error) {
         problems.push(`${candidate.name} — ${error instanceof Error ? error.message : 'échec'}`)
@@ -700,7 +685,7 @@ function CandidateRow({
   const add = () => {
     const done = () => onAdded(`✓ Ajouté à ta bibliothèque : ${candidate.name}`)
     if (candidate.id !== null) addToLibrary.mutate(candidate.id, { onSuccess: done })
-    else create.mutate(toCreatePayload(candidate), { onSuccess: done })
+    else create.mutate(offCreatePayload(candidate), { onSuccess: done })
   }
 
   // `toLocaleString('fr-FR')` et non l'interpolation brute : OpenFoodFacts rend
