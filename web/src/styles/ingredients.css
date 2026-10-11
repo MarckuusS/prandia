@@ -269,7 +269,7 @@
 
 /* Les produits sans rayon, et le geste qui les range : une ligne de carte,
    pas une alerte. Rien n'est en erreur, il manque un rangement. */
-.ing-ranger {
+.ing-ia {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-sm) var(--space-md);
@@ -281,7 +281,7 @@
   box-shadow: var(--shadow-subtle);
 }
 
-.ing-ranger__texte {
+.ing-ia__texte {
   flex: 1;
   min-width: 10rem;
   margin: 0;
@@ -289,7 +289,7 @@
   color: var(--color-text-secondary);
 }
 
-.button.ing-ranger__action {
+.button.ing-ia__action {
   flex: none;
 }
 
@@ -1047,4 +1047,17 @@
  */
 .ing-actions {
   padding-bottom: calc(var(--space-md) + var(--scan-overlap));
+}
+
+/* "Completer avec l'IA", sous l'identite de la fiche : le bouton a sa taille,
+   et la phrase qui dit ce qui a ete rempli juste dessous. */
+.ing-form__ia {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.ing-form__ia .field__hint,
+.ing-form__ia .field__error {
+  margin: 0;
 }

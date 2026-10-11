@@ -34,6 +34,7 @@ import {
   type ShoppingSession,
   type ShoppingList,
   formatCriteria,
+  type Completion,
   type Criterion,
   type ScanKind,
   type ScanResult,
@@ -844,17 +845,42 @@ export function useUpdateRayon() {
   })
 }
 
-/**
- * Ranger dans un rayon, par Claude, les produits de la bibliotheque qui n'en
- * ont pas. Un appel traite un lot ; `restants` dit s'il faut relancer.
- */
-export function useRangerProduits() {
-  const client = useQueryClient()
-  return useMutation({
-    mutationFn: () => post<{ ranges: number; restants: number }>('/api/rangement', {}),
-    onSuccess: () => rayonTouches(client),
+/** Les fiches de la bibliotheque que l'IA n'a jamais completees, et si elle est configuree. */
+export function useCompletionEtat() {
+  return useQuery({
+    queryKey: ['completion'],
+    queryFn: () => apiFetch<{ restants: number; disponible: boolean }>('/api/completion'),
   })
 }
+
+/** Ce qu'un lot de completion a ajoute, et ce qui reste a soumettre. */
+export interface BilanCompletion {
+  readonly traites: number
+  readonly rayons: number
+  readonly poidsCuits: number
+  readonly saisons: number
+  readonly restants: number
+}
+
+/**
+ * Completer par Claude un lot de fiches de la bibliotheque : rayon, poids cuit,
+ * saison, dans les champs vides. Un appel traite un lot ; `restants` dit s'il
+ * faut relancer.
+ */
+export function useCompleterBibliotheque() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: () => post<BilanCompletion>('/api/completion', {}),
+    onSuccess: () => {
+      rayonTouches(client)
+      void client.invalidateQueries({ queryKey: ['completion'] })
+    },
+  })
+}
+
+/** Ce que l'IA propose pour une fiche ouverte. Rien n'est ecrit. */
+export const proposerCompletion = (nom: string, marque: string | null): Promise<Completion> =>
+  post<Completion>('/api/completion/proposition', { nom, marque })
 
 export function useDeleteRayon() {
   const client = useQueryClient()

@@ -11,8 +11,11 @@ import { describe, expect, it } from 'vitest'
 import type { Ingredient } from '@prandia/shared'
 
 import {
+  EMPTY_DRAFT,
   NO_FILTERS,
   activeFilterCount,
+  appliquerCompletion,
+  bilanCompletion,
   criterionValue,
   filterIngredients,
   readViewOptions,
@@ -220,5 +223,50 @@ describe('URL', () => {
     expect(params.has('bornes')).toBe(false)
     expect(params.has('marque')).toBe(false)
     expect(params.has('f')).toBe(false)
+  })
+})
+
+describe('appliquerCompletion', () => {
+  const proposition = { rayon: 'Epicerie', poidsCuitG: 300, moisSaison: [6, 7, 8, 9] }
+
+  it('remplit les champs vides et dit en clair ce qu’il a rempli', () => {
+    const { patch, ajouts } = appliquerCompletion(EMPTY_DRAFT, proposition)
+    expect(patch).toEqual({ categoryL1: 'Epicerie', cookedWeightPer100gRaw: 300, months: [6, 7, 8, 9] })
+    expect(ajouts).toEqual(['rayon Epicerie', 'poids cuit 300 g pour 100 g cru', 'saison de juin à septembre'])
+  })
+
+  it('ne remplace jamais une saisie', () => {
+    const draft = { ...EMPTY_DRAFT, categoryL1: 'Vrac', cookedWeightPer100gRaw: 250, months: [5] }
+    expect(appliquerCompletion(draft, proposition)).toEqual({ patch: {}, ajouts: [] })
+  })
+
+  it('laisse vide ce que l’IA ne sait pas', () => {
+    const { patch } = appliquerCompletion(EMPTY_DRAFT, { rayon: null, poidsCuitG: null, moisSaison: null })
+    expect(patch).toEqual({})
+  })
+
+  it('ignore une reponse a laquelle il manque une cle, au lieu de casser la fiche', () => {
+    const incomplete = { poidsCuitG: 75 } as unknown as Parameters<typeof appliquerCompletion>[1]
+    expect(appliquerCompletion(EMPTY_DRAFT, incomplete).patch).toEqual({ cookedWeightPer100gRaw: 75 })
+  })
+})
+
+describe('bilanCompletion', () => {
+  it('compte ce qui a ete ajoute, avec le bon accord', () => {
+    expect(bilanCompletion({ traites: 40, rayons: 3, poidsCuits: 1, saisons: 12 })).toBe(
+      '40 produits relus : 3 rayons, 1 poids cuit, 12 saisons ajoutés. Tout se corrige dans la fiche.',
+    )
+    expect(bilanCompletion({ traites: 1, rayons: 0, poidsCuits: 0, saisons: 1 })).toBe(
+      '1 produit relu : 1 saison ajoutée. Tout se corrige dans la fiche.',
+    )
+  })
+
+  it('dit quand il n’y avait rien de sur, ou rien de fait', () => {
+    expect(bilanCompletion({ traites: 5, rayons: 0, poidsCuits: 0, saisons: 0 })).toBe(
+      '5 produits relus, rien de sûr à ajouter.',
+    )
+    expect(bilanCompletion({ traites: 0, rayons: 0, poidsCuits: 0, saisons: 0 })).toBe(
+      'Rien n’a pu être complété. Réessaie plus tard.',
+    )
   })
 })

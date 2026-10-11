@@ -35,7 +35,8 @@ import {
   useCreateIngredient,
   useIngredient,
   useIngredients,
-  useRangerProduits,
+  useCompleterBibliotheque,
+  useCompletionEtat,
 } from '../lib/queries.js'
 import { CriteriaFields } from './ingredients/CriteriaFields.js'
 import { ImportSheet } from './ingredients/ImportSheet.js'
@@ -62,6 +63,7 @@ import {
   toggleSection,
   type SortField,
   type ViewOptions,
+  bilanCompletion,
 } from './ingredients/model.js'
 import { Icon, RayonIcon, iconForRayon, type IconName } from '../icons/index.js'
 import { useRayonStyle } from '../lib/useRayonStyle.js'
@@ -196,10 +198,9 @@ export function IngredientsScreen() {
         </Link>
       </div>
 
-      {/* Les produits sans rayon (crees avant le rangement automatique, ou
-          importes) se rangent d'un geste. La recherche filtre la liste : on
-          ne compte que sur la bibliotheque entiere. */}
-      {view.query === '' && <RangerSansRayon items={list.data?.items ?? []} />}
+      {/* Les fiches que l'IA n'a jamais vues (creees avant elle, ou sans cle)
+          se completent d'un geste : rayon, poids cuit, saison. */}
+      {view.query === '' && <CompleterBibliotheque />}
 
       <div className="ing-chips" role="group" aria-label="Filtres rapides">
         {QUICK_TOGGLES.map((toggle) => (
@@ -637,55 +638,63 @@ function readSnapshot(state: unknown): DeletionSnapshot | null {
  * sur l'ancien sont alors perdues : c'est pourquoi le message le dit.
  */
 /**
- * Ranger d'un geste les produits sans rayon (worker/src/rangement.ts).
+ * Completer d'un geste la bibliotheque par l'IA (worker/src/completion.ts) :
+ * rayon, poids cuit, saison, dans les champs vides seulement.
  *
- * Le serveur traite un lot de quarante par appel : on relance tant qu'il en
- * reste et que le lot precedent a avance, cinq fois au plus. Un produit que
- * le modele ne sait pas ranger reste sans rayon, plutot que d'atterrir dans un
- * rayon qui ne lui va pas.
+ * Le serveur traite quarante fiches par appel : on relance tant qu'il en
+ * reste et que le lot precedent a avance, quinze fois au plus. Chaque fiche
+ * n'est soumise qu'UNE fois : un yaourt, sans saison ni poids cuit a juste
+ * titre, ne revient pas. Sans cle posee, le bandeau ne s'affiche pas.
  */
-function RangerSansRayon({ items }: { readonly items: readonly Ingredient[] }) {
-  const ranger = useRangerProduits()
+function CompleterBibliotheque() {
+  const etat = useCompletionEtat()
+  const completer = useCompleterBibliotheque()
   const [bilan, setBilan] = useState<string | null>(null)
-  const [enCours, setEnCours] = useState(false)
-  const sansRayon = items.filter((i) => i.categoryL1 === null || i.categoryL1.trim() === '').length
-  if (sansRayon === 0 && bilan === null) return null
+  const [enCours, setEnCours] = useState<{ readonly faits: number; readonly total: number } | null>(null)
+  const restants = etat.data?.restants ?? 0
+  if (etat.data?.disponible !== true || (restants === 0 && bilan === null && enCours === null)) return null
 
   const lancer = async () => {
-    setEnCours(true)
+    const total = restants
     setBilan(null)
-    let total = 0
+    setEnCours({ faits: 0, total })
+    let somme = { traites: 0, rayons: 0, poidsCuits: 0, saisons: 0 }
     try {
-      for (let tour = 0; tour < 5; tour++) {
-        const r = await ranger.mutateAsync()
-        total += r.ranges
-        if (r.restants === 0 || r.ranges === 0) break
+      for (let tour = 0; tour < 15; tour++) {
+        const r = await completer.mutateAsync()
+        somme = {
+          traites: somme.traites + r.traites,
+          rayons: somme.rayons + r.rayons,
+          poidsCuits: somme.poidsCuits + r.poidsCuits,
+          saisons: somme.saisons + r.saisons,
+        }
+        setEnCours({ faits: Math.min(somme.traites, total), total })
+        if (r.restants === 0 || r.traites === 0) break
       }
-      setBilan(
-        total === 0
-          ? 'Aucun de tes rayons ne leur convenait. Crée le rayon qui manque, puis réessaie.'
-          : `${total} produit${total > 1 ? 's' : ''} rangé${total > 1 ? 's' : ''}. Un rayon se change dans la fiche.`,
-      )
+      setBilan(bilanCompletion(somme))
     } catch (erreur) {
-      setBilan(erreur instanceof Error ? erreur.message : 'Le rangement a échoué.')
+      setBilan(erreur instanceof Error ? erreur.message : 'La complétion a échoué.')
     } finally {
-      setEnCours(false)
+      setEnCours(null)
     }
   }
 
   return (
-    <div className="ing-ranger" role="status">
-      <p className="ing-ranger__texte">
-        {bilan ?? `${sansRayon} produit${sansRayon > 1 ? 's' : ''} sans rayon.`}
+    <div className="ing-ia" role="status">
+      <p className="ing-ia__texte">
+        {enCours !== null
+          ? `Complétion… ${enCours.faits} sur ${enCours.total}`
+          : (bilan ??
+            `${restants} produit${restants > 1 ? 's' : ''} à compléter par l’IA : rayon, poids cuit, saison.`)}
       </p>
-      {sansRayon > 0 && (
+      {restants > 0 && (
         <button
           type="button"
-          className="button button--secondary ing-ranger__action"
+          className="button button--secondary ing-ia__action"
           onClick={() => void lancer()}
-          disabled={enCours}
+          disabled={enCours !== null}
         >
-          {enCours ? 'Rangement…' : 'Les ranger'}
+          <Icon name="ui-ia" size={16} className="icon--inline" /> Compléter
         </button>
       )}
     </div>

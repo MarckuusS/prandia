@@ -87,6 +87,10 @@ const MAP = {
   'ui-refresh': 'rotate-ccw',
   // Remplacer un ingredient par un autre : `rotate-ccw` s'y lisait "annuler".
   'ui-swap': 'arrow-left-right',
+  // Ce que fait l'IA (completer une fiche). Les etincelles plutot que le logo
+  // de Claude : c'est le signe que tout le monde lit, et ni Lucide ni Tabler
+  // ne dessinent la marque d'Anthropic.
+  'ui-ia': 'sparkles',
   'ui-download': 'download',
   'ui-share': 'share-2',
   'ui-external-link': 'external-link',

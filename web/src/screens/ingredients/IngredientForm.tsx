@@ -33,7 +33,7 @@
  *      seule, mene bien quelque part.
  */
 
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { SOURCE_LABELS, formatEuros, formatGrams, type Ingredient, type Source } from '@prandia/shared'
 
@@ -51,7 +51,9 @@ import { SourceBadge } from '../../components/States.js'
 import { Icon } from '../../icons/index.js'
 import { ApiError } from '../../lib/api.js'
 import {
+  proposerCompletion,
   useBarcode,
+  useCompletionEtat,
   useRayons,
   useCreateIngredient,
   useDeleteIngredient,
@@ -61,6 +63,8 @@ import { PriceHistorySheet } from './PriceHistorySheet.js'
 import {
   EMPTY_DRAFT,
   MONTHS,
+  appliquerCompletion,
+  champsACompleter,
   draftFromIngredient,
   sourceUrl,
   toWritePayload,
@@ -255,6 +259,8 @@ export function IngredientForm({ ingredient }: IngredientFormProps) {
             patch({ sourceRef: code })
           }}
         />
+
+        <CompletionIA draft={draft} onPatch={patch} />
 
         {duplicateId !== null && (
           <p className="note" role="alert">
@@ -807,6 +813,85 @@ function ScannedFill({
           Ignorer
         </button>
       </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Completion par l'IA
+// ---------------------------------------------------------------------------
+
+/**
+ * "Compléter avec l’IA" : rayon, poids cuit et saison d'apres le nom et la
+ * marque (worker/src/completion.ts), pour une fiche existante comme pour une
+ * fiche en cours de creation.
+ *
+ * RIEN N'EST ENREGISTRE : les champs vides se remplissent, la phrase dit
+ * lesquels, la personne relit puis touche Enregistrer. La proposition
+ * s'applique a la fiche telle qu'elle est A L'ARRIVEE de la reponse (`actuel`),
+ * pas au moment du toucher : un champ rempli entre-temps l'emporte.
+ */
+function CompletionIA({
+  draft,
+  onPatch,
+}: {
+  readonly draft: IngredientDraft
+  readonly onPatch: (changes: Partial<IngredientDraft>) => void
+}) {
+  const etat = useCompletionEtat()
+  const actuel = useRef(draft)
+  actuel.current = draft
+  const [enCours, setEnCours] = useState(false)
+  const [message, setMessage] = useState<{ readonly texte: string; readonly erreur: boolean } | null>(null)
+  // Sans cle posee, le bouton n'aurait qu'une erreur a offrir.
+  if (etat.data?.disponible !== true) return null
+
+  const vides = champsACompleter(draft)
+  const lancer = async () => {
+    if (!vides.rayon && !vides.poidsCuit && !vides.saison) {
+      setMessage({ texte: 'Rayon, poids cuit et saison sont déjà remplis.', erreur: false })
+      return
+    }
+    setEnCours(true)
+    setMessage(null)
+    try {
+      const proposition = await proposerCompletion(draft.name.trim(), draft.brand.trim() || null)
+      const { patch, ajouts } = appliquerCompletion(actuel.current, proposition)
+      onPatch(patch)
+      setMessage({
+        texte:
+          ajouts.length > 0
+            ? `Rempli par l’IA : ${ajouts.join(' ; ')}. Vérifie, puis enregistre.`
+            : 'L’IA n’a rien de sûr à proposer pour ce produit.',
+        erreur: false,
+      })
+    } catch (erreur) {
+      setMessage({ texte: erreur instanceof Error ? erreur.message : 'La complétion a échoué.', erreur: true })
+    } finally {
+      setEnCours(false)
+    }
+  }
+
+  return (
+    <div className="ing-form__ia">
+      <div className="scan-ligne">
+        <button
+          type="button"
+          className="chip-toggle"
+          onClick={() => void lancer()}
+          disabled={enCours || draft.name.trim() === ''}
+        >
+          <Icon name="ui-ia" size={18} className="icon--inline" />
+          {enCours ? 'L’IA réfléchit…' : 'Compléter avec l’IA'}
+        </button>
+      </div>
+      {message === null ? (
+        <p className="field__hint">Rayon, poids cuit et saison, d’après le nom. Seuls les champs vides se remplissent.</p>
+      ) : (
+        <p className={message.erreur ? 'field__error' : 'field__hint'} role={message.erreur ? 'alert' : 'status'}>
+          {message.texte}
+        </p>
+      )}
     </div>
   )
 }

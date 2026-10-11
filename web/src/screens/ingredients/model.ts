@@ -21,7 +21,9 @@ import {
   isInSeasonNow,
   normalizeName,
   parseCriteria,
+  saisonLisible,
   seasonMonths as parseSeasonMonths,
+  type Completion,
   type Ingredient,
   type Source,
   type Criterion as SharedCriterion,
@@ -727,3 +729,71 @@ export function sourceUrl(ingredient: Pick<Ingredient, 'source' | 'sourceRef'>):
 /** Cle de deduplication d'une fiche du catalogue, valable meme sans identifiant. */
 export const catalogKey = (ingredient: Ingredient): string =>
   ingredient.id !== null ? `id:${ingredient.id}` : `${ingredient.source}:${ingredient.sourceRef ?? ingredient.name}`
+
+// ---------------------------------------------------------------------------
+// Completion par l'IA (worker/src/completion.ts)
+// ---------------------------------------------------------------------------
+
+/** Les champs que l'IA sait remplir et qui sont encore vides dans la fiche. */
+export function champsACompleter(draft: IngredientDraft): { rayon: boolean; poidsCuit: boolean; saison: boolean } {
+  return {
+    rayon: draft.categoryL1.trim() === '',
+    poidsCuit: draft.cookedWeightPer100gRaw === null,
+    saison: draft.months.length === 0,
+  }
+}
+
+/**
+ * Ce que la proposition de l'IA change a la fiche ouverte : les champs VIDES
+ * seulement, comme cote serveur. Rend la modification et, en clair, ce qui a
+ * ete rempli, pour que la personne sache quoi relire avant d'enregistrer.
+ */
+export function appliquerCompletion(
+  draft: IngredientDraft,
+  c: Completion,
+): { readonly patch: Partial<IngredientDraft>; readonly ajouts: readonly string[] } {
+  // Les types d'abord, et non `!== null` : une reponse a laquelle il manque
+  // une cle poserait `undefined` dans la fiche, et le premier `.trim()` de
+  // l'ecran ferait tomber toute l'application (vu en essai).
+  const vides = champsACompleter(draft)
+  const patch: { -readonly [K in keyof IngredientDraft]?: IngredientDraft[K] } = {}
+  const ajouts: string[] = []
+  if (vides.rayon && typeof c.rayon === 'string' && c.rayon.trim() !== '') {
+    patch.categoryL1 = c.rayon
+    ajouts.push(`rayon ${c.rayon}`)
+  }
+  if (vides.poidsCuit && typeof c.poidsCuitG === 'number' && Number.isFinite(c.poidsCuitG)) {
+    patch.cookedWeightPer100gRaw = c.poidsCuitG
+    ajouts.push(`poids cuit ${c.poidsCuitG.toLocaleString('fr-FR')} g pour 100 g cru`)
+  }
+  if (vides.saison && Array.isArray(c.moisSaison) && c.moisSaison.length > 0) {
+    patch.months = [...c.moisSaison]
+    ajouts.push(`saison ${saisonLisible(c.moisSaison)}`)
+  }
+  return { patch, ajouts }
+}
+
+const pluriel = (n: number, mot: string, motPluriel = `${mot}s`) => `${n} ${n > 1 ? motPluriel : mot}`
+
+/** Le bilan d'une completion de la bibliotheque, en une phrase. */
+export function bilanCompletion(somme: {
+  readonly traites: number
+  readonly rayons: number
+  readonly poidsCuits: number
+  readonly saisons: number
+}): string {
+  if (somme.traites === 0) return 'Rien n’a pu être complété. Réessaie plus tard.'
+  const relus = `${pluriel(somme.traites, 'produit')} relu${somme.traites > 1 ? 's' : ''}`
+  const parties = [
+    somme.rayons > 0 ? pluriel(somme.rayons, 'rayon') : null,
+    somme.poidsCuits > 0 ? pluriel(somme.poidsCuits, 'poids cuit', 'poids cuits') : null,
+    somme.saisons > 0 ? pluriel(somme.saisons, 'saison') : null,
+  ].filter((p): p is string => p !== null)
+  if (parties.length === 0) return `${relus}, rien de sûr à ajouter.`
+  // L'accord suit le genre : des saisons seules sont "ajoutées", un rayon ou
+  // un poids cuit dans la liste fait passer au masculin.
+  const total = somme.rayons + somme.poidsCuits + somme.saisons
+  const feminin = somme.rayons === 0 && somme.poidsCuits === 0
+  const ajoute = `ajouté${feminin ? 'e' : ''}${total > 1 ? 's' : ''}`
+  return `${relus} : ${parties.join(', ')} ${ajoute}. Tout se corrige dans la fiche.`
+}

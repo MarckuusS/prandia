@@ -413,6 +413,63 @@ export class IngredientRepo {
     return (result.meta.changes ?? 0) > 0
   }
 
+  // ------------------------------------------- completion par l'IA (0019)
+
+  /**
+   * Les fiches de la bibliotheque jamais soumises au modele, et a qui il
+   * manque au moins un des trois champs qu'il sait remplir. Le catalogue n'y
+   * entre pas : 3 000 lignes CIQUAL que personne ne regarde.
+   */
+  private static readonly A_COMPLETER = `household_id = ? AND in_personal_library = 1
+    AND ai_completed_at IS NULL
+    AND (category_l1 IS NULL OR category_l1 = ''
+         OR cooked_weight_per_100g_raw IS NULL
+         OR season_months IS NULL OR season_months = '')`
+
+  async countACompleter(): Promise<number> {
+    const row = await this.db
+      .prepare(`SELECT COUNT(*) AS c FROM ingredient WHERE ${IngredientRepo.A_COMPLETER}`)
+      .bind(this.householdId)
+      .first<{ c: number }>()
+    return row?.c ?? 0
+  }
+
+  async listACompleter(limit: number): Promise<Ingredient[]> {
+    const { results } = await this.db
+      .prepare(`SELECT ${INGREDIENT_COLUMNS} FROM ingredient WHERE ${IngredientRepo.A_COMPLETER} ORDER BY id LIMIT ?`)
+      .bind(this.householdId, limit)
+      .all<IngredientRow>()
+    return results.map(toIngredient)
+  }
+
+  /**
+   * Pose ce que le modele propose, SEULEMENT dans les champs encore vides, et
+   * marque la fiche comme soumise.
+   *
+   * La condition est dans la requete et non dans l'appelant : la completion
+   * part apres la reponse, et une saisie faite pendant l'appel doit
+   * l'emporter. Un parametre `null` laisse le champ tel quel.
+   */
+  async completer(
+    id: number,
+    valeurs: { readonly rayon: string | null; readonly poidsCuitG: number | null; readonly saison: string | null },
+  ): Promise<void> {
+    await this.db
+      .prepare(
+        `UPDATE ingredient SET
+           category_l1 = CASE WHEN (category_l1 IS NULL OR category_l1 = '') AND ?1 IS NOT NULL
+                              THEN ?1 ELSE category_l1 END,
+           cooked_weight_per_100g_raw = COALESCE(cooked_weight_per_100g_raw, ?2),
+           season_months = CASE WHEN (season_months IS NULL OR season_months = '') AND ?3 IS NOT NULL
+                                THEN ?3 ELSE season_months END,
+           ai_completed_at = ${NOW_SQL},
+           updated_at = ${NOW_SQL}
+         WHERE id = ?4 AND household_id = ?5`,
+      )
+      .bind(valeurs.rayon, valeurs.poidsCuitG, valeurs.saison, id, this.householdId)
+      .run()
+  }
+
   /** Bascule l'appartenance a la bibliotheque personnelle. */
   async setInLibrary(id: number, inLibrary: boolean): Promise<boolean> {
     const result = await this.db

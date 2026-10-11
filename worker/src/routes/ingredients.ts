@@ -7,18 +7,19 @@
  * distincts — retirer de la bibliotheque, et supprimer pour de bon.
  */
 
+import { z } from 'zod'
 import {
+  COMPLETION_MAX,
   ingredientCreateSchema,
   ingredientPatchSchema,
   parseCriteria,
   parseQuantityToGrams,
   priceHistoryEntrySchema,
-  RANGEMENT_MAX,
 } from '@prandia/shared'
 
 import { logActivity } from '../activity.js'
 import { badRequest, HttpError, intParam, json, notFound, parseOrThrow, readJson, route } from '../http.js'
-import { rangerEnArrierePlan, rangerProduits } from '../rangement.js'
+import { completerEnArrierePlan, completerProduits, demanderCompletion } from '../completion.js'
 
 // ---------------------------------------------------------------------------
 // Bibliotheque personnelle
@@ -59,30 +60,73 @@ route('POST', '/api/ingredients', async ({ repos, request, env, user, waitUntil 
     label: payload.name,
   })
 
-  // Sans rayon choisi, Claude en propose un apres la reponse (rangement.ts).
-  // La creation n'attend pas, et n'echoue jamais pour ca.
-  if (payload.categoryL1 === null) {
-    await rangerEnArrierePlan({ env, repos, waitUntil }, [{ id, nom: payload.name, marque: payload.brand }])
+  // Rayon, poids cuit, saison : Claude remplit ceux qui manquent, apres la
+  // reponse (completion.ts). La creation n'attend pas, et n'echoue jamais pour
+  // ca. Une fiche complete d'emblee ne coute pas de question.
+  if (payload.categoryL1 == null || payload.cookedWeightPer100gRaw == null || payload.seasonMonths == null) {
+    await completerEnArrierePlan({ env, repos, waitUntil }, [{ id, nom: payload.name, marque: payload.brand }])
   }
 
   return json(await repos.ingredients.get(id), 201)
 })
 
 /**
- * Ranger dans un rayon les produits de la bibliotheque qui n'en ont pas, par
- * lots de `RANGEMENT_MAX`. Rend combien ont ete ranges et combien restent :
- * l'ecran relance tant qu'il en reste et que le dernier lot a avance.
+ * Combien de fiches de la bibliotheque attendent la completion par l'IA, et si
+ * elle est possible (cle posee). Sans cle, l'ecran n'offre pas le bouton.
  */
-route('POST', '/api/rangement', async ({ repos, env }) => {
-  const sansRayon = (await repos.ingredients.listPersonal(null)).filter(
-    (i): i is typeof i & { id: number } => i.id !== null && (i.categoryL1 === null || i.categoryL1.trim() === ''),
+route('GET', '/api/completion', async ({ repos, env }) => {
+  return json({ restants: await repos.ingredients.countACompleter(), disponible: Boolean(env.ANTHROPIC_API_KEY) })
+})
+
+/**
+ * Completer un lot de `COMPLETION_MAX` fiches de la bibliotheque : rayon, poids
+ * cuit, saison, dans les champs vides seulement. Rend ce qui a ete ajoute et ce
+ * qui reste : l'ecran relance tant qu'il en reste et que le lot a avance.
+ */
+route('POST', '/api/completion', async ({ repos, env }) => {
+  const lot = (await repos.ingredients.listACompleter(COMPLETION_MAX)).filter(
+    (i): i is typeof i & { id: number } => i.id !== null,
   )
-  const ranges = await rangerProduits(
+  const completions = await completerProduits(
     env,
     repos,
-    sansRayon.slice(0, RANGEMENT_MAX).map((i) => ({ id: i.id, nom: i.name, marque: i.brand })),
+    lot.map((i) => ({ id: i.id, nom: i.name, marque: i.brand })),
   )
-  return json({ ranges, restants: sansRayon.length - ranges })
+  // Ce qui a vraiment ete ajoute : une proposition pour un champ deja rempli
+  // ne compte pas, le depot ne l'a pas ecrite.
+  let rayons = 0
+  let poidsCuits = 0
+  let saisons = 0
+  for (const fiche of lot) {
+    const c = completions.get(fiche.id)
+    if (c === undefined) continue
+    if (c.rayon !== null && (fiche.categoryL1 ?? '').trim() === '') rayons += 1
+    if (c.poidsCuitG !== null && fiche.cookedWeightPer100gRaw === null) poidsCuits += 1
+    if (c.moisSaison !== null && (fiche.seasonMonths ?? '') === '') saisons += 1
+  }
+  return json({
+    traites: completions.size,
+    rayons,
+    poidsCuits,
+    saisons,
+    restants: await repos.ingredients.countACompleter(),
+  })
+})
+
+const propositionSchema = z.object({
+  nom: z.string().trim().min(1).max(200),
+  marque: z.string().trim().max(200).nullable().optional(),
+})
+
+/**
+ * Ce que l'IA propose pour la fiche OUVERTE, sans rien ecrire : l'ecran remplit
+ * ses champs vides, la personne relit et enregistre. Marche aussi pour une
+ * fiche pas encore creee, d'ou un nom et non un identifiant.
+ */
+route('POST', '/api/completion/proposition', async ({ repos, env, request }) => {
+  const { nom, marque } = parseOrThrow(propositionSchema, await readJson(request))
+  const completions = await demanderCompletion(env, repos, [{ id: 1, nom, marque: marque || null }])
+  return json(completions.get(1) ?? { rayon: null, poidsCuitG: null, moisSaison: null })
 })
 
 route('GET', '/api/ingredients/:id', async ({ repos, params }) => {

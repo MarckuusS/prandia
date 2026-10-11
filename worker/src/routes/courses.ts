@@ -47,16 +47,16 @@ import {
   sessionItemWriteSchema,
   sessionStartSchema,
   ticketQuestion,
-  type ProduitARanger,
+  type ProduitACompleter,
   type ShoppingSession,
   type TicketArticle,
 } from '@prandia/shared'
 
 import { logActivity } from '../activity.js'
 import { cleClaude, compterAppel, demanderOutil } from '../anthropic.js'
+import { completerEnArrierePlan } from '../completion.js'
 import { HttpError, json, notFound, parseOrThrow, readJson, route } from '../http.js'
 import { imageDuCorps } from '../imageRecue.js'
-import { rangerEnArrierePlan } from '../rangement.js'
 import type { Repositories } from '../repos/index.js'
 
 const KEY = 'shopping.session'
@@ -337,8 +337,8 @@ route('POST', '/api/courses/commit', async ({ repos, env, user, waitUntil }) => 
   let stocked = 0
   let priced = 0
   const ingredientIds: number[] = []
-  // Les fiches creees ici, rangees dans un rayon apres la reponse.
-  const aRanger: ProduitARanger[] = []
+  // Les fiches creees ici, completees (rayon, poids cuit, saison) apres la reponse.
+  const aCompleter: ProduitACompleter[] = []
 
   for (const item of session.items) {
     // Garanti par le refus plus haut ; le test rend la masse lisible au typage.
@@ -372,7 +372,7 @@ route('POST', '/api/courses/commit', async ({ repos, env, user, waitUntil }) => 
             ...(item.macros ?? {}),
           })
           created += 1
-          aRanger.push({ id: ingredientId, nom: item.name, marque: item.brand })
+          aCompleter.push({ id: ingredientId, nom: item.name, marque: item.brand })
         }
       }
     }
@@ -428,8 +428,9 @@ route('POST', '/api/courses/commit', async ({ repos, env, user, waitUntil }) => 
     details: { articles: session.items.length, fiches_creees: created, lots: stocked, prix: priced },
   })
 
-  // 6. Les fiches nees de ce chariot recoivent un rayon, apres la reponse.
-  await rangerEnArrierePlan({ env, repos, waitUntil }, aRanger)
+  // 6. Les fiches nees de ce chariot recoivent rayon, poids cuit et saison,
+  //    apres la reponse.
+  await completerEnArrierePlan({ env, repos, waitUntil }, aCompleter)
 
   return json({
     active: false,

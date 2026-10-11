@@ -1009,7 +1009,8 @@ payé au frigo) et de la quantité (chariot, qui remplit le lot). Ce qui ne se d
   répond 503 "pas encore configurée". Plafond de 150 lectures par jour et par cuisine, compté
   AVANT l'appel ; le vrai garde-fou est le plafond de dépense de l'espace de travail Anthropic. Le
   corps d'erreur d'Anthropic ne remonte jamais tel quel : il peut citer l'organisation. Clé,
-  modèle, plafond et erreurs vivent dans `worker/src/anthropic.ts`, partagé avec le rangement.
+  modèle, plafond et erreurs vivent dans `worker/src/anthropic.ts`, partagé avec la complétion
+  des fiches.
 - **Six lectures** : date, prix, quantité (le poids imprimé, aussi à l'ajout au frigo), étiquette
   de PESÉE (poids net ET prix à payer d'un scan, jamais le prix au kilo ; le poids se relit en
   grammes, une pesée n'est pas une pièce), PRODUIT (nom sans la marque, marque, poids ; "12 x
@@ -1019,21 +1020,44 @@ payé au frigo) et de la quantité (chariot, qui remplit le lot). Ce qui ne se d
   reviennent vides). Le viseur prend la forme de ce qu'on lit, et la pleine définition (1 568 px)
   pour un tableau aux lignes serrées.
 
-## Le rayon automatique : `shared/src/rayonAuto.ts`, `worker/src/rangement.ts`
+## Compléter une fiche par l'IA : `shared/src/completion.ts`, `worker/src/completion.ts`
 
-- **Un produit créé sans rayon en reçoit un, choisi par Claude** parmi les rayons DE LA CUISINE,
-  après la réponse (`ctx.waitUntil`, passé aux routes par `HandlerContext.waitUntil`) : à la
-  création d'une fiche (`POST /api/ingredients`) et à la validation des courses. Une erreur n'y
-  fait JAMAIS échouer la création : au pire, le produit reste sans rayon.
-- **L'outil porte la liste des rayons en `enum`**, et `interpretClassement` la revérifie : un
-  rayon inventé créerait une catégorie que l'écran des rayons ne connaît pas. Une cuisine sans
-  rayon ne pose pas la question.
-- **Pas de détour par les catégories d'OpenFoodFacts** : elles disent "en:yogurts", pas le nom
-  que la personne a donné à son rayon ; il faudrait de toute façon traduire, ce que fait le
-  modèle, pour quelques millièmes de centime.
-- **Les produits déjà sans rayon se rangent d'un geste** (bandeau de la bibliothèque,
-  `POST /api/rangement`), par lots de 40 (`RANGEMENT_MAX`) : la liste des rayons n'est payée
-  qu'une fois par lot.
+Rayon, poids cuit (rapport cru/cuit) et mois de saison : trois champs qu'on ne remplit presque
+jamais à la main, et que Claude connaît pour un produit courant. Ce qui ne se devine pas :
+
+- **Seuls les champs VIDES se remplissent**, et c'est le dépôt qui y veille, DANS la requête
+  (`IngredientRepo.completer`) : la complétion part après la réponse, et une saisie faite
+  entre-temps doit l'emporter. Vérifié sur la base locale : rayon et poids cuit existants gardés,
+  saison vide remplie.
+- **Trois chemins, un seul appel** pour les trois champs et jusqu'à 40 produits
+  (`COMPLETION_MAX`) : en arrière-plan à la création d'une fiche (ajout, OpenFoodFacts, article du
+  chariot) dès qu'un des trois manque ; à la demande pour la bibliothèque (bandeau "N produits à
+  compléter", `POST /api/completion`) ; en proposition pour la fiche ouverte (bouton "Compléter
+  avec l'IA", `POST /api/completion/proposition`), qui N'ÉCRIT RIEN : les champs vides se
+  remplissent, une phrase dit lesquels, la personne enregistre.
+- **`ingredient.ai_completed_at` (0019) dit qu'une fiche a déjà été soumise**, que le modèle ait
+  rempli quelque chose ou non. Sans elle, un yaourt (ni saison ni poids cuit, à juste titre)
+  resterait "à compléter" pour toujours et repartirait au modèle à chaque passage. Une fiche
+  absente d'une réponse coupée n'est pas marquée, et reviendra.
+- **"Dans le doute, null" est la consigne, et les bornes la font tenir** (`interpretCompletion`) :
+  rayon fermé sur les rayons DE LA CUISINE (`enum`, puis revérifié ; un rayon inventé créerait une
+  catégorie que l'écran des rayons ne connaît pas), poids cuit entre 20 et 800 g et à plus de 5 g
+  du cru, mois de 1 à 12. Une saison de douze mois redevient null : le badge "de saison"
+  s'allumerait toute l'année.
+- **Une cuisine sans rayon reçoit quand même poids cuit et saison** : l'outil n'y porte
+  simplement pas de champ rayon.
+- **Le poids unitaire n'est PAS complété**, volontairement : renseigné, il fait passer l'unité par
+  défaut à la pièce partout où l'on saisit le produit, un changement de comportement à ne pas
+  faire en masse et sans relecture.
+- **Le bouton et le bandeau disparaissent sans clé** (`GET /api/completion` rend `disponible`) :
+  ils n'auraient qu'une erreur à offrir.
+- **Une réponse à laquelle il manque une clé ne doit rien casser** : `appliquerCompletion` teste
+  les TYPES, pas `!== null`. Vu en essai : un `undefined` posé dans le rayon a fait tomber toute
+  l'application au premier `.trim()`.
+- **L'IA porte les étincelles** (`ui-ia`, Lucide `sparkles`), pas le logo de Claude : ni Lucide
+  ni Tabler ne dessinent la marque d'Anthropic (vérifié), et c'est le signe que tout le monde lit.
+- Pas de détour par les catégories d'OpenFoodFacts pour le rayon : elles disent "en:yogurts",
+  pas le nom que la personne a donné à son rayon.
 
 ## Le vrac pesé en caisse et le ticket : `shared/src/ticket.ts`, `screens/courses/TicketCaisse.tsx`
 
