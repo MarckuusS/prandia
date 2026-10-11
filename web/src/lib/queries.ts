@@ -36,6 +36,7 @@ import {
   formatCriteria,
   type Completion,
   type Criterion,
+  type RecettePourIA,
   type ScanKind,
   type ScanResult,
   type TicketReading,
@@ -610,6 +611,17 @@ export interface ImportProposal {
   }
   readonly lines: readonly ImportLine[]
 }
+
+/**
+ * Estimer en grammes, par l'IA et d'apres la recette entiere, les quantites
+ * que le site ne donne pas en poids ("1/2 sachet", "1/4 de pot"). Rien n'est
+ * ecrit : la revue les affiche, encadrees, et la personne les corrige.
+ */
+export const estimerQuantites = (recette: RecettePourIA) =>
+  post<{ readonly estimations: ReadonlyArray<{ readonly index: number; readonly grammes: number }> }>(
+    '/api/recipe-import/quantites',
+    recette,
+  )
 
 /** Lire une page de recette. Rien n'est ecrit : c'est une proposition. */
 export const useReadRecipeLink = () =>

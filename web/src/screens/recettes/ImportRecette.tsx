@@ -22,7 +22,14 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
-import { formatGrams, importAmount, lienRecette, parseSteps, type Ingredient } from '@prandia/shared'
+import {
+  QUANTITES_MAX,
+  formatGrams,
+  importAmount,
+  lienRecette,
+  parseSteps,
+  type Ingredient,
+} from '@prandia/shared'
 
 import { NumberField, SwitchField, TextField } from '../../components/Field.js'
 import { QuantityField } from '../../components/QuantityField.js'
@@ -32,10 +39,12 @@ import { useToast } from '../../components/Toast.js'
 import { Icon, RayonIcon } from '../../icons/index.js'
 import { reduirePhoto } from '../../lib/photo.js'
 import {
+  estimerQuantites,
   fetchImportPhoto,
   lookupBarcode,
   useAddToLibrary,
   useCatalog,
+  useCompletionEtat,
   useCreateIngredient,
   useIngredients,
   useOffSearch,
@@ -152,12 +161,35 @@ interface Choix {
   /** La fiche est sure : choisie a la main, ou nettement la meilleure. */
   readonly sure: boolean
   readonly ignored: boolean
+  /** La quantite vient de l'IA, d'apres la recette : encadree jusqu'a une retouche. */
+  readonly ia: boolean
 }
 
 function pour(line: ImportLine, ingredient: Ingredient | null, sure: boolean): Choix {
-  if (ingredient === null) return { ingredient: null, grams: null, unit: null, estimated: false, sure: false, ignored: false }
+  if (ingredient === null) {
+    return { ingredient: null, grams: null, unit: null, estimated: false, sure: false, ignored: false, ia: false }
+  }
   const quantite = importAmount(line, ingredient)
-  return { ingredient, grams: quantite.grams, unit: quantite.unit, estimated: quantite.estimated, sure, ignored: false }
+  return {
+    ingredient,
+    grams: quantite.grams,
+    unit: quantite.unit,
+    estimated: quantite.estimated,
+    sure,
+    ignored: false,
+    ia: false,
+  }
+}
+
+/**
+ * Pose l'estimation de l'IA sur une ligne encore SUPPOSEE ; une quantite lue
+ * ou corrigee par la personne ne bouge pas. En grammes : c'est ce que l'IA
+ * estime, et l'unite se change ensuite comme ailleurs.
+ */
+function avecIA(estimations: ReadonlyMap<number, number>, index: number, c: Choix): Choix {
+  const grammes = estimations.get(index)
+  if (grammes === undefined || c.ingredient === null || !c.estimated) return c
+  return { ...c, grams: grammes, unit: 'g', ia: true }
 }
 
 const choixInitial = (line: ImportLine): Choix =>
@@ -258,6 +290,55 @@ function Revue({ proposition, onRecommencer }: { readonly proposition: ImportPro
   const etapes = useMemo(() => parseSteps(instructions), [instructions])
 
   const modifier = (index: number, suite: Choix) => setChoix((avant) => avant.map((c, i) => (i === index ? suite : c)))
+
+  /*
+   * LES QUANTITES QUI NE SONT PAS EN POIDS ("1/2 sachet", "1/4 de pot",
+   * "1 piece", "sel, poivre") : les regles de `importAmount` en donnent un
+   * ordre de grandeur sans rien savoir de la recette ; l'IA, qui la recoit en
+   * entier, juge a la coherence (shared/src/quantitesIA.ts). Une question, a
+   * l'ouverture, pour toutes les lignes incertaines. La reponse ne touche que
+   * les lignes encore supposees : une quantite corrigee pendant la question
+   * reste celle de la personne.
+   */
+  const iaDisponible = useCompletionEtat().data?.disponible === true
+  const [iaGrammes, setIaGrammes] = useState<ReadonlyMap<number, number>>(new Map())
+  const [iaEtat, setIaEtat] = useState<'attente' | 'fait' | 'erreur' | null>(null)
+  const iaLancee = useRef(false)
+  useEffect(() => {
+    if (!iaDisponible || iaLancee.current) return
+    iaLancee.current = true
+    const aEstimer = lines
+      .flatMap((line, index) => {
+        const c = choix[index]
+        if (c === undefined) return []
+        // Sans fiche, on ne sait que ce que la ligne dit : sans unite, sa
+        // quantite sera supposee quand on la choisira.
+        const incertaine = c.ingredient === null ? line.unit === null : c.estimated
+        return incertaine
+          ? [{ index, fiche: c.ingredient?.name ?? null, contenanceG: c.ingredient?.pieceWeightG ?? null }]
+          : []
+      })
+      .slice(0, QUANTITES_MAX)
+    if (aEstimer.length === 0) return
+    setIaEtat('attente')
+    estimerQuantites({
+      titre: recipe.name,
+      portions: recipe.portions > 0 ? Math.round(recipe.portions) : null,
+      site,
+      lignes: lines.map((line) => line.raw),
+      aEstimer,
+    })
+      .then(({ estimations }) => {
+        const parIndex = new Map(estimations.map((e) => [e.index, e.grammes]))
+        setIaGrammes(parIndex)
+        setChoix((avant) => avant.map((c, i) => avecIA(parIndex, i, c)))
+        setIaEtat('fait')
+      })
+      .catch(() => setIaEtat('erreur'))
+    // Une seule question par revue : `iaLancee` la garde, les lignes ne
+    // changent pas pendant la revue.
+  }, [iaDisponible])
+  const estimeesParIA = choix.filter((c) => !c.ignored && c.ia).length
 
   const actives = choix.filter((c) => !c.ignored)
   const aChoisir = actives.filter((c) => c.ingredient === null).length
@@ -370,6 +451,18 @@ function Revue({ proposition, onRecommencer }: { readonly proposition: ImportPro
           .filter(Boolean)
           .join(' · ')}
       </p>
+      {iaEtat !== null && (
+        <p className={`import-ia${iaEtat === 'erreur' ? ' import-ia--erreur' : ''}`} role="status">
+          <Icon name="ui-ia" size={16} className="icon--inline" />{' '}
+          {iaEtat === 'attente'
+            ? 'L’IA estime les quantités qui ne sont pas données en poids…'
+            : iaEtat === 'erreur'
+              ? 'L’IA n’a pas pu estimer les quantités : elles restent supposées.'
+              : estimeesParIA > 0
+                ? `L’IA a estimé ${estimeesParIA} quantité${estimeesParIA > 1 ? 's' : ''} d’après la recette, encadrée${estimeesParIA > 1 ? 's' : ''} en jaune. Vérifie-les.`
+                : 'L’IA n’a pas trouvé d’estimation sûre : les quantités restent supposées.'}
+        </p>
+      )}
       <ul className="import-lignes">
         {lines.map((line, index) => {
           const c = choix[index]
@@ -425,7 +518,9 @@ function Revue({ proposition, onRecommencer }: { readonly proposition: ImportPro
           line={ligneEnChoix}
           onClose={() => setEnChoix(null)}
           onChoisir={(ingredient) => {
-            modifier(enChoix, pour(ligneEnChoix, ingredient, true))
+            // L'estimation de l'IA vaut pour la LIGNE, quelle que soit la
+            // fiche : elle suit un changement de fiche.
+            modifier(enChoix, avecIA(iaGrammes, enChoix, pour(ligneEnChoix, ingredient, true)))
             setEnChoix(null)
           }}
         />
@@ -496,17 +591,29 @@ function LigneImport({
       </button>
 
       {ingredient !== null && (
-        <QuantityField
-          label="Quantité"
-          value={choix.grams}
-          onChange={(grams) => onChange({ ...choix, grams, estimated: false })}
-          pieceWeightG={ingredient.pieceWeightG}
-          cookedWeightPer100gRaw={ingredient.cookedWeightPer100gRaw}
-          unit={choix.unit}
-          onUnitChange={(unit) => onChange({ ...choix, unit })}
-        />
+        // Estimee par l'IA : le meme cadre que dans la fiche d'un ingredient,
+        // jusqu'a ce que la personne retouche la quantite.
+        <div className={choix.ia ? 'champ-ia champ-ia--rempli' : undefined}>
+          <QuantityField
+            label="Quantité"
+            value={choix.grams}
+            onChange={(grams) => onChange({ ...choix, grams, estimated: false, ia: false })}
+            pieceWeightG={ingredient.pieceWeightG}
+            cookedWeightPer100gRaw={ingredient.cookedWeightPer100gRaw}
+            unit={choix.unit}
+            onUnitChange={(unit) => onChange({ ...choix, unit })}
+          />
+          {choix.ia && (
+            <span className="champ-ia__demander champ-ia__demander--rempli" aria-hidden="true">
+              <Icon name="ui-ia" size={16} />
+            </span>
+          )}
+        </div>
       )}
-      {ingredient !== null && choix.estimated && (
+      {ingredient !== null && choix.ia && (
+        <p className="field__hint">Estimée par l’IA d’après la recette : le site ne la donne pas en poids. Vérifie-la.</p>
+      )}
+      {ingredient !== null && choix.estimated && !choix.ia && (
         <p className="field__hint">Quantité supposée : le site ne la donne pas en poids. Vérifie-la.</p>
       )}
 

@@ -17,19 +17,24 @@
 import { z } from 'zod'
 import {
   ECART_SUR,
+  QUANTITES_MAX,
+  QUANTITES_TOOL,
   SEUIL_RETENU,
   SEUIL_SUR,
   extractJsonLdBlocks,
   extractOgImage,
   importFtsQuery,
+  interpretQuantites,
   lienRecette,
   matchScore,
   parseIngredientLine,
   parseRecipeJsonLd,
+  quantitesQuestion,
   searchTerms,
   type Ingredient,
 } from '@prandia/shared'
 
+import { cleClaude, compterAppel, demanderOutil } from '../anthropic.js'
 import { HttpError, badRequest, json, parseOrThrow, readJson, route } from '../http.js'
 import type { Repositories } from '../repos/index.js'
 
@@ -249,4 +254,43 @@ route('POST', '/api/recipe-import/photo', async ({ request }) => {
       'content-disposition': 'attachment',
     },
   })
+})
+
+const quantitesSchema = z
+  .object({
+    titre: z.string().trim().min(1).max(300),
+    portions: z.number().int().positive().max(100).nullable(),
+    site: z.string().trim().max(200).nullable(),
+    lignes: z.array(z.string().max(300)).min(1).max(80),
+    aEstimer: z
+      .array(
+        z.object({
+          index: z.number().int().nonnegative(),
+          fiche: z.string().trim().max(200).nullable(),
+          contenanceG: z.number().positive().max(20_000).nullable(),
+        }),
+      )
+      .min(1)
+      .max(QUANTITES_MAX),
+  })
+  .refine((corps) => corps.aEstimer.every((a) => a.index < corps.lignes.length), {
+    message: 'Ligne à estimer hors de la recette.',
+  })
+
+/**
+ * Estimer en grammes les quantites que le site ne donne pas en poids
+ * (shared/src/quantitesIA.ts). Rien n'est ecrit : la revue les affiche,
+ * encadrees, et la personne les corrige avant de creer la recette. Un seul
+ * appel pour toute la recette : la coherence se juge sur l'ensemble.
+ */
+route('POST', '/api/recipe-import/quantites', async ({ repos, env, request }) => {
+  const recette = parseOrThrow(quantitesSchema, await readJson(request))
+  const cle = cleClaude(env)
+  await compterAppel(repos)
+  const sortie = await demanderOutil(cle, [{ type: 'text', text: quantitesQuestion(recette) }], QUANTITES_TOOL, 1500)
+  const estimations = interpretQuantites(
+    sortie,
+    recette.aEstimer.map((a) => a.index),
+  )
+  return json({ estimations: [...estimations].map(([index, grammes]) => ({ index, grammes })) })
 })

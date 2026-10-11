@@ -17,6 +17,7 @@ import '@fontsource-variable/instrument-sans/wght.css'
 import './styles/theme.css'
 import './styles/app.css'
 import './styles/icons.css'
+import './styles/ia.css'
 
 /**
  * Un 401 sur N'IMPORTE QUELLE requete bascule immediatement l'application sur

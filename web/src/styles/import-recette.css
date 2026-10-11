@@ -193,3 +193,18 @@
   font-weight: var(--font-weight-regular);
   color: var(--color-text-secondary);
 }
+
+/* L'estimation par l'IA : une ligne sous le bilan, l'etincelle en tete. */
+.import-ia {
+  margin: 0 0 var(--space-md);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.import-ia .icon {
+  color: var(--color-ia-ink);
+}
+
+.import-ia.import-ia--erreur {
+  color: var(--color-error);
+}

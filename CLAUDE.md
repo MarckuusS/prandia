@@ -931,6 +931,19 @@ Coller le lien d'une recette, relire, créer. Entrée en tête de "Nouvelle rece
   cette colonne, un `javascript:` compris (vérifié), et un tel `href` s'exécuterait au toucher.
   Le contrôle est à l'affichage plutôt qu'au schéma : resserrer le schéma bloquerait
   l'enregistrement d'une recette qui porterait déjà une valeur ancienne.
+- **Les quantités qui ne sont pas en poids sont estimées par l'IA, d'après la recette ENTIÈRE**
+  (`shared/src/quantitesIA.ts`, `POST /api/recipe-import/quantites`) : "1/2 sachet de romarin",
+  "1/4 de pot de crème", "1 pièce", "sel, poivre". Les règles d'`importAmount` (un sachet 10 g,
+  un pot 125 g) ne savent rien de la recette ; le modèle reçoit le titre, les portions, le site et
+  toutes les lignes, et juge à la cohérence. La consigne rappelle que les kits (HelloFresh,
+  Quitoque) livrent des sachets et des pots à la portion. Une question à l'ouverture de la revue,
+  pour toutes les lignes incertaines (supposées, ou sans fiche et sans unité). La réponse ne
+  touche que les lignes encore SUPPOSÉES : une quantité corrigée pendant la question reste celle
+  de la personne. Elle vaut pour la LIGNE, pas pour la fiche : elle suit un changement de fiche,
+  et une ligne "à choisir" la reçoit quand on choisit. Même cadre jaune que dans la fiche d'un
+  ingrédient (`styles/ia.css`, global), retiré à la première retouche ; la ligne reste "à
+  vérifier". Rien n'est écrit avant "Créer la recette". Les lignes sont numérotées à partir de 1
+  pour le modèle et rendues par INDEX à l'écran : `interpretQuantites` convertit.
 - **Essayer en local demande le catalogue CIQUAL**, que la base de développement n'a pas : le
   charger depuis `scripts/_dump/d1-seed.sql` (hors bibliothèque), puis le retirer.
 
