@@ -42,6 +42,7 @@ describe('interpretScan, quantite', () => {
       kind: 'quantite',
       nombre: 12,
       contenanceG: 125,
+      prixEur: null,
       texte: '12 x 125 g',
     })
     expect(interpretScan('quantite', { nombre: 6, contenance: 33, unite: 'cl', texte_lu: null })).toMatchObject({
@@ -73,29 +74,31 @@ describe('interpretScan, quantite', () => {
   })
 })
 
-describe('interpretScan, pesee', () => {
-  it('lit le poids net et le prix a payer', () => {
-    expect(interpretScan('pesee', { poids: 0.734, unite: 'kg', prix: 2.19, texte_lu: '0,734 kg 2,19 €' })).toEqual({
-      kind: 'pesee',
-      poidsG: 734,
-      prixEur: 2.19,
-      texte: '0,734 kg 2,19 €',
-    })
+describe('interpretScan, quantite sur une etiquette de balance', () => {
+  it('rend le poids net ET le prix a payer, imprime a cote', () => {
+    expect(
+      interpretScan('quantite', { nombre: 1, contenance: 0.734, unite: 'kg', prix_balance: 2.19, texte_lu: '0,734 kg' }),
+    ).toEqual({ kind: 'quantite', nombre: 1, contenanceG: 734, prixEur: 2.19, texte: '0,734 kg' })
   })
 
-  it('garde ce qui est lisible quand l’autre valeur manque', () => {
-    expect(interpretScan('pesee', { poids: 412, unite: 'g', prix: null, texte_lu: null })).toMatchObject({
-      poidsG: 412,
+  it('garde le prix seul quand le poids est illisible, et vide un prix absurde', () => {
+    expect(interpretScan('quantite', { nombre: null, contenance: null, unite: null, prix_balance: 3.4 })).toMatchObject({
+      contenanceG: null,
+      prixEur: 3.4,
+    })
+    expect(interpretScan('quantite', { nombre: 1, contenance: 412, unite: 'g', prix_balance: 900 })).toMatchObject({
+      contenanceG: 412,
       prixEur: null,
     })
   })
 })
 
-describe('interpretScan, produit', () => {
-  it('rend nom, marque et quantite', () => {
-    expect(
-      interpretScan('produit', { nom: 'Thon à l’huile d’olive', marque: 'Nixe', nombre: 3, contenance: 80, unite: 'g' }),
-    ).toEqual({ kind: 'produit', nom: 'Thon à l’huile d’olive', marque: 'Nixe', nombre: 3, contenanceG: 80 })
+describe('interpretScan, nom et marque', () => {
+  it('rend chacun seul, borne et nettoye', () => {
+    expect(interpretScan('nom', { nom: '  Thon à l’huile d’olive ' })).toEqual({ kind: 'nom', nom: 'Thon à l’huile d’olive' })
+    expect(interpretScan('marque', { marque: 'Nixe' })).toEqual({ kind: 'marque', marque: 'Nixe' })
+    expect(interpretScan('nom', { nom: '' })).toEqual({ kind: 'nom', nom: null })
+    expect(interpretScan('marque', {})).toEqual({ kind: 'marque', marque: null })
   })
 })
 
@@ -143,9 +146,11 @@ describe('interpretScan, nutrition', () => {
 describe('isEmptyScan', () => {
   it('dit qu’une lecture n’a rien rendu d’utilisable', () => {
     expect(isEmptyScan(interpretScan('date', { texte: null }))).toBe(true)
-    expect(isEmptyScan(interpretScan('pesee', { poids: null, unite: null, prix: 2.1 }))).toBe(false)
+    expect(isEmptyScan(interpretScan('quantite', { contenance: null, prix_balance: 2.1 }))).toBe(false)
+    expect(isEmptyScan(interpretScan('quantite', { contenance: null, prix_balance: null }))).toBe(true)
     expect(isEmptyScan(interpretScan('nutrition', {}))).toBe(true)
-    expect(isEmptyScan(interpretScan('produit', { nom: 'Yaourt nature' }))).toBe(false)
+    expect(isEmptyScan(interpretScan('nom', { nom: 'Yaourt nature' }))).toBe(false)
+    expect(isEmptyScan(interpretScan('marque', { marque: null }))).toBe(true)
   })
 })
 
@@ -157,9 +162,10 @@ describe('les questions', () => {
     }
   })
 
-  it('reconnaissent leurs trois noms et rien d’autre', () => {
-    expect(['date', 'prix', 'quantite', 'pesee', 'produit', 'nutrition'].every(isScanKind)).toBe(true)
-    expect(isScanKind('poids')).toBe(false)
+  it('reconnaissent leurs six noms et rien d’autre', () => {
+    expect(['date', 'prix', 'quantite', 'nom', 'marque', 'nutrition'].every(isScanKind)).toBe(true)
+    // "pesee" est devenue la lecture du poids, "produit" un champ a la fois.
+    expect(['pesee', 'produit', 'poids'].some(isScanKind)).toBe(false)
     expect(isScanKind(null)).toBe(false)
   })
 })

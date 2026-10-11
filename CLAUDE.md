@@ -56,9 +56,9 @@ L'application web n'utilise **plus d'émoji**. 67 icônes les remplacent : **10 
 - **`paths/ui.ts` et `paths/rayons.ts` sont GÉNÉRÉS.** Ne pas éditer à la main : ajouter la ligne
   dans `MAP` (`scripts/import-lucide.mjs`) puis relancer le script, qui récupère, filtre et réécrit.
 - **`paths/overrides.ts` ne l'est pas** : c'est là que vivent les dessins maison, fusionnés **en
-  dernier** dans `registry.ts` donc prioritaires. Deux tests protègent le mécanisme. **Deux
-  entrées** : le pot de yaourt à opercule, qu'aucun des deux jeux n'a, et Savarin (`ui-ia`,
-  voir plus bas). Avant d'en ajouter une
+  dernier** dans `registry.ts` donc prioritaires. Deux tests protègent le mécanisme. **Trois
+  entrées** : le pot de yaourt à opercule, qu'aucun des deux jeux n'a, Savarin (`ui-ia`, voir
+  plus bas), et Savarin dans son viseur (`ui-ia-lire`), CALCULÉ depuis le même tracé. Avant d'en ajouter une
   autre, chercher chez Tabler : un dessin qu'on n'a pas à maintenir vaut mieux qu'un dessin
   qu'on maintient mal.
 - Pas de dépendance `lucide-react` : le paquet laisse chaque icône poser ses propres attributs, ce
@@ -1027,10 +1027,30 @@ le prix. Ce qui ne se devine pas :
 - **Le poids du paquet scanné au frigo se perdait** : `toCreatePayload` (`ScanToStock.tsx`)
   oubliait `pieceWeightG`, et le lot partait à 100 g quand OpenFoodFacts disait 500.
 
-## Scanner une étiquette (web) : `components/ScanEtiquette.tsx`, `worker/src/routes/scan.ts`, `shared/src/scan.ts`
+## Lire un champ avec Savarin (web) : `components/ScanEtiquette.tsx`, `worker/src/routes/scan.ts`, `shared/src/scan.ts`
 
-Un bouton Scanner à côté de la date (tous les champs `DatePeremption`), du prix (chariot, prix
-payé au frigo) et de la quantité (chariot, qui remplit le lot). Ce qui ne se devine pas :
+**Un bouton par champ, DANS le champ, au bord droit** (décision du 2026-10-11) : Savarin dans les
+quatre coins d'un viseur (`ui-ia-lire`). Nom, marque, quantité et prix payé au chariot ; quantité,
+prix payé et date au frigo ; nom, marque et poids unitaire dans la fiche d'un ingrédient ; toute
+date de péremption. Le tableau nutritionnel garde UN bouton, en tête du tableau : c'est un seul
+bloc. Ce qui ne se devine pas :
+
+- **Pourquoi un bouton par champ.** En magasin on ne tape pas de chiffres : on vise ce qu'on veut
+  remplir, on déclenche, le champ se remplit. Avant, des boutons "Remplir avec une photo",
+  "Scanner le prix", "Étiquette de pesée" et "Scanner" étaient posés partout sous les champs, et la
+  lecture "produit" demandait nom, marque et poids d'une seule photo, qui ne les montre presque
+  jamais ensemble, avec une réponse lente. Une photo, un champ, une valeur.
+- **Le déclencheur FIGE l'image.** La photo partait déjà au toucher, mais la vidéo continuait de
+  défiler pendant la lecture : on croyait devoir rester immobile et l'on ne voyait pas ce qui était
+  parti. Au toucher du rond, `video.pause()` AVANT la capture (l'image arrêtée est celle qui part),
+  un éclair, Savarin réfléchit par-dessus ; une lecture vide garde l'image figée avec "Reprendre la
+  photo", sans fermer le viseur.
+- **Ce que Savarin remplit est encadré de jaune** (`components/CadreIA.tsx`, la classe
+  `champ-ia` de `styles/ia.css`) jusqu'à la première retouche du champ. Le bouton vit dans le
+  champ grâce à la prop `action` de `TextField`, `NumberField` et `QuantityField` (`AvecAction`).
+- **La seule lecture qui remplit deux champs, demandée** : le poids lu sur une étiquette de
+  BALANCE rend aussi le prix à payer, posé seulement s'il est vide. Un poids pesé se relit en
+  grammes (ce n'est pas une pièce) ; un "12 x 125 g" ouvre le lot, et 125 g devient la pièce.
 
 - **Pourquoi un modèle et pas la lecture du téléphone.** Celle d'Apple est cachée dans un sous-menu
   depuis iOS 17 et n'existe pas sur Android ; un moteur embarqué (Tesseract) lit mal les dates en
@@ -1042,8 +1062,10 @@ payé au frigo) et de la quantité (chariot, qui remplit le lot). Ce qui ne se d
 - **Un viseur DANS l'application**, sur la caméra partagée de `camera.ts` (pas de nouvelle demande
   d'autorisation), et non `<input capture>` : l'appareil photo du système rend douze mégapixels où
   l'étiquette occupe un coin. **Seul le rectangle part**, marge de 15 % comprise, réduit à 1 024 px :
-  environ 500 tokens, et le prix au kilo imprimé à côté reste hors champ. Le recadrage refait à
-  l'envers le calcul de `object-fit: cover`.
+  environ 500 tokens au plus, et le prix au kilo imprimé à côté reste hors champ. Le recadrage refait à
+  l'envers le calcul de `object-fit: cover`. 768 px pour un nom, une marque ou un prix imprimés
+  gros (image plus légère, réponse plus rapide), 1 024 pour une date ou un poids, 1 568 pour un
+  tableau.
 - **Une question et un OUTIL à schéma forcé par lecture** (`SCAN_QUESTIONS`), puis
   `interpretScan` vérifie tout : prix entre un centime et 500 €, unité de 1 g à 20 kg, au plus
   100 unités. Hors bornes, le champ revient VIDE plutôt que faux.
@@ -1052,19 +1074,18 @@ payé au frigo) et de la quantité (chariot, qui remplit le lot). Ce qui ne se d
 - **Rien n'est écrit en base par la lecture** : la valeur va dans le champ, et ne part qu'avec le
   bouton de la feuille. La photo n'est conservée nulle part.
 - **La clé est un secret Pages (`ANTHROPIC_API_KEY`)**, jamais dans le dépôt ; absente, la route
-  répond 503 "pas encore configurée". Plafond de 150 lectures par jour et par cuisine, compté
+  répond 503 "Savarin n'est pas encore configuré". Plafond de 150 lectures par jour et par cuisine, compté
   AVANT l'appel ; le vrai garde-fou est le plafond de dépense de l'espace de travail Anthropic. Le
   corps d'erreur d'Anthropic ne remonte jamais tel quel : il peut citer l'organisation. Clé,
   modèle, plafond et erreurs vivent dans `worker/src/anthropic.ts`, partagé avec la complétion
   des fiches.
-- **Six lectures** : date, prix, quantité (le poids imprimé, aussi à l'ajout au frigo), étiquette
-  de PESÉE (poids net ET prix à payer d'un scan, jamais le prix au kilo ; le poids se relit en
-  grammes, une pesée n'est pas une pièce), PRODUIT (nom sans la marque, marque, poids ; "12 x
-  125 g" donne 125 g de poids unitaire ; au chariot pour un produit inconnu, et dans la fiche),
-  NUTRITION (le tableau pour 100 g, jamais par portion ; une ligne illisible ne vide jamais une
-  valeur déjà saisie ; des sucres au-dessus des glucides, des saturés au-dessus des lipides
-  reviennent vides). Le viseur prend la forme de ce qu'on lit, et la pleine définition (1 568 px)
-  pour un tableau aux lignes serrées.
+- **Six lectures** : date, prix (celui de l'ARTICLE, jamais le prix au kilo), quantité (le poids
+  imprimé, un lot "12 x 125 g", ou le poids NET d'une étiquette de balance avec son prix à payer
+  dans `prix_balance`), NOM (sans la marque), MARQUE, NUTRITION (le tableau pour 100 g, jamais par
+  portion ; une ligne illisible ne vide jamais une valeur déjà saisie ; des sucres au-dessus des
+  glucides, des saturés au-dessus des lipides reviennent vides). "pesee" et "produit" ont disparu
+  le 2026-10-11 : la route répond 400 à un ancien client, le temps qu'il se mette à jour. Le
+  viseur prend la forme de ce qu'on lit.
 
 ## Compléter une fiche par l'IA : `shared/src/completion.ts`, `worker/src/completion.ts`
 

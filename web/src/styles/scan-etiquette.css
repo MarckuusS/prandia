@@ -1,8 +1,24 @@
-/* ---------- Scanner une etiquette (components/ScanEtiquette.tsx) ---------- */
+/* ---------- Lire un champ avec Savarin (components/ScanEtiquette.tsx) ---------- */
 
-/* Le rectangle de lecture prend la forme de ce qu'on lit : une date ou un
-   poids tiennent sur une ligne, une etiquette de prix est plus haute. Seul ce
-   rectangle part au serveur, marge comprise. */
+/* Une scene en HAUTEUR, comme l'appareil photo du telephone : le rectangle y
+   est plus grand, le texte plus net, et le declencheur tient dessous sans le
+   couvrir. Bornee en hauteur pour les petits ecrans : la feuille garde sa
+   croix visible. */
+.scan-etiquette .scanner__stage {
+  aspect-ratio: 3 / 4;
+  max-height: 60vh;
+}
+
+/* La consigne peut etre longue ("le 12 x 125 g ou l'etiquette de la
+   balance") : elle passe a la ligne au lieu de deborder de la scene. */
+.scan-etiquette .viseur__astuce {
+  max-width: 88%;
+  white-space: normal;
+  text-align: center;
+}
+
+/* Le rectangle de lecture prend la forme de ce qu'on lit. Seul ce rectangle
+   part au serveur, marge comprise. */
 .viseur.viseur--date,
 .viseur.viseur--quantite {
   width: 86%;
@@ -10,24 +26,17 @@
   aspect-ratio: 3 / 1;
 }
 
-.viseur.viseur--prix,
-.viseur.viseur--pesee {
+.viseur.viseur--nom,
+.viseur.viseur--marque {
+  width: 86%;
+  max-width: 420px;
+  aspect-ratio: 5 / 2;
+}
+
+.viseur.viseur--prix {
   width: 80%;
   max-width: 380px;
   aspect-ratio: 3 / 2;
-}
-
-/* Un emballage entier ou un tableau nutritionnel : une scene en hauteur, pour
-   que le rectangle soit assez grand et le texte assez net. */
-.scan-etiquette--produit .scanner__stage,
-.scan-etiquette--nutrition .scanner__stage {
-  aspect-ratio: 3 / 4;
-}
-
-.viseur.viseur--produit {
-  width: 80%;
-  max-width: 360px;
-  aspect-ratio: 1;
 }
 
 .viseur.viseur--nutrition {
@@ -36,34 +45,110 @@
   aspect-ratio: 3 / 4;
 }
 
-/* Un bouton Scanner pose seul sous un champ : a sa taille, pas etire. */
-.scan-ligne {
+/* ---------- Le declencheur ----------
+   Un rond, comme sur l'appareil photo : on vise, puis on declenche. */
+.scan-etiquette__declencheur {
+  position: absolute;
+  bottom: var(--space-lg);
+  left: 50%;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 68px;
+  height: 68px;
+  padding: 0;
+  cursor: pointer;
+  background: transparent;
+  border: 4px solid #fff;
+  border-radius: 50%;
+  transform: translateX(-50%);
+}
+
+.scan-etiquette__declencheur-centre {
+  width: 52px;
+  height: 52px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform var(--duration-fast) var(--easing-standard);
+}
+
+.scan-etiquette__declencheur:active .scan-etiquette__declencheur-centre {
+  transform: scale(0.88);
+}
+
+.scan-etiquette__declencheur:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+/* ---------- L'image figee ----------
+   Un eclair blanc au declenchement : on sait que la photo est prise, et que
+   le telephone peut bouger. */
+.scanner__stage--fige::after {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  content: '';
+  background: #fff;
+  opacity: 0;
+  animation: scan-eclair 260ms ease-out;
+}
+
+@keyframes scan-eclair {
+  from {
+    opacity: 0.75;
+  }
+}
+
+/* Savarin lit, par-dessus l'image figee, dans les couleurs de l'IA. */
+.scan-etiquette__lecture {
+  position: absolute;
+  bottom: var(--space-lg);
+  left: 50%;
+  z-index: 2;
   display: flex;
-}
-
-.scan-ligne--deux {
-  flex-wrap: wrap;
   gap: var(--space-sm);
+  align-items: center;
+  margin: 0;
+  padding: 6px var(--space-md) 6px var(--space-sm);
+  font-size: var(--font-size-md);
+  color: var(--color-ia-ink);
+  white-space: nowrap;
+  background: var(--color-ia-surface);
+  border: 1px solid var(--color-ia-border);
+  border-radius: var(--radius-full);
+  transform: translateX(-50%);
 }
 
-/* Le bouton seul, a cote d'un champ : la hauteur du champ, une icone olive.
-   Pas d'aplat : la feuille garde le sien pour son action principale. */
-.bouton-scan {
+/* ---------- Le bouton, dans un champ ----------
+   Savarin dans son viseur, a l'encre de l'IA, sans aplat : la feuille garde
+   le sien pour son action principale. */
+.bouton-lire {
   display: grid;
   flex: none;
   place-items: center;
-  width: var(--control-height-lg);
-  height: var(--control-height-lg);
-  color: var(--color-primary-text);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border-hover);
-  border-radius: var(--radius-md);
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  color: var(--color-ia-ink);
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-full);
 }
 
-.bouton-scan:active {
-  background: var(--color-surface-pressed);
+.bouton-lire:active {
+  background: var(--color-ia-surface);
 }
 
-.bouton-scan:disabled {
+.bouton-lire:disabled {
+  cursor: default;
   opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scanner__stage--fige::after {
+    animation: none;
+  }
 }

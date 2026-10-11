@@ -1,6 +1,6 @@
 /* ---------- La date de peremption (components/DatePeremption.tsx) ---------- */
 
-/* Le champ et le bouton Scanner cote a cote, de la meme hauteur. */
+/* Le champ, avec dedans la croix d'effacement et Savarin. */
 .peremption__saisie {
   display: flex;
   gap: var(--space-sm);
@@ -15,21 +15,22 @@
   min-width: 0;
 }
 
-.peremption__saisie .bouton-scan {
-  width: 52px;
-  height: auto;
-  min-height: var(--control-height-lg);
-}
-
-/* La croix d'effacement vit DANS le champ : le texte lui laisse sa place. */
+/* La croix d'effacement et Savarin vivent DANS le champ : le texte leur
+   laisse leur place. Savarin au bord, comme dans tous les champs qu'il lit. */
 .field__input.peremption__texte {
   flex: 1;
-  padding-right: 44px;
+  padding-right: 84px;
+}
+
+.peremption__lire {
+  position: absolute;
+  right: 4px;
+  display: flex;
 }
 
 .button.peremption__effacer {
   position: absolute;
-  right: 2px;
+  right: 42px;
   width: 40px;
   min-height: 40px;
   padding: 0;

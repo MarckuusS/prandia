@@ -16,10 +16,12 @@
  * mutation et decide quoi faire de ses echecs.
  */
 
+import { useState } from 'react'
 import { todayLocalIsoDate, type PaidPriceSuggestion } from '@prandia/shared'
 
+import { CadreIA } from '../../components/CadreIA.js'
 import { NumberField, TextField } from '../../components/Field.js'
-import { BoutonScan } from '../../components/ScanEtiquette.js'
+import { BoutonLire } from '../../components/ScanEtiquette.js'
 import { QuantityField } from '../../components/QuantityField.js'
 
 // ---------------------------------------------------------------------------
@@ -145,32 +147,39 @@ export function PricePaidFields({
   error,
   disabled,
 }: PricePaidFieldsProps) {
+  /** Le prix vient d'etre lu par Savarin : encadre de jaune jusqu'a une retouche. */
+  const [prixLu, setPrixLu] = useState(false)
   return (
     <>
-      <NumberField
-        label="Prix payé"
-        value={draft.amountEur}
-        onChange={(amountEur) => onChange({ ...draft, amountEur })}
-        suffix="€"
-        min={0}
-        decimals={2}
-        placeholder="2,30"
-        disabled={disabled}
-        error={error}
-        autoFocus
-      />
-
-      <div className="scan-ligne">
-        <BoutonScan
-          quoi="prix"
-          libelle="Scanner le prix"
-          className="chip-toggle"
-          onLu={(lu) => {
-            if (lu.kind === 'prix' && lu.prixEur !== null) onChange({ ...draft, amountEur: lu.prixEur })
+      <CadreIA actif={prixLu}>
+        <NumberField
+          label="Prix payé"
+          value={draft.amountEur}
+          onChange={(amountEur) => {
+            setPrixLu(false)
+            onChange({ ...draft, amountEur })
           }}
+          suffix="€"
+          min={0}
+          decimals={2}
+          placeholder="2,30"
           disabled={disabled}
+          error={error}
+          autoFocus
+          action={
+            // Le prix de l'ARTICLE, jamais le prix au kilo imprime a cote.
+            <BoutonLire
+              quoi="prix"
+              onLu={(lu) => {
+                if (lu.kind !== 'prix' || lu.prixEur === null) return
+                setPrixLu(true)
+                onChange({ ...draft, amountEur: lu.prixEur })
+              }}
+              disabled={disabled}
+            />
+          }
         />
-      </div>
+      </CadreIA>
 
       <QuantityField
         label="Pour cette quantité"

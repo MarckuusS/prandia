@@ -223,6 +223,20 @@ export function FieldShell({
   )
 }
 
+/**
+ * Un bouton DANS le champ, au bord droit : lire ce champ avec Savarin
+ * (components/ScanEtiquette.tsx). Le texte lui laisse sa place.
+ */
+export function AvecAction({ action, children }: { readonly action: ReactNode; readonly children: ReactNode }) {
+  if (action === undefined || action === null || action === false) return <>{children}</>
+  return (
+    <div className="field__saisie">
+      {children}
+      <span className="field__action">{action}</span>
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------------------
 // TextField
 // ---------------------------------------------------------------------------
@@ -252,6 +266,8 @@ export interface TextFieldProps extends BaseFieldProps {
    * enseigne ou l'on n'a jamais releve de prix.
    */
   readonly suggestions?: readonly string[] | undefined
+  /** Un bouton dans le champ, au bord droit (lire avec Savarin). */
+  readonly action?: ReactNode
 }
 
 export function TextField({
@@ -267,6 +283,7 @@ export function TextField({
   maxLength,
   inputRef,
   suggestions,
+  action,
   hint,
   error,
   required,
@@ -278,6 +295,7 @@ export function TextField({
   const hasSuggestions = suggestions !== undefined && suggestions.length > 0
   return (
     <FieldShell ids={ids} label={label} required={required} hint={hint} error={error}>
+      <AvecAction action={action}>
       <input
         ref={inputRef}
         id={ids.controlId}
@@ -297,6 +315,7 @@ export function TextField({
         aria-describedby={ids.describedBy}
         list={hasSuggestions ? listId : undefined}
       />
+      </AvecAction>
       {hasSuggestions && (
         <datalist id={listId}>
           {suggestions.map((option) => (
@@ -422,6 +441,8 @@ export interface NumberFieldProps extends BaseFieldProps {
    * lies et le meme bornage a la sortie.
    */
   readonly className?: string | undefined
+  /** Un bouton dans le champ, au bord droit (lire avec Savarin). */
+  readonly action?: ReactNode
 }
 
 export function NumberField({
@@ -442,6 +463,7 @@ export function NumberField({
   disabled,
   id,
   className,
+  action,
 }: NumberFieldProps) {
   const ids = useFieldIds(id, { hint, error })
   const input = useDecimalInput(value, onChange, { decimals, emptyOnZero })
@@ -462,6 +484,7 @@ export function NumberField({
   }
 
   const field = (
+    <AvecAction action={action}>
     <input
       ref={inputRef}
       id={ids.controlId}
@@ -479,6 +502,7 @@ export function NumberField({
       aria-invalid={error ? true : undefined}
       aria-describedby={ids.describedBy}
     />
+    </AvecAction>
   )
 
   return (

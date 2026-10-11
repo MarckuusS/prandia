@@ -33,7 +33,7 @@ import {
 } from '@prandia/shared'
 
 import { Icon } from '../icons/index.js'
-import { BoutonScan } from './ScanEtiquette.js'
+import { BoutonLire } from './ScanEtiquette.js'
 import '../styles/peremption.css'
 
 /** Trois semaines : la duree de vie d'a peu pres tout ce qui a une DLC. */
@@ -177,16 +177,19 @@ export function DatePeremption({
             <Icon name="ui-close" size={18} />
           </button>
         )}
+        {/* Savarin, DANS le champ comme partout : le texte lu arrive dans le
+            champ et suit le meme chemin qu'une saisie ("Lu : ..." ou l'annee
+            douteuse). */}
+        <span className="peremption__lire">
+          <BoutonLire
+            quoi="date"
+            onLu={(lu) => {
+              if (lu.kind === 'date' && lu.texte !== null) saisir(lu.texte)
+            }}
+            disabled={disabled}
+          />
+        </span>
         </div>
-        {/* La photo, lue par le serveur : le texte lu arrive dans le champ et
-            suit le meme chemin qu'une saisie ("Lu : ..." ou l'annee douteuse). */}
-        <BoutonScan
-          quoi="date"
-          onLu={(lu) => {
-            if (lu.kind === 'date' && lu.texte !== null) saisir(lu.texte)
-          }}
-          disabled={disabled}
-        />
       </div>
 
       <p
@@ -199,7 +202,7 @@ export function DatePeremption({
             ? `L’année ${anneeDouteuse} paraît mal lue : corrige-la dans le champ.`
             : 'Date non reconnue. Écris-la comme sur l’emballage, par exemple 14/10/26.'
           : (lecture ??
-            `${hint === undefined ? '' : `${hint} `}Touche le jour, tape la date, ou scanne-la avec l’appareil photo.`)}
+            `${hint === undefined ? '' : `${hint} `}Touche le jour, tape la date, ou fais-la lire par Savarin.`)}
       </p>
 
       {/* LE CHEMIN EXACT, parce qu'iOS le cache. Depuis iOS 17, "Scanner le

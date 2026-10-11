@@ -48,3 +48,32 @@ export const SAVARIN_FIXE =
   SAVARIN_VERRES +
   `<path fill="currentColor" stroke="none" d="${SAVARIN_MOUSTACHE_GAUCHE}"/>` +
   `<path fill="currentColor" stroke="none" d="${SAVARIN_MOUSTACHE_DROITE}"/>`
+
+/**
+ * Le meme dessin, REDUIT, dans un autre cadre : chaque coordonnee passe par
+ * `x -> dx + e * x`, `y -> dy + e * y`, rayons compris. Calcule et non retrace :
+ * il n'y a toujours qu'une moustache a maintenir. Ne connait que ce que le
+ * dessin emploie (cercles, chemins en coordonnees absolues par paires).
+ */
+function reduire(markup: string, e: number, dx: number, dy: number): string {
+  const r = (v: number) => String(Math.round(v * 100) / 100)
+  return markup
+    .replace(/ d="([^"]*)"/g, (_, d: string) => {
+      let i = 0
+      return ` d="${d.replace(/-?\d*\.?\d+/g, (n) => r((i++ % 2 === 0 ? dx : dy) + e * Number(n)))}"`
+    })
+    .replace(/<circle cx="([\d.]+)" cy="([\d.]+)" r="([\d.]+)"\/>/g, (_, cx: string, cy: string, rayon: string) =>
+      `<circle cx="${r(dx + e * Number(cx))}" cy="${r(dy + e * Number(cy))}" r="${r(e * Number(rayon))}"/>`,
+    )
+}
+
+/**
+ * "Lire avec Savarin" : sa tete dans les quatre coins d'un viseur. Le bouton
+ * de chaque champ qu'il sait lire sur une photo (nom, marque, poids, prix,
+ * date). Choisi le 2026-10-11 a la place de l'appareil photo, qui etait partout
+ * et ne disait pas que c'est l'IA qui lit. Les coins sont ceux de `ui-scan`.
+ */
+export const SAVARIN_LIRE =
+  '<path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/>' +
+  '<path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>' +
+  reduire(SAVARIN_FIXE, 0.6, 4.8, 5.1)

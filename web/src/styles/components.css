@@ -119,6 +119,29 @@
   border-bottom-right-radius: 0;
 }
 
+/* Un bouton DANS le champ, au bord droit : lire ce champ avec Savarin. Le
+   texte lui laisse sa place, et le champ garde toute sa largeur. */
+.field__saisie {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+
+.field__saisie > .field__input {
+  flex: 1;
+  min-width: 0;
+  padding-right: 46px;
+}
+
+.field__action {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  display: flex;
+  transform: translateY(-50%);
+}
+
 .field__suffix {
   display: grid;
   place-items: center;

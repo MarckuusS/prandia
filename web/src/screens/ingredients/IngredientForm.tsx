@@ -45,7 +45,8 @@ import {
   TextField,
   useFieldIds,
 } from '../../components/Field.js'
-import { BoutonScan } from '../../components/ScanEtiquette.js'
+import { CadreIA } from '../../components/CadreIA.js'
+import { BoutonLire } from '../../components/ScanEtiquette.js'
 import { ConfirmDialog } from '../../components/Sheet.js'
 import { Savarin } from '../../components/Savarin.js'
 import { SourceBadge } from '../../components/States.js'
@@ -374,7 +375,7 @@ export function IngredientForm({ ingredient }: IngredientFormProps) {
               laisse sa valeur actuelle : on ne remplace jamais un chiffre par
               un vide. Rien n'est enregistre avant le bouton de la fiche. */}
           <div className="scan-ligne">
-            <BoutonScan
+            <BoutonLire
               quoi="nutrition"
               libelle="Lire le tableau nutritionnel"
               className="chip-toggle"
@@ -415,6 +416,17 @@ export function IngredientForm({ ingredient }: IngredientFormProps) {
             min={0}
             max={10000}
             decimals={1}
+            action={
+              // Lu sur l'emballage : le poids d'UNE unite ("12 x 125 g" : 125 g).
+              <BoutonLire
+                quoi="quantite"
+                onLu={(lu) => {
+                  if (lu.kind !== 'quantite' || lu.contenanceG === null) return
+                  patch({ pieceWeightG: lu.contenanceG })
+                  setChampsIA((avant) => new Set([...avant, 'poidsPiece']))
+                }}
+              />
+            }
             hint="1 œuf ≈ 60 g, 1 oignon ≈ 150 g, 1 gousse d’ail ≈ 5 g. Renseigné, il fait apparaître l’unité « pièce » partout où l’on saisit une quantité. Vide pour l’huile, le lait, le riz, le sel."
           />
           </ChampIA>
@@ -637,46 +649,62 @@ function Identity({
 
   const refIds = useFieldIds(undefined, { hint: SOURCE_REF_HINT })
 
+  /** Nom et marque lus par Savarin : encadres de jaune jusqu'a une retouche. */
+  const [lus, setLus] = useState<ReadonlySet<'name' | 'brand'>>(new Set())
+  const oublier = (cle: 'name' | 'brand') =>
+    setLus((avant) => (avant.has(cle) ? new Set([...avant].filter((c) => c !== cle)) : avant))
+  const lire = (changes: { name: string } | { brand: string }) => {
+    setLus((avant) => new Set([...avant, ...(Object.keys(changes) as Array<'name' | 'brand'>)]))
+    onPatch(changes)
+  }
+
   return (
     <fieldset className="ing-form__section">
       <legend className="ing-form__legend">Identité</legend>
 
-      <TextField
-        label="Nom"
-        value={draft.name}
-        onChange={(value) => onPatch({ name: value })}
-        placeholder="Ex : Tomate grappe"
-        error={nameError}
-        required
-        autoFocus={ingredient === null}
-        enterKeyHint="next"
-      />
-
-      <TextField
-        label="Marque"
-        value={draft.brand}
-        onChange={(value) => onPatch({ brand: value })}
-        placeholder="Ex : Pâturages, Carrefour Bio… (optionnel)"
-      />
-
-      {/* Le devant de l'emballage : nom, marque et poids d'un coup, pour un
-          produit qu'OpenFoodFacts ne connait pas. Le poids d'une unite devient
-          le poids unitaire ("12 x 125 g" : 125 g la piece). */}
-      <div className="scan-ligne">
-        <BoutonScan
-          quoi="produit"
-          libelle="Remplir avec une photo"
-          className="chip-toggle"
-          onLu={(lu) => {
-            if (lu.kind !== 'produit') return
-            onPatch({
-              ...(lu.nom === null ? {} : { name: lu.nom }),
-              ...(lu.marque === null ? {} : { brand: lu.marque }),
-              ...(lu.contenanceG === null ? {} : { pieceWeightG: lu.contenanceG }),
-            })
+      <CadreIA actif={lus.has('name')}>
+        <TextField
+          label="Nom"
+          value={draft.name}
+          onChange={(value) => {
+            oublier('name')
+            onPatch({ name: value })
           }}
+          placeholder="Ex : Tomate grappe"
+          error={nameError}
+          required
+          autoFocus={ingredient === null}
+          enterKeyHint="next"
+          action={
+            <BoutonLire
+              quoi="nom"
+              onLu={(lu) => {
+                if (lu.kind === 'nom' && lu.nom !== null) lire({ name: lu.nom })
+              }}
+            />
+          }
         />
-      </div>
+      </CadreIA>
+
+      <CadreIA actif={lus.has('brand')}>
+        <TextField
+          label="Marque"
+          value={draft.brand}
+          onChange={(value) => {
+            oublier('brand')
+            onPatch({ brand: value })
+          }}
+          placeholder="Ex : Pâturages, Carrefour Bio… (optionnel)"
+          action={
+            <BoutonLire
+              quoi="marque"
+              onLu={(lu) => {
+                if (lu.kind === 'marque' && lu.marque !== null) lire({ brand: lu.marque })
+              }}
+            />
+          }
+        />
+      </CadreIA>
 
       {ingredient === null ? (
         <>

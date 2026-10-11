@@ -1,5 +1,12 @@
 /**
- * Lire une photo d'emballage ou d'etiquette : la date, le prix, la quantite.
+ * Lire une photo d'emballage ou d'etiquette, UN CHAMP A LA FOIS : la date, le
+ * prix, la quantite, le nom, la marque, et le tableau nutritionnel.
+ *
+ * Un champ, une photo, une valeur (decision du 2026-10-11) : "remplir avec une
+ * photo" demandait nom, marque et poids d'un coup, alors qu'une photo ne les
+ * montre presque jamais ensemble, et la reponse etait lente. Une exception,
+ * demandee : le poids lu sur une ETIQUETTE DE BALANCE rend aussi le prix a
+ * payer, imprime juste a cote, que l'ecran pose s'il est vide.
  *
  * Le serveur envoie la photo a un modele de vision (Claude Haiku) avec UNE
  * question et UN outil dont le schema force la forme de la reponse. Ce module,
@@ -16,7 +23,7 @@
  * par photo, couvert par les credits API inclus dans l'abonnement.
  */
 
-export const SCAN_KINDS = ['date', 'prix', 'quantite', 'pesee', 'produit', 'nutrition'] as const
+export const SCAN_KINDS = ['date', 'prix', 'quantite', 'nom', 'marque', 'nutrition'] as const
 export type ScanKind = (typeof SCAN_KINDS)[number]
 
 export const isScanKind = (valeur: unknown): valeur is ScanKind =>
@@ -65,56 +72,46 @@ export const SCAN_QUESTIONS: Readonly<Record<ScanKind, { readonly question: stri
   },
   quantite: {
     question:
-      "Photo d'un emballage alimentaire. Donne la quantite nette : le nombre d'unites et la contenance d'UNE unite. \"12 x 125 g\" : nombre 12, contenance 125, unite g. \"500 g\" : nombre 1, contenance 500, unite g. \"6 x 33 cl\" : nombre 6, contenance 33, unite cl. Pour une conserve, le poids net total, pas le poids egoutte. Si rien n'est lisible, tout vaut null.",
+      "Photo d'un emballage alimentaire ou d'une etiquette de magasin. Donne la quantite nette : le nombre d'unites et la contenance d'UNE unite. \"12 x 125 g\" : nombre 12, contenance 125, unite g. \"500 g\" : nombre 1, contenance 500, unite g. \"6 x 33 cl\" : nombre 6, contenance 33, unite cl. Pour une conserve, le poids net total, pas le poids egoutte. Si c'est une etiquette imprimee par une BALANCE de magasin (vrac, boucherie, fromage a la coupe) : nombre 1, contenance = le poids NET (jamais la tare), et prix_balance = le prix a payer en euros (jamais le prix au kilo) ; pour tout autre emballage, prix_balance vaut null. Si rien n'est lisible, tout vaut null.",
     tool: {
       name: 'quantite_lue',
-      description: 'Rend la quantite nette de l’emballage.',
+      description: 'Rend la quantite nette, et le prix a payer d’une etiquette de balance.',
       input_schema: {
         type: 'object',
         properties: {
           nombre: { ...nombreOuNul, description: 'Nombre d’unites, 1 pour un produit seul.' },
           contenance: { ...nombreOuNul, description: 'Contenance d’une unite.' },
           unite: { type: ['string', 'null'], enum: ['g', 'kg', 'ml', 'cl', 'l', null] },
+          prix_balance: { ...nombreOuNul, description: 'Prix a payer, seulement sur une etiquette de balance.' },
           texte_lu: { ...texteOuNul, description: 'La quantite telle qu’imprimee, ex. "12 x 125 g".' },
         },
-        required: ['nombre', 'contenance', 'unite', 'texte_lu'],
+        required: ['nombre', 'contenance', 'unite', 'prix_balance', 'texte_lu'],
       },
     },
   },
-  pesee: {
+  nom: {
     question:
-      "Photo d'une etiquette imprimee par une balance de magasin (fruits et legumes en vrac, boucherie, fromage a la coupe). Donne le poids NET de l'article et le prix a payer. Jamais le prix au kilo, jamais la tare. Si une valeur n'est pas lisible, elle vaut null.",
+      "Photo de l'emballage d'un produit alimentaire. Donne le nom du produit tel qu'on l'ecrirait dans une liste de courses ou une recette, en francais, SANS la marque (ex. \"Thon a l'huile d'olive\", \"Yaourt nature\", \"Lentilles vertes\"). Si aucun nom n'est lisible, nom vaut null.",
     tool: {
-      name: 'pesee_lue',
-      description: 'Rend le poids net et le prix a payer de l’etiquette de pesee.',
+      name: 'nom_lu',
+      description: 'Rend le nom du produit, sans la marque.',
       input_schema: {
         type: 'object',
-        properties: {
-          poids: { ...nombreOuNul, description: 'Poids net, ex. 0.734.' },
-          unite: { type: ['string', 'null'], enum: ['g', 'kg', null] },
-          prix: { ...nombreOuNul, description: 'Prix a payer en euros, ex. 2.19.' },
-          texte_lu: { ...texteOuNul, description: 'Poids et prix tels qu’imprimes.' },
-        },
-        required: ['poids', 'unite', 'prix', 'texte_lu'],
+        properties: { nom: { ...texteOuNul, description: 'Nom du produit, sans la marque.' } },
+        required: ['nom'],
       },
     },
   },
-  produit: {
+  marque: {
     question:
-      "Photo de l'emballage d'un produit alimentaire. Donne : le nom du produit tel qu'on l'ecrirait dans une liste de courses ou une recette, en francais, sans la marque (ex. \"Thon a l'huile d'olive\", \"Yaourt nature\") ; la marque ; la quantite nette (nombre d'unites et contenance d'une unite, comme \"12 x 125 g\"). Ce qui n'est pas lisible vaut null.",
+      "Photo de l'emballage d'un produit alimentaire. Donne la MARQUE du produit (ex. \"Danone\", \"Bonduelle\", \"Carrefour Bio\"), pas le nom du produit. Si aucune marque n'est lisible, marque vaut null.",
     tool: {
-      name: 'produit_lu',
-      description: 'Rend le nom, la marque et la quantite nette du produit.',
+      name: 'marque_lue',
+      description: 'Rend la marque du produit.',
       input_schema: {
         type: 'object',
-        properties: {
-          nom: { ...texteOuNul, description: 'Nom du produit, sans la marque.' },
-          marque: { ...texteOuNul },
-          nombre: { ...nombreOuNul, description: 'Nombre d’unites, 1 pour un produit seul.' },
-          contenance: { ...nombreOuNul, description: 'Contenance d’une unite.' },
-          unite: { type: ['string', 'null'], enum: ['g', 'kg', 'ml', 'cl', 'l', null] },
-        },
-        required: ['nom', 'marque', 'nombre', 'contenance', 'unite'],
+        properties: { marque: { ...texteOuNul } },
+        required: ['marque'],
       },
     },
   },
@@ -158,21 +155,12 @@ export type ScanResult =
       readonly kind: 'quantite'
       readonly nombre: number | null
       readonly contenanceG: number | null
-      readonly texte: string | null
-    }
-  | {
-      readonly kind: 'pesee'
-      readonly poidsG: number | null
+      /** Le prix a payer, lu seulement sur une etiquette de BALANCE ; sinon `null`. */
       readonly prixEur: number | null
       readonly texte: string | null
     }
-  | {
-      readonly kind: 'produit'
-      readonly nom: string | null
-      readonly marque: string | null
-      readonly nombre: number | null
-      readonly contenanceG: number | null
-    }
+  | { readonly kind: 'nom'; readonly nom: string | null }
+  | { readonly kind: 'marque'; readonly marque: string | null }
   | {
       readonly kind: 'nutrition'
       readonly kcal: number | null
@@ -193,11 +181,11 @@ export function isEmptyScan(r: ScanResult): boolean {
     case 'prix':
       return r.prixEur === null
     case 'quantite':
-      return r.contenanceG === null
-    case 'pesee':
-      return r.poidsG === null && r.prixEur === null
-    case 'produit':
-      return r.nom === null && r.marque === null && r.contenanceG === null
+      return r.contenanceG === null && r.prixEur === null
+    case 'nom':
+      return r.nom === null
+    case 'marque':
+      return r.marque === null
     case 'nutrition':
       return [r.kcal, r.fats, r.carbs, r.proteins].every((v) => v === null)
   }
@@ -230,16 +218,11 @@ export function interpretScan(kind: ScanKind, entree: unknown): ScanResult {
     case 'prix':
       return { kind, prixEur: prixBorne(o['prix']), texte: texteBorne(o['texte_lu'], 40) }
     case 'quantite':
-      return { kind, ...quantiteBornee(o), texte: texteBorne(o['texte_lu'], 40) }
-    case 'pesee':
-      return {
-        kind,
-        poidsG: grammesBornes(o['poids'], o['unite']),
-        prixEur: prixBorne(o['prix']),
-        texte: texteBorne(o['texte_lu'], 60),
-      }
-    case 'produit':
-      return { kind, nom: texteBorne(o['nom'], 80), marque: texteBorne(o['marque'], 60), ...quantiteBornee(o) }
+      return { kind, ...quantiteBornee(o), prixEur: prixBorne(o['prix_balance']), texte: texteBorne(o['texte_lu'], 40) }
+    case 'nom':
+      return { kind, nom: texteBorne(o['nom'], 80) }
+    case 'marque':
+      return { kind, marque: texteBorne(o['marque'], 60) }
     case 'nutrition':
       return nutritionBornee(o)
   }

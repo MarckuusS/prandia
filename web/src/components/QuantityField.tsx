@@ -25,7 +25,7 @@
  * en QML, et l'import de recette par URL traitait une piece comme un gramme.
  */
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import {
   COOKED_UNIT_CODE,
   DEFAULT_UNIT_CODE,
@@ -38,7 +38,7 @@ import {
   toGrams,
 } from '@prandia/shared'
 
-import { FieldShell, useDecimalInput, useFieldIds } from './Field.js'
+import { AvecAction, FieldShell, useDecimalInput, useFieldIds } from './Field.js'
 
 /** Les deux facteurs qui dependent de l'ingredient, et non d'une table. */
 interface Facteurs {
@@ -115,6 +115,8 @@ export interface QuantityFieldProps {
   readonly disabled?: boolean | undefined
   readonly autoFocus?: boolean | undefined
   readonly id?: string | undefined
+  /** Un bouton dans le champ, au bord droit (lire le poids avec Savarin). */
+  readonly action?: ReactNode
 }
 
 export function QuantityField({
@@ -132,6 +134,7 @@ export function QuantityField({
   disabled,
   autoFocus,
   id,
+  action,
 }: QuantityFieldProps) {
   const facteurs: Facteurs = { piece: pieceWeightG, cuit: cookedWeightPer100gRaw, cuillere: spoonWeightG }
   const [unitCode, setUnitCode] = useState(() => resolveUnit(unit, facteurs))
@@ -210,6 +213,7 @@ export function QuantityField({
       className="field--quantity"
     >
       <div className="quantity-field">
+        <AvecAction action={action}>
         <input
           id={ids.controlId}
           className="field__input field__input--number quantity-field__value"
@@ -223,6 +227,7 @@ export function QuantityField({
           aria-invalid={error ? true : undefined}
           aria-describedby={ids.describedBy}
         />
+        </AvecAction>
         <select
           className="field__select quantity-field__unit"
           value={activeUnit}

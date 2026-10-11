@@ -20,7 +20,7 @@
  * `resolve.test.ts` parcourent le registre fusionne et s'appliquent donc ici.
  */
 
-import { SAVARIN_FIXE } from '../savarin.js'
+import { SAVARIN_FIXE, SAVARIN_LIRE } from '../savarin.js'
 
 export const OVERRIDE_PATHS = {
   /*
@@ -31,6 +31,13 @@ export const OVERRIDE_PATHS = {
    * est pleine, en `currentColor`, sans quoi elle se brouillait des 20 px.
    */
   'ui-ia': SAVARIN_FIXE,
+
+  /*
+   * "Lire avec Savarin" : sa tete dans les quatre coins d'un viseur, le bouton
+   * de chaque champ qu'il sait lire sur une photo. Calcule depuis le meme trace
+   * (icons/savarin.ts), sans entree Lucide : aucun jeu n'a ce dessin.
+   */
+  'ui-ia-lire': SAVARIN_LIRE,
 
   /*
    * Pot de yaourt, opercule souleve.

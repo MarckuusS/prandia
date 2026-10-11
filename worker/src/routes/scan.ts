@@ -1,7 +1,7 @@
 /**
  * Lire une photo d'etiquette ou d'emballage.
  *
- * `POST /api/scan?quoi=date|prix|quantite|pesee|produit|nutrition`, corps =
+ * `POST /api/scan?quoi=date|prix|quantite|nom|marque|nutrition`, corps =
  * l'image (JPEG recadre et reduit par le telephone). Le serveur la fait lire
  * par Claude Haiku avec une question et un outil a schema force
  * (shared/src/scan.ts), verifie la reponse, et la RENVOIE : rien n'est ecrit

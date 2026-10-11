@@ -13,13 +13,19 @@
  * il y en a, combien ca coute. Le prix vient en dernier parce que c'est le
  * seul que l'utilisateur doit VRAIMENT saisir — il finit sous le clavier
  * ouvert, la ou il est le plus accessible.
+ *
+ * CHAQUE CHAMP SE LIT AVEC SAVARIN (son bouton, au bord droit du champ) : en
+ * magasin, on vise ce qu'on veut remplir au lieu de taper des chiffres. Ce
+ * qu'il remplit est encadre de jaune jusqu'a la premiere retouche. Le poids
+ * lu sur une etiquette de BALANCE pose aussi le prix a payer, s'il est vide.
  */
 
 import { useState } from 'react'
 import { formatEuros, formatGrams } from '@prandia/shared'
 
+import { CadreIA } from '../../components/CadreIA.js'
 import { DatePeremption } from '../../components/DatePeremption.js'
-import { BoutonScan } from '../../components/ScanEtiquette.js'
+import { BoutonLire } from '../../components/ScanEtiquette.js'
 import { NumberField, SwitchField, TextField } from '../../components/Field.js'
 import { QuantityField } from '../../components/QuantityField.js'
 import { Icon } from '../../icons/index.js'
@@ -61,8 +67,19 @@ export function SessionItemFields({
   error,
   disabled,
 }: SessionItemFieldsProps) {
-  const set = <K extends keyof ItemDraft>(key: K, value: ItemDraft[K]) =>
+  /** Les champs que Savarin vient de remplir : encadres de jaune jusqu'a une retouche. */
+  const [lus, setLus] = useState<ReadonlySet<keyof ItemDraft>>(new Set())
+  const oublier = (...cles: Array<keyof ItemDraft>) =>
+    setLus((avant) => (cles.some((c) => avant.has(c)) ? new Set([...avant].filter((c) => !cles.includes(c))) : avant))
+  const set = <K extends keyof ItemDraft>(key: K, value: ItemDraft[K]) => {
+    oublier(key)
     onChange({ ...draft, [key]: value })
+  }
+  /** Ce que Savarin a lu : pose dans le brouillon, et encadre. */
+  const lire = (suite: Partial<ItemDraft>) => {
+    setLus((avant) => new Set([...avant, ...(Object.keys(suite) as Array<keyof ItemDraft>)]))
+    onChange({ ...draft, ...suite })
+  }
   const [dateOuverte, setDateOuverte] = useState(draft.expiryDate !== null)
 
   const [lotOuvert, setLotOuvert] = useState(false)
@@ -79,6 +96,7 @@ export function SessionItemFields({
     setLotOuvert(true)
   }
   const changerLot = (suite: { nombre: number | null; contenanceG: number | null }) => {
+    oublier('quantityG')
     setLot(suite)
     if (suite.nombre === null || suite.nombre <= 0 || suite.contenanceG === null || suite.contenanceG <= 0) return
     onChange({ ...draft, quantityG: suite.nombre * suite.contenanceG, pieceWeightG: suite.contenanceG })
@@ -96,47 +114,45 @@ export function SessionItemFields({
         </p>
       )}
 
-      {/* Un produit que ni la bibliotheque ni OpenFoodFacts ne connaissent :
-          une photo de l'emballage remplit le nom, la marque et le poids. */}
-      {draft.ingredientId === null && (
-        <div className="scan-ligne">
-          <BoutonScan
-            quoi="produit"
-            libelle="Remplir avec une photo"
-            className="chip-toggle"
-            onLu={(lu) => {
-              if (lu.kind !== 'produit') return
-              const quantite = lu.contenanceG === null ? null : (lu.nombre ?? 1) * lu.contenanceG
-              onChange({
-                ...draft,
-                name: lu.nom ?? draft.name,
-                brand: lu.marque ?? draft.brand,
-                quantityG: quantite ?? draft.quantityG,
-                pieceWeightG: lu.contenanceG ?? draft.pieceWeightG,
-              })
-            }}
-            disabled={disabled}
-          />
-        </div>
-      )}
+      <CadreIA actif={lus.has('name')}>
+        <TextField
+          label="Nom"
+          value={draft.name}
+          onChange={(value) => set('name', value)}
+          required
+          disabled={disabled}
+          autoComplete="off"
+          action={
+            <BoutonLire
+              quoi="nom"
+              onLu={(lu) => {
+                if (lu.kind === 'nom' && lu.nom !== null) lire({ name: lu.nom })
+              }}
+              disabled={disabled}
+            />
+          }
+        />
+      </CadreIA>
 
-      <TextField
-        label="Nom"
-        value={draft.name}
-        onChange={(value) => set('name', value)}
-        required
-        disabled={disabled}
-        autoComplete="off"
-      />
-
-      <TextField
-        label="Marque"
-        value={draft.brand}
-        onChange={(value) => set('brand', value)}
-        placeholder="Facultatif"
-        disabled={disabled}
-        autoComplete="off"
-      />
+      <CadreIA actif={lus.has('brand')}>
+        <TextField
+          label="Marque"
+          value={draft.brand}
+          onChange={(value) => set('brand', value)}
+          placeholder="Facultatif"
+          disabled={disabled}
+          autoComplete="off"
+          action={
+            <BoutonLire
+              quoi="marque"
+              onLu={(lu) => {
+                if (lu.kind === 'marque' && lu.marque !== null) lire({ brand: lu.marque })
+              }}
+              disabled={disabled}
+            />
+          }
+        />
+      </CadreIA>
 
       {/* Le vrac pese par le caissier n'a pas de poids au rayon : le ticket le
           donnera ("Lire le ticket", avant Terminer). La quantite devient
@@ -152,19 +168,48 @@ export function SessionItemFields({
       {/* Piece-aware : « 1 pièce (400 g) » quand la contenance est connue,
           grammes sinon. Le champ reste modifiable en toutes circonstances —
           800 g de boeuf au rayon boucherie ne se deduisent d'aucun code. */}
-      <QuantityField
-        label={draft.aPeser ? 'Quantité, si tu veux l’estimer' : 'Quantité'}
-        value={draft.quantityG}
-        onChange={(quantityG) => set('quantityG', quantityG)}
-        pieceWeightG={draft.pieceWeightG}
-        required={!draft.aPeser}
-        disabled={disabled}
-        hint={
-          draft.aPeser
-            ? 'Facultatif : le ticket donnera le poids exact.'
-            : "Ce qui entre vraiment dans le chariot : deux paquets, c'est deux fois la contenance."
-        }
-      />
+      <CadreIA actif={lus.has('quantityG')}>
+        <QuantityField
+          label={draft.aPeser ? 'Quantité, si tu veux l’estimer' : 'Quantité'}
+          value={draft.quantityG}
+          onChange={(quantityG) => set('quantityG', quantityG)}
+          pieceWeightG={draft.pieceWeightG}
+          required={!draft.aPeser}
+          disabled={disabled}
+          hint={
+            draft.aPeser
+              ? 'Facultatif : le ticket donnera le poids exact.'
+              : "Ce qui entre vraiment dans le chariot : deux paquets, c'est deux fois la contenance."
+          }
+          action={
+            <BoutonLire
+              quoi="quantite"
+              onLu={(lu) => {
+                if (lu.kind !== 'quantite') return
+                const suite: { -readonly [K in keyof ItemDraft]?: ItemDraft[K] } = {}
+                if (lu.contenanceG !== null) {
+                  if (lu.prixEur !== null) {
+                    // Etiquette de balance : un poids pese n'est pas une piece.
+                    suite.quantityG = lu.contenanceG
+                  } else {
+                    // "12 x 125 g" : le lot, dont l'unite devient la piece.
+                    suite.quantityG = (lu.nombre ?? 1) * lu.contenanceG
+                    suite.pieceWeightG = lu.contenanceG
+                    if ((lu.nombre ?? 1) > 1) {
+                      setLot({ nombre: lu.nombre, contenanceG: lu.contenanceG })
+                      setLotOuvert(true)
+                    }
+                  }
+                }
+                // Le prix imprime a cote du poids, seulement s'il manque.
+                if (lu.prixEur !== null && draft.priceEur === null) suite.priceEur = lu.prixEur
+                if (Object.keys(suite).length > 0) lire(suite)
+              }}
+              disabled={disabled}
+            />
+          }
+        />
+      </CadreIA>
 
       {/* UN LOT SANS CALCUL : "12 x 125 g" se saisit tel qu'on le lit sur
           l'emballage, et la masse se calcule. La contenance d'une unite devient
@@ -203,68 +248,39 @@ export function SessionItemFields({
           >
             + Saisir un lot (ex. 12 × 125 g)
           </button>
-          {/* "12 x 125 g" lu sur l'emballage remplit le lot ; "500 g", une
-              unite de 500 g. La valeur reste modifiable avant l'ajout. */}
-          <BoutonScan
-            quoi="quantite"
-            libelle="Scanner"
-            className="button button--ghost session-lot__ouvrir"
-            onLu={(lu) => {
-              if (lu.kind !== 'quantite' || lu.contenanceG === null) return
-              setLotOuvert(true)
-              changerLot({ nombre: lu.nombre ?? 1, contenanceG: lu.contenanceG })
-            }}
-            disabled={disabled}
-          />
         </div>
       )}
 
-      <NumberField
-        label="Prix payé"
-        value={draft.priceEur}
-        onChange={(priceEur) => set('priceEur', priceEur)}
-        suffix="€"
-        min={0}
-        decimals={2}
-        emptyOnZero
-        // Pas d'exemple de montant : "2,49" en gris dans un champ vide se
-        // lisait comme un prix deja saisi, la ou l'on veut justement qu'un
-        // champ vide se voie vide.
-        disabled={disabled}
-        hint="Facultatif : sans lui, l’article compte dans le chariot mais pas dans le total."
-      />
+      <CadreIA actif={lus.has('priceEur')}>
+        <NumberField
+          label="Prix payé"
+          value={draft.priceEur}
+          onChange={(priceEur) => set('priceEur', priceEur)}
+          suffix="€"
+          min={0}
+          decimals={2}
+          emptyOnZero
+          // Pas d'exemple de montant : "2,49" en gris dans un champ vide se
+          // lisait comme un prix deja saisi, la ou l'on veut justement qu'un
+          // champ vide se voie vide.
+          disabled={disabled}
+          hint="Facultatif : sans lui, l’article compte dans le chariot mais pas dans le total."
+          action={
+            // Le prix de l'ARTICLE, jamais le prix au kilo imprime a cote.
+            <BoutonLire
+              quoi="prix"
+              onLu={(lu) => {
+                if (lu.kind === 'prix' && lu.prixEur !== null) lire({ priceEur: lu.prixEur })
+              }}
+              disabled={disabled}
+            />
+          }
+        />
+      </CadreIA>
 
       {/* Un prix PROPOSE, jamais pre-rempli : il ne part qu'au toucher. Le
           bouton disparait une fois le champ rempli, de la main ou par lui. */}
       <div className="session-proposition">
-        {/* L'etiquette du rayon, lue par le serveur : le prix de l'ARTICLE,
-            jamais le prix au kilo imprime a cote. */}
-        <BoutonScan
-          quoi="prix"
-          libelle="Scanner le prix"
-          className="chip-toggle"
-          onLu={(lu) => {
-            if (lu.kind === 'prix' && lu.prixEur !== null) set('priceEur', lu.prixEur)
-          }}
-          disabled={disabled}
-        />
-        {/* Vrac, boucherie, fromage a la coupe : l'etiquette de la balance
-            donne le poids ET le prix d'un seul scan. Le poids se relit en
-            grammes : un poids pese n'est pas une piece. */}
-        <BoutonScan
-          quoi="pesee"
-          libelle="Étiquette de pesée"
-          className="chip-toggle"
-          onLu={(lu) => {
-            if (lu.kind !== 'pesee') return
-            onChange({
-              ...draft,
-              quantityG: lu.poidsG ?? draft.quantityG,
-              priceEur: lu.prixEur ?? draft.priceEur,
-            })
-          }}
-          disabled={disabled}
-        />
         {proposition !== null && proposition !== undefined && draft.priceEur === null && (
           <>
             <button

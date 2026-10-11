@@ -32,8 +32,9 @@
 import { useState } from 'react'
 import { formatEuros, lastPaidPrice, type Ingredient } from '@prandia/shared'
 
+import { CadreIA } from '../../components/CadreIA.js'
 import { DatePeremption } from '../../components/DatePeremption.js'
-import { BoutonScan } from '../../components/ScanEtiquette.js'
+import { BoutonLire } from '../../components/ScanEtiquette.js'
 import { TextField } from '../../components/Field.js'
 import { IngredientPicker } from '../../components/IngredientPicker.js'
 import { QuantityField } from '../../components/QuantityField.js'
@@ -66,6 +67,8 @@ export function AddStockSheet({ onClose, initialScan }: AddStockSheetProps) {
 
   const [ingredient, setIngredient] = useState<Ingredient | null>(null)
   const [quantityG, setQuantityG] = useState<number | null>(null)
+  /** La quantite vient d'etre lue par Savarin : encadree de jaune jusqu'a une retouche. */
+  const [quantiteLue, setQuantiteLue] = useState(false)
   // L'unite de saisie, enregistree a cote des grammes : sans elle, "1 pot"
   // se relisait "125 g" a la reouverture du lot.
   const [unit, setUnit] = useState<string | null>(null)
@@ -254,49 +257,46 @@ export function AddStockSheet({ onClose, initialScan }: AddStockSheetProps) {
         </div>
       )}
 
-      <QuantityField
-        label="Quantité"
-        value={quantityG}
-        onChange={setQuantityG}
-        unit={unit}
-        onUnitChange={setUnit}
-        pieceWeightG={ingredient?.pieceWeightG ?? null}
-        required
-        error={attempted && missingQuantity ? 'Indique une quantité supérieure à zéro.' : null}
-      />
-
       {/* Le poids imprime sur l'emballage ("12 x 125 g"), ou l'etiquette d'une
-          balance (boucherie, fromage a la coupe) qui donne aussi le prix. Le
-          prix lu ouvre le bloc du prix paye : c'est un geste de la personne,
-          pas une proposition. */}
-      <div className="scan-ligne scan-ligne--deux">
-        <BoutonScan
-          quoi="quantite"
-          libelle="Scanner le poids"
-          className="chip-toggle"
-          onLu={(lu) => {
-            if (lu.kind !== 'quantite' || lu.contenanceG === null) return
-            setQuantityG((lu.nombre ?? 1) * lu.contenanceG)
-            setUnit(ingredient?.pieceWeightG === lu.contenanceG ? '_piece' : 'g')
+          balance (boucherie, fromage a la coupe), lus par Savarin. Une
+          etiquette de balance donne aussi le prix : il ouvre le bloc du prix
+          paye s'il est vide, c'est un geste de la personne, pas une
+          proposition. */}
+      <CadreIA actif={quantiteLue}>
+        <QuantityField
+          label="Quantité"
+          value={quantityG}
+          onChange={(valeur) => {
+            setQuantiteLue(false)
+            setQuantityG(valeur)
           }}
+          unit={unit}
+          onUnitChange={setUnit}
+          pieceWeightG={ingredient?.pieceWeightG ?? null}
+          required
+          error={attempted && missingQuantity ? 'Indique une quantité supérieure à zéro.' : null}
+          action={
+            <BoutonLire
+              quoi="quantite"
+              onLu={(lu) => {
+                if (lu.kind !== 'quantite') return
+                if (lu.contenanceG !== null) {
+                  const balance = lu.prixEur !== null
+                  setQuantityG(balance ? lu.contenanceG : (lu.nombre ?? 1) * lu.contenanceG)
+                  // Un poids pese n'est pas une piece ; un paquet de la piece connue, si.
+                  setUnit(!balance && ingredient?.pieceWeightG === lu.contenanceG ? '_piece' : 'g')
+                  setQuantiteLue(true)
+                }
+                if (lu.prixEur !== null && ingredient !== null && price.amountEur === null) {
+                  setPrice({ ...EMPTY_PRICE_DRAFT, amountEur: lu.prixEur, store: magasinEnCours ?? '' })
+                  setPriceOpen(true)
+                }
+              }}
+            />
+          }
         />
-        <BoutonScan
-          quoi="pesee"
-          libelle="Étiquette de pesée"
-          className="chip-toggle"
-          onLu={(lu) => {
-            if (lu.kind !== 'pesee') return
-            if (lu.poidsG !== null) {
-              setQuantityG(lu.poidsG)
-              setUnit('g')
-            }
-            if (lu.prixEur !== null && ingredient !== null) {
-              setPrice({ ...EMPTY_PRICE_DRAFT, amountEur: lu.prixEur, store: magasinEnCours ?? '' })
-              setPriceOpen(true)
-            }
-          }}
-        />
-      </div>
+      </CadreIA>
+
 
       <DatePeremption
         value={expiryDate}
