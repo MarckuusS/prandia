@@ -19,6 +19,7 @@ import { Link } from 'react-router'
 
 import { CheckboxField, TextField } from '../components/Field.js'
 import { Savarin } from '../components/Savarin.js'
+import { SavarinFlottant } from '../components/SavarinFlottant.js'
 import { ConfirmDialog, Sheet } from '../components/Sheet.js'
 import { EmptyState, ErrorState, LoadingRows } from '../components/States.js'
 import { useToast } from '../components/Toast.js'
@@ -89,6 +90,8 @@ export function RayonsScreen() {
   const rayons = useRayons()
   const [editing, setEditing] = useState<RayonItem | 'new' | null>(null)
   const [idee, setIdee] = useState<RayonPropose | null>(null)
+  // La meme requete que la bulle (cache partage) : l'ecran se reserve la place de Savarin.
+  const savarinParle = (useRayonsProposes().data?.propositions.length ?? 0) > 0
 
   const items = rayons.data?.items ?? []
   const custom = useCustomIcons()
@@ -98,7 +101,7 @@ export function RayonsScreen() {
   )
 
   return (
-    <section className="screen">
+    <section className={`screen${savarinParle ? ' screen--savarin' : ''}`}>
       <div className="card">
         <h2 className="card__title">Rayons</h2>
         <p className="card__lead">
@@ -173,10 +176,10 @@ export function RayonsScreen() {
 // ---------------------------------------------------------------------------
 
 /**
- * La bulle de Savarin : un rayon qui rangerait mieux la bibliotheque. Une
- * idee a la fois, et RIEN quand il n'a rien a proposer, ni pendant qu'il
- * reflechit : une bulle qui apparait pour dire "rien" apprendrait a ne plus
- * la regarder.
+ * Une idee de rayon, que Savarin garde pour lui jusqu'a ce qu'on l'appelle
+ * (`SavarinFlottant`, en bas a gauche, avec un "!"). Une idee a la fois, et
+ * RIEN quand il n'a rien a proposer, ni pendant qu'il reflechit : un Savarin
+ * qui appelle pour dire "rien" apprendrait a ne plus l'ecouter.
  */
 function IdeeDeSavarin({ onVoir }: { readonly onVoir: (idee: RayonPropose) => void }) {
   const idees = useRayonsProposes()
@@ -187,33 +190,44 @@ function IdeeDeSavarin({ onVoir }: { readonly onVoir: (idee: RayonPropose) => vo
   const autres = propositions.length - 1
 
   return (
-    <div className="savarin-bulle" role="status">
-      <Savarin size={40} className="savarin-bulle__savarin" />
-      <div className="savarin-bulle__bulle">
-        <p className="savarin-bulle__titre">
-          D’après ta bibliothèque, un rayon <strong>{idee.nom}</strong> pourrait t’aider.
-        </p>
-        <p className="savarin-bulle__texte">{idee.raison}</p>
-        <div className="savarin-bulle__actions">
-          <button type="button" className="button button--secondary" onClick={() => onVoir(idee)}>
-            Voir les {idee.produits.length} produits
-          </button>
-          <button
-            type="button"
-            className="button button--ghost"
-            disabled={refuser.isPending}
-            onClick={() => refuser.mutate(idee.nom)}
-          >
-            Non merci
-          </button>
-        </div>
-        {autres > 0 && (
-          <p className="savarin-bulle__suite">
-            {autres === 1 ? 'Il a une autre idée, elle viendra ensuite.' : `Il a ${autres} autres idées, elles viendront ensuite.`}
+    <SavarinFlottant cle={idee.nom} label="Savarin a une idée pour tes rayons">
+      {(fermer) => (
+        <>
+          <p className="savarin-bulle__titre">
+            D’après ta bibliothèque, un rayon <strong>{idee.nom}</strong> pourrait t’aider.
           </p>
-        )}
-      </div>
-    </div>
+          <p className="savarin-bulle__texte">{idee.raison}</p>
+          <div className="savarin-bulle__actions">
+            <button
+              type="button"
+              className="button button--secondary"
+              onClick={() => {
+                fermer()
+                onVoir(idee)
+              }}
+            >
+              Voir les {idee.produits.length} produits
+            </button>
+            <button
+              type="button"
+              className="button button--ghost"
+              disabled={refuser.isPending}
+              onClick={() => {
+                refuser.mutate(idee.nom)
+                fermer()
+              }}
+            >
+              Non merci
+            </button>
+          </div>
+          {autres > 0 && (
+            <p className="savarin-bulle__suite">
+              {autres === 1 ? 'Il a une autre idée, il te la dira ensuite.' : `Il a ${autres} autres idées, il te les dira ensuite.`}
+            </p>
+          )}
+        </>
+      )}
+    </SavarinFlottant>
   )
 }
 

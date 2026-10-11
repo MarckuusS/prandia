@@ -1,0 +1,161 @@
+/* =============================================================================
+ * Savarin flottant (components/SavarinFlottant.tsx)
+ *
+ * En bas a gauche, juste au-dessus de la barre d'onglets : loin du bouton de
+ * scan central, et a l'oppose d'Enregistrer dans les pieds d'action. Fond et
+ * cadre de l'IA (styles/ia.css) : ce qui vient de lui se reconnait.
+ * ========================================================================== */
+
+.savarin-flottant {
+  --savarin-taille: 60px;
+  position: fixed;
+  bottom: calc(var(--above-tabbar) + var(--space-md));
+  left: max(var(--space-lg), env(safe-area-inset-left, 0px));
+  z-index: 18;
+  display: grid;
+  place-items: center;
+  width: var(--savarin-taille);
+  height: var(--savarin-taille);
+  padding: 0;
+  color: var(--color-ia-ink);
+  cursor: pointer;
+  background: var(--color-ia-surface);
+  border: 1.5px solid var(--color-ia-border);
+  border-radius: 50%;
+  box-shadow: var(--shadow-elevated);
+}
+
+.savarin-flottant:active {
+  transform: scale(0.96);
+}
+
+/* Le "!" : il veut nous parler. Encre de l'IA en aplat (6,2:1 sous le blanc
+   de la carte), cerne du papier pour se detacher du rond. */
+.savarin-flottant__signal {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  font-family: var(--font-family-display);
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-surface);
+  background: var(--color-ia-ink);
+  border: 2px solid var(--color-background);
+  border-radius: 11px;
+  animation: savarin-signal 2.6s ease-in-out infinite;
+}
+
+@keyframes savarin-signal {
+  0%,
+  72%,
+  100% {
+    transform: scale(1);
+  }
+  80% {
+    transform: scale(1.22);
+  }
+  88% {
+    transform: scale(0.94);
+  }
+}
+
+/* La bulle, au-dessus de lui, par-dessus l'interface. */
+.savarin-flottant__bulle {
+  position: fixed;
+  bottom: calc(var(--above-tabbar) + var(--space-md) + 60px + 14px);
+  left: max(var(--space-lg), env(safe-area-inset-left, 0px));
+  z-index: 30;
+  width: min(22rem, calc(100vw - 2 * var(--space-lg)));
+  padding: var(--space-md) 44px var(--space-md) var(--space-md);
+  background: var(--color-ia-surface);
+  border: 1px solid var(--color-ia-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-elevated);
+  transform-origin: 30px 100%;
+  animation: savarin-bulle 180ms var(--easing-standard);
+}
+
+/* La pointe, vers le centre de sa tete (30 px, la moitie du rond). */
+.savarin-flottant__bulle::after {
+  position: absolute;
+  bottom: -7px;
+  left: 23px;
+  width: 12px;
+  height: 12px;
+  content: '';
+  background: var(--color-ia-surface);
+  border-right: 1px solid var(--color-ia-border);
+  border-bottom: 1px solid var(--color-ia-border);
+  transform: rotate(45deg);
+}
+
+@keyframes savarin-bulle {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(6px);
+  }
+}
+
+.savarin-flottant__fermer {
+  position: absolute;
+  top: var(--space-xs);
+  right: var(--space-xs);
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+}
+
+.savarin-flottant__fermer:active {
+  background: var(--color-surface-pressed);
+}
+
+/* Le contenu ordinaire d'une bulle. */
+.savarin-bulle__titre {
+  margin: 0 0 var(--space-xs);
+  font-size: var(--font-size-md);
+  color: var(--color-text);
+}
+
+.savarin-bulle__texte {
+  margin: 0 0 var(--space-md);
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+}
+
+.savarin-bulle__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.savarin-bulle__suite {
+  margin: var(--space-sm) 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .savarin-flottant__signal,
+  .savarin-flottant__bulle {
+    animation: none;
+  }
+}
+
+/* L'ecran qui le porte garde sa hauteur sous la derniere ligne : sinon il
+   couvrirait le debut du dernier rayon. Classe doublee, `.screen` pose son
+   propre rembourrage (voir les pieds d'action dans CLAUDE.md). */
+.screen.screen--savarin {
+  padding-bottom: calc(var(--space-lg) + 60px + var(--space-md));
+}

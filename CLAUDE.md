@@ -1125,9 +1125,18 @@ jamais à la main, et que Claude connaît pour un produit courant. Ce qui ne se 
 
 ## Savarin propose des rayons : `shared/src/suggestionRayons.ts`, `worker/src/suggestionRayons.ts`
 
-Sur l'écran des rayons, une bulle de Savarin : "D'après ta bibliothèque, un rayon Conserves
-pourrait t'aider", sa raison, "Voir les N produits" et "Non merci". Demandé le 2026-10-11. Ce qui
-ne se devine pas :
+Sur l'écran des rayons, Savarin attend en bas à gauche avec un "!" ; touché, il ouvre sa bulle :
+"D'après ta bibliothèque, un rayon Conserves pourrait t'aider", sa raison, "Voir les N produits"
+et "Non merci". Demandé le 2026-10-11. Ce qui ne se devine pas :
+
+- **Savarin flotte, sa bulle passe PAR-DESSUS l'interface** (`components/SavarinFlottant.tsx`,
+  réutilisable). La première version posait la bulle entre deux blocs de l'écran : elle poussait
+  le contenu et se lisait comme une carte de plus (retour de l'utilisateur). Le rond est en bas à
+  GAUCHE, au-dessus de la barre d'onglets : loin du bouton de scan central, en face
+  d'Enregistrer dans les pieds d'action. Le "!" reste allumé tant que l'idée n'a pas été écoutée,
+  et revient pour l'idée suivante (`cle`). La bulle se ferme par sa croix, Échap, un toucher
+  ailleurs ou le geste qu'elle propose. L'écran qui le porte réserve sa hauteur en bas
+  (`.screen.screen--savarin`, classe doublée), sinon il couvrirait le dernier rayon.
 
 - **Rien quand il n'y a rien à proposer**, ni pendant qu'il réfléchit : une bulle qui apparaît
   pour dire "rien" apprendrait à ne plus la regarder. "Ne propose rien plutôt qu'une idée faible"
@@ -1222,8 +1231,9 @@ apply` aussi ; le passage au plan payant l'a débloqué en quelques minutes. Ce 
 
 Des lunettes rondes et une moustache en guidon, au trait, nommé en clin d'œil à Brillat-Savarin.
 Il marque tout ce que fait l'IA : bouton IA du pied de la fiche, coin des champs qu'elle sait
-remplir, bandeau de complétion de la bibliothèque, revue d'une recette importée, bulle des rayons
-proposés (à 40 px, il y vit au repos). Ce qui ne se
+remplir, bandeau de complétion de la bibliothèque, revue d'une recette importée, et en bas à
+gauche de l'écran des rayons quand il a une idée (`SavarinFlottant`, à 40 px, il y vit au repos
+et sursaute quand on le touche). Ce qui ne se
 devine pas :
 
 - **Les mascottes en couleur ont été écartées, à raison** : neuf essais (olive, chouette, radis,
