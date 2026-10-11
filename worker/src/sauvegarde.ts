@@ -22,9 +22,17 @@
  * fabriquer une session ; restaure sans lui, le serveur en tire un nouveau et
  * chacun se reconnecte. Ni les tables internes de SQLite et de D1.
  *
- * UNE FOIS PAR JOUR (heure de Paris), essayee toutes les heures : le premier
- * passage du jour sauvegarde, les suivants ne lisent qu'une ligne. Une copie
- * qui echoue est retentee l'heure d'apres, sans rien faire d'autre.
+ * UNE FOIS PAR JOUR (heure de Paris), portee par l'HORLOGE des rappels
+ * (notifier.ts), qui passe toutes les cinq minutes : le premier passage du
+ * jour sauvegarde, les suivants ne lisent que deux lignes. Un declencheur
+ * horaire (cron) a d'abord porte la sauvegarde, le 2026-10-11 : il n'a jamais
+ * sonne (deux passages manques, verifie par `wrangler tail`, l'horloge vue
+ * douze fois dans le meme temps), sans cause trouvee. L'horloge, elle, sonne.
+ *
+ * UN ESSAI PAR HEURE AU PLUS. Chaque essai est NOTE avant de lire la base
+ * (`sauvegarde.essai`) : une copie qui echoue n'est retentee qu'une heure
+ * plus tard. Sans cela, une panne ferait relire toute la base toutes les cinq
+ * minutes, soit le scenario du depassement de quota du 2026-10-11.
  */
 
 import type { D1Database, R2Bucket } from '@cloudflare/workers-types'
@@ -33,6 +41,9 @@ import { parisClock } from '@prandia/shared'
 export const PREFIXE_SAUVEGARDES = 'sauvegardes/'
 /** Le bilan de la derniere sauvegarde reussie, lu par l'onglet Profil. */
 export const CLE_BILAN = 'sauvegarde.derniere'
+/** L'heure du dernier essai, reussi ou non : on n'en refait pas un dans l'heure. */
+export const CLE_ESSAI = 'sauvegarde.essai'
+export const ESSAI_MS = 60 * 60 * 1000
 /** Le reglage serveur qui ne doit jamais sortir de la base (voir auth.ts). */
 const SECRET_DE_SESSION = 'auth.session_secret'
 const FOYER_SERVEUR = 0
@@ -269,12 +280,37 @@ async function gzip(texte: string): Promise<ArrayBuffer> {
  * Le passage horaire. Rend le bilan de la sauvegarde faite, ou `null` quand
  * celle du jour existe deja.
  */
+async function poser(db: D1Database, cle: string, valeur: unknown): Promise<void> {
+  await db
+    .prepare(
+      `INSERT INTO app_setting (household_id, key, value_json, updated_at)
+       VALUES (?, ?, ?, strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+       ON CONFLICT(household_id, key) DO UPDATE SET value_json = excluded.value_json, updated_at = excluded.updated_at`,
+    )
+    .bind(FOYER_SERVEUR, cle, JSON.stringify(valeur))
+    .run()
+}
+
 export async function sauvegarder(env: { readonly DB: D1Database; readonly MEDIA: R2Bucket }, maintenant = new Date()): Promise<Bilan | null> {
   const jour = parisClock(maintenant).day
-  const precedent = await env.DB.prepare('SELECT value_json FROM app_setting WHERE household_id = ? AND key = ?')
-    .bind(FOYER_SERVEUR, CLE_BILAN)
-    .first<{ value_json: string }>()
-  if (precedent !== null && (JSON.parse(precedent.value_json) as Partial<Bilan>).jour === jour) return null
+  // Deux lignes, par la cle primaire : c'est tout ce que lit un passage sur deux cent quatre-vingt-huit.
+  const { results } = await env.DB.prepare('SELECT key, value_json FROM app_setting WHERE household_id = ? AND key IN (?, ?)')
+    .bind(FOYER_SERVEUR, CLE_BILAN, CLE_ESSAI)
+    .all<{ key: string; value_json: string }>()
+  const lu = (cle: string): Record<string, unknown> | null => {
+    const ligne = results.find((r) => r.key === cle)
+    try {
+      return ligne === undefined ? null : (JSON.parse(ligne.value_json) as Record<string, unknown>)
+    } catch {
+      return null
+    }
+  }
+  if (lu(CLE_BILAN)?.['jour'] === jour) return null
+  const dernierEssai = lu(CLE_ESSAI)?.['a']
+  if (typeof dernierEssai === 'string' && maintenant.getTime() - Date.parse(dernierEssai) < ESSAI_MS) return null
+  // L'essai est note AVANT le travail : s'il echoue, ou s'il depasse le temps
+  // alloue, le passage suivant ne recommence pas aussitot.
+  await poser(env.DB, CLE_ESSAI, { a: maintenant.toISOString() })
 
   const { sql, tables, lignes } = await ecrireSauvegarde(lecteurD1(env.DB), maintenant)
   const contenu = await gzip(sql)
@@ -286,13 +322,7 @@ export async function sauvegarder(env: { readonly DB: D1Database; readonly MEDIA
 
   // Le bilan n'est ecrit qu'APRES le depot : il dit ce qui existe vraiment.
   const bilan: Bilan = { jour, cle, octets: contenu.byteLength, tables, lignes, faiteLe: maintenant.toISOString() }
-  await env.DB.prepare(
-    `INSERT INTO app_setting (household_id, key, value_json, updated_at)
-     VALUES (?, ?, ?, strftime('%Y-%m-%dT%H:%M:%SZ','now'))
-     ON CONFLICT(household_id, key) DO UPDATE SET value_json = excluded.value_json, updated_at = excluded.updated_at`,
-  )
-    .bind(FOYER_SERVEUR, CLE_BILAN, JSON.stringify(bilan))
-    .run()
+  await poser(env.DB, CLE_BILAN, bilan)
 
   // Le menage vient en dernier : une sauvegarde faite vaut mieux qu'un menage fait.
   const existantes: string[] = []

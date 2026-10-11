@@ -185,7 +185,7 @@ Deux pièces, et seule la première part avec le push sur `main`.
 
 L'API (abonnement d'un appareil, préférences, bouton "Envoyer un test") est dans la Pages Function, comme le reste.
 
-La planification est un Worker à part, `prandia-notifier`, sans route : son horloge, un Durable Object, se réveille toutes les cinq minutes par une alarme, lit la base `prandia` et envoie les rappels dus. Les rappels n'ont pas de déclencheur horaire (cron) : le plan gratuit en accordait cinq au compte entier, et d'autres projets les occupent. Depuis le plan payant, un déclencheur horaire porte la sauvegarde de la base (section 8). Il se déploie à la main, après chaque modification de `worker/src/notifier.ts`, `worker/src/push.ts`, `worker/src/sauvegarde.ts` ou `shared/src/notifications.ts`, et avant le site la toute première fois, car le site se lie à son horloge :
+La planification est un Worker à part, `prandia-notifier`, sans route : son horloge, un Durable Object, se réveille toutes les cinq minutes par une alarme, lit la base `prandia` et envoie les rappels dus. Pas de déclencheur horaire (cron) : le plan gratuit en accordait cinq au compte entier, et d'autres projets les occupent ; celui essayé au plan payant pour la sauvegarde n'a jamais sonné. L'horloge porte aussi la sauvegarde de la base (section 8). Il se déploie à la main, après chaque modification de `worker/src/notifier.ts`, `worker/src/push.ts`, `worker/src/sauvegarde.ts` ou `shared/src/notifications.ts`, et avant le site la toute première fois, car le site se lie à son horloge :
 
 ```bash
 npx wrangler deploy --config notifier/wrangler.toml
@@ -225,7 +225,7 @@ La clé vient d'un espace de travail "Prandia" de la Console Anthropic, avec un 
 
 ## 8. La sauvegarde de la base, et sa restauration
 
-**Ce qui se passe tout seul.** Le Worker `prandia-notifier` porte un déclencheur horaire (à la 17e minute de chaque heure). Le premier passage de la journée, à l'heure de Paris, écrit une copie complète de la base dans le bucket des photos, sous `sauvegardes/prandia-AAAA-MM-JJ.sql.gz` ; les passages suivants ne lisent qu'une ligne et s'arrêtent. Une copie qui échoue est retentée l'heure d'après. Sont gardés les 30 derniers jours, puis la première copie de chaque mois pendant un an. Code : [`worker/src/sauvegarde.ts`](../worker/src/sauvegarde.ts).
+**Ce qui se passe tout seul.** L'horloge du Worker `prandia-notifier`, celle des rappels, passe toutes les cinq minutes. Le premier passage de la journée, à l'heure de Paris, écrit une copie complète de la base dans le bucket des photos, sous `sauvegardes/prandia-AAAA-MM-JJ.sql.gz` ; les passages suivants ne lisent que deux lignes et s'arrêtent. Une copie qui échoue est retentée une heure plus tard, pas avant. Sont gardés les 30 derniers jours, puis la première copie de chaque mois pendant un an. Code : [`worker/src/sauvegarde.ts`](../worker/src/sauvegarde.ts).
 
 **Pourquoi la nôtre.** `wrangler d1 export` refuse la base, à cause de la table virtuelle de recherche. D1 garde aussi 30 jours de retour en arrière (Time Travel, plan payant), mais dans la base elle-même : une base supprimée ou une erreur remarquée trop tard l'emportent avec elle.
 

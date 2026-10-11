@@ -57,7 +57,7 @@ describe('prochainReveil', () => {
 })
 
 describe('Horloge', () => {
-  it('se re-arme même quand le passage échoue', async () => {
+  it('se re-arme même quand les rappels ET la sauvegarde échouent', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     const { stockage, state } = etat()
     const avant = Date.now()
@@ -94,12 +94,12 @@ describe('configuration', () => {
   const notifier = lire('notifier/wrangler.toml')
   const site = lire('wrangler.toml')
 
-  it('ne déclare qu’UN déclencheur horaire, celui de la sauvegarde', () => {
-    // Les crons se comptent au niveau du COMPTE. Le plan gratuit les bornait a
-    // cinq, tous pris, et les rappels sont restes sur l'horloge. Depuis le plan
-    // payant (2026-10-11), un seul a ete ajoute : la sauvegarde horaire. Un
-    // retour au plan gratuit ferait echouer le deploiement de ce Worker.
-    expect(notifier.match(/^\s*crons\s*=.*$/gm)?.map((ligne) => ligne.trim())).toEqual(['crons = ["17 * * * *"]'])
+  it('ne déclare aucun déclencheur horaire', () => {
+    // Le plan gratuit borne le COMPTE a cinq crons, tous pris. Et celui pose
+    // pour la sauvegarde le 2026-10-11, au plan payant, n'a jamais sonne : la
+    // sauvegarde passe par l'horloge, comme les rappels. La liste VIDE est
+    // exigee : sans elle, un deploiement laisserait l'ancien cron en place.
+    expect(notifier.match(/^\s*crons\s*=.*$/gm)?.map((ligne) => ligne.trim())).toEqual(['crons = []'])
   })
 
   it('crée l’horloge en stockage SQLite, le seul du plan gratuit', () => {

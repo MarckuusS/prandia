@@ -2,6 +2,11 @@
 
 <!-- Dernière entrée en haut. Une entrée par session de travail ou par décision. Date au format AAAA-MM-JJ. -->
 
+## 2026-10-12
+- La première sauvegarde n'est jamais partie : le déclencheur horaire (cron) posé la veille n'a pas sonné, ni à 23 h 17 ni à 0 h 17. `wrangler tail` (avec `--config notifier/wrangler.toml`, sinon wrangler lit la configuration du site et refuse) a vu passer l'horloge des rappels douze fois dans le même temps, et aucun déclenchement. Les requêtes de la sauvegarde passaient sur la vraie base, aucun objet dans R2, aucun bilan. Cause non trouvée sans accès au tableau de bord.
+- Corrigé en portant la sauvegarde par l'horloge, qui sonne : le premier passage du jour fait la copie, les autres ne lisent que deux lignes. Un essai par heure au plus, noté AVANT de lire la base, pour qu'une panne ne relise pas toute la base toutes les cinq minutes. Rappels et sauvegarde dans deux `try` séparés. Le cron est retiré (`crons = []`, la liste vide est nécessaire : sans elle, wrangler laisse l'ancien en place). 70 tests serveur, banc local rejoué. Notifier redéployé.
+- Première vraie sauvegarde faite par l'horloge à 0 h 40 : 30 tables, 15 725 lignes, 672 Ko compressés, en une seconde environ. Vérifiée par RESTAURATION : la copie récupérée dans R2, rejouée sur une base locale vide (wrangler 4), comparée table par table à la base en ligne : 28 tables sur 29 identiques, la 29e (`app_setting`) a deux lignes de moins, celles attendues (le secret de session, exclu, et le bilan, écrit après la copie) ; la recherche refonctionne ("riz" : 177 fiches). La commande de récupération de `docs/deploiement.md` vérifiée au passage. Copies locales des données de production supprimées ensuite.
+
 ## 2026-10-11
 - Demande : la saisie en cru ou en cuit aussi au planning. Livrée à l'ajout et à la modification d'un repas-ingrédient : même unité "g cuits" que dans l'éditeur de recette, la base garde le cru, la ligne du planning se relit "150 g cuits". Le frigo et les courses ne la proposent pas : on y range et on y achète du cru.
 - Corrigé au passage : annuler la suppression d'un repas depuis l'Accueil recréait l'entrée sans son unité, qui se relisait alors en grammes crus là où l'on avait saisi des pièces ou du cuit. Le Planning portait déjà l'unité.

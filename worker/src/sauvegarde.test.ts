@@ -12,6 +12,8 @@ import { describe, expect, it } from 'vitest'
 
 import {
   CLE_BILAN,
+  CLE_ESSAI,
+  ESSAI_MS,
   cleDuJour,
   ecrireSauvegarde,
   litteral,
@@ -159,17 +161,21 @@ describe('sauvegardesAEffacer', () => {
 })
 
 describe('sauvegarder', () => {
-  function environnement(bilanDuJour: string | null) {
+  function environnement(bilanDuJour: string | null, dernierEssai: string | null = null) {
     const depots: Array<{ cle: string; contenu: ArrayBuffer }> = []
     const effacees: string[][] = []
     const reglages: Array<unknown[]> = []
     const anciennes = ['sauvegardes/prandia-2026-01-15.sql.gz', 'sauvegardes/prandia-2026-01-01.sql.gz']
+    const etat = [
+      ...(bilanDuJour === null ? [] : [{ key: CLE_BILAN, value_json: JSON.stringify({ jour: bilanDuJour }) }]),
+      ...(dernierEssai === null ? [] : [{ key: CLE_ESSAI, value_json: JSON.stringify({ a: dernierEssai }) }]),
+    ]
     const DB = {
       prepare: (sql: string) => ({
         bind: (...valeurs: unknown[]) => ({
-          first: async () => (bilanDuJour === null ? null : { value_json: JSON.stringify({ jour: bilanDuJour }) }),
           run: async () => void reglages.push([sql, ...valeurs]),
-          all: async () => ({ results: [] }),
+          // Les deux reglages de la sauvegarde ; une page vide pour une table.
+          all: async () => ({ results: sql.includes('app_setting') ? etat : [] }),
         }),
         all: async () => ({ results: sql.includes('sqlite_master') ? SCHEMA.filter((o) => o.name === 'household') : [] }),
       }),
@@ -182,20 +188,31 @@ describe('sauvegarder', () => {
     return { env: { DB, MEDIA } as unknown as Parameters<typeof sauvegarder>[0], depots, effacees, reglages }
   }
 
-  it('depose la copie du jour, ecrit le bilan APRES, puis fait le menage', async () => {
+  it('note l’essai, depose la copie du jour, ecrit le bilan APRES, puis fait le menage', async () => {
     const { env, depots, effacees, reglages } = environnement('2026-10-11')
     const bilan = await sauvegarder(env, QUAND)
     expect(bilan?.cle).toBe('sauvegardes/prandia-2026-10-12.sql.gz')
     expect(depots).toHaveLength(1)
     const texte = gunzipSync(Buffer.from(depots[0]!.contenu)).toString('utf8')
     expect(texte).toContain('CREATE TABLE household')
-    expect(reglages[0]).toContain(CLE_BILAN)
+    expect(reglages.map((r) => r[2])).toEqual([CLE_ESSAI, CLE_BILAN])
     expect(effacees).toEqual([['sauvegardes/prandia-2026-01-15.sql.gz']])
   })
 
   it('ne refait rien quand la copie du jour existe', async () => {
-    const { env, depots } = environnement('2026-10-12')
+    const { env, depots, reglages } = environnement('2026-10-12')
     expect(await sauvegarder(env, QUAND)).toBeNull()
     expect(depots).toHaveLength(0)
+    expect(reglages).toHaveLength(0)
+  })
+
+  it('ne retente pas dans l’heure qui suit un essai, retente apres', async () => {
+    // Une panne ne doit pas faire relire toute la base a chaque passage de l'horloge.
+    const recent = environnement('2026-10-11', new Date(QUAND.getTime() - 20 * 60_000).toISOString())
+    expect(await sauvegarder(recent.env, QUAND)).toBeNull()
+    expect(recent.depots).toHaveLength(0)
+    const ancien = environnement('2026-10-11', new Date(QUAND.getTime() - ESSAI_MS - 1000).toISOString())
+    expect(await sauvegarder(ancien.env, QUAND)).not.toBeNull()
+    expect(ancien.depots).toHaveLength(1)
   })
 })

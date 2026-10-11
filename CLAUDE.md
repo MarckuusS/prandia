@@ -1251,14 +1251,22 @@ apply` aussi ; le passage au plan payant l'a débloqué en quelques minutes. Ce 
 ## La sauvegarde de la base : `worker/src/sauvegarde.ts`
 
 Une copie SQL complète par jour dans R2 (`prandia-media`, `sauvegardes/prandia-AAAA-MM-JJ.sql.gz`),
-par le déclencheur horaire du Worker `prandia-notifier`. Procédure de restauration :
+par l'HORLOGE du Worker `prandia-notifier`, celle des rappels. Procédure de restauration :
 `docs/deploiement.md`, section 8. Ce qui ne se devine pas :
 
 - **Pourquoi la nôtre** : `wrangler d1 export` refuse la base (table virtuelle FTS5), et le
   Time Travel de D1 vit DANS la base, il disparaît avec elle.
-- **Essayée toutes les heures, faite une fois par jour** (heure de Paris) : le bilan de la
-  dernière réussie (`app_setting`, foyer 0, `sauvegarde.derniere`) dit si celle du jour existe, et
-  il n'est écrit qu'APRÈS le dépôt dans R2. Une copie qui échoue est retentée l'heure d'après.
+- **Portée par l'horloge, pas par un déclencheur horaire.** Un cron l'a d'abord portée, le
+  2026-10-11 : il n'a JAMAIS sonné (deux passages manqués, `wrangler tail` voyait l'horloge
+  passer douze fois dans le même temps), sans cause trouvée. Le notifier déclare désormais
+  `crons = []`, et la liste VIDE compte : sans elle, un déploiement laisse l'ancien cron en place.
+- **Faite une fois par jour** (heure de Paris), par le premier passage de l'horloge qui la trouve
+  absente ; les autres passages (toutes les cinq minutes) ne lisent que DEUX lignes. Le bilan de
+  la dernière réussie (`app_setting`, foyer 0, `sauvegarde.derniere`) n'est écrit qu'APRÈS le
+  dépôt dans R2. **Un essai par heure au plus** : chaque essai est noté AVANT de lire la base
+  (`sauvegarde.essai`), sinon une panne ferait relire toute la base toutes les cinq minutes,
+  soit le scénario du dépassement de quota. Rappels et sauvegarde sont dans deux `try` séparés :
+  l'un qui échoue n'empêche pas l'autre.
   L'onglet Profil montre ce bilan, en rouge au-delà de 36 heures : une sauvegarde qui s'arrête en
   silence est le défaut classique.
 - **L'ordre du fichier est ce qui le rend rejouable sur une base vide** : tables (parents avant
@@ -1276,9 +1284,7 @@ par le déclencheur horaire du Worker `prandia-notifier`. Procédure de restaura
   wrangler 4** : la base locale simulée de wrangler 3 échoue sur ce fichier par un défaut interne
   de son cache de requêtes ("statementCache"), sans rapport avec le contenu.
 - Aucune route ne sert ces fichiers : la route des photos ne lit que la clé d'une recette.
-- **Le notifier a désormais UN déclencheur horaire** (plan payant), et un test le garde : les
-  crons se comptent au niveau du compte, et un retour au plan gratuit ferait échouer son
-  déploiement.
+- Un test garde `crons = []` dans `notifier/wrangler.toml`.
 
 ## Savarin, la signature de l'IA : `icons/savarin.ts`, `components/Savarin.tsx`
 

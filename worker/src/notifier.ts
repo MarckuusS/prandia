@@ -33,7 +33,6 @@ import type {
   DurableObjectNamespace,
   DurableObjectState,
   R2Bucket,
-  ScheduledController,
 } from '@cloudflare/workers-types'
 import {
   NOTIFICATION_DEF,
@@ -118,6 +117,15 @@ export class Horloge implements DurableObject {
       // vient de poser. On journalise et on attend le passage suivant.
       console.error('notifier : passage en echec', error)
     }
+    // La sauvegarde du jour (sauvegarde.ts), APRES les rappels et a part :
+    // l'une qui echoue n'empeche pas l'autre. Le premier passage du jour la
+    // fait, les suivants ne lisent que deux lignes.
+    try {
+      const bilan = await sauvegarder(this.env)
+      if (bilan !== null) console.log(`sauvegarde ${bilan.cle} : ${bilan.lignes} lignes, ${bilan.octets} octets`)
+    } catch (error) {
+      console.error('sauvegarde : essai en echec', error)
+    }
   }
 }
 
@@ -130,17 +138,6 @@ export default {
   async fetch(_request: Request, env: NotifierEnv): Promise<Response> {
     await remonterHorloge(env.HORLOGE)
     return new Response('horloge remontee\n')
-  },
-
-  /**
-   * Le declencheur horaire (plan payant, depuis le 2026-10-11) : la sauvegarde
-   * de la base, une fois par jour, essayee toutes les heures (sauvegarde.ts).
-   * Les rappels restent sur l'horloge, qui a fait ses preuves. Lever ici ne
-   * casse rien : le passage suivant reessaie.
-   */
-  async scheduled(_controller: ScheduledController, env: NotifierEnv): Promise<void> {
-    const bilan = await sauvegarder(env)
-    if (bilan !== null) console.log(`sauvegarde ${bilan.cle} : ${bilan.lignes} lignes, ${bilan.octets} octets`)
   },
 }
 
