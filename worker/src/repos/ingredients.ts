@@ -419,6 +419,29 @@ export class IngredientRepo {
     return (result.meta.changes ?? 0) > 0
   }
 
+  // ------------------------------------- rayons proposes par Savarin
+
+  /** Combien de produits dans la bibliotheque (index `ix_ingredient_personal`, rien d'autre de lu). */
+  async countBibliotheque(): Promise<number> {
+    const row = await this.db
+      .prepare('SELECT COUNT(*) AS c FROM ingredient WHERE household_id = ? AND in_personal_library = 1')
+      .bind(this.householdId)
+      .first<{ c: number }>()
+    return row?.c ?? 0
+  }
+
+  /** Les produits de la bibliotheque et leur rayon : ce que Savarin lit pour proposer des rayons. */
+  async bibliothequeRangee(limit: number): Promise<Array<{ id: number; nom: string; rayon: string | null }>> {
+    const { results } = await this.db
+      .prepare(
+        `SELECT id, name, category_l1 FROM ingredient
+          WHERE household_id = ? AND in_personal_library = 1 ORDER BY name LIMIT ?`,
+      )
+      .bind(this.householdId, limit)
+      .all<{ id: number; name: string; category_l1: string | null }>()
+    return results.map((r) => ({ id: r.id, nom: r.name, rayon: r.category_l1 === '' ? null : r.category_l1 }))
+  }
+
   // ------------------------------------------- completion par l'IA (0019)
 
   /**

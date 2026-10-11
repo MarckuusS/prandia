@@ -17,7 +17,8 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router'
 
-import { TextField } from '../components/Field.js'
+import { CheckboxField, TextField } from '../components/Field.js'
+import { Savarin } from '../components/Savarin.js'
 import { ConfirmDialog, Sheet } from '../components/Sheet.js'
 import { EmptyState, ErrorState, LoadingRows } from '../components/States.js'
 import { useToast } from '../components/Toast.js'
@@ -31,11 +32,15 @@ import {
 } from '../icons/index.js'
 import {
   useCreateRayon,
+  useCreerRayonPropose,
   useCustomIcons,
   useDeleteRayon,
   useRayons,
+  useRayonsProposes,
+  useRefuserRayonPropose,
   useUpdateRayon,
   type RayonItem,
+  type RayonPropose,
 } from '../lib/queries.js'
 import '../styles/rayons.css'
 
@@ -83,6 +88,7 @@ const COLOR_CHOICES: readonly string[] = [
 export function RayonsScreen() {
   const rayons = useRayons()
   const [editing, setEditing] = useState<RayonItem | 'new' | null>(null)
+  const [idee, setIdee] = useState<RayonPropose | null>(null)
 
   const items = rayons.data?.items ?? []
   const custom = useCustomIcons()
@@ -103,6 +109,8 @@ export function RayonsScreen() {
           <Icon name="ui-plus" size={16} className="icon--inline" /> Nouveau rayon
         </button>
       </div>
+
+      <IdeeDeSavarin onVoir={setIdee} />
 
       {rayons.isPending && <LoadingRows rows={6} />}
       {rayons.isError && (
@@ -154,7 +162,133 @@ export function RayonsScreen() {
           onClose={() => setEditing(null)}
         />
       )}
+
+      {idee !== null && <PropositionSheet proposition={idee} onClose={() => setIdee(null)} />}
     </section>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Les idees de Savarin
+// ---------------------------------------------------------------------------
+
+/**
+ * La bulle de Savarin : un rayon qui rangerait mieux la bibliotheque. Une
+ * idee a la fois, et RIEN quand il n'a rien a proposer, ni pendant qu'il
+ * reflechit : une bulle qui apparait pour dire "rien" apprendrait a ne plus
+ * la regarder.
+ */
+function IdeeDeSavarin({ onVoir }: { readonly onVoir: (idee: RayonPropose) => void }) {
+  const idees = useRayonsProposes()
+  const refuser = useRefuserRayonPropose()
+  const propositions = idees.data?.propositions ?? []
+  const idee = propositions[0]
+  if (idee === undefined) return null
+  const autres = propositions.length - 1
+
+  return (
+    <div className="savarin-bulle" role="status">
+      <Savarin size={40} className="savarin-bulle__savarin" />
+      <div className="savarin-bulle__bulle">
+        <p className="savarin-bulle__titre">
+          D’après ta bibliothèque, un rayon <strong>{idee.nom}</strong> pourrait t’aider.
+        </p>
+        <p className="savarin-bulle__texte">{idee.raison}</p>
+        <div className="savarin-bulle__actions">
+          <button type="button" className="button button--secondary" onClick={() => onVoir(idee)}>
+            Voir les {idee.produits.length} produits
+          </button>
+          <button
+            type="button"
+            className="button button--ghost"
+            disabled={refuser.isPending}
+            onClick={() => refuser.mutate(idee.nom)}
+          >
+            Non merci
+          </button>
+        </div>
+        {autres > 0 && (
+          <p className="savarin-bulle__suite">
+            {autres === 1 ? 'Il a une autre idée, elle viendra ensuite.' : `Il a ${autres} autres idées, elles viendront ensuite.`}
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * La proposition, relue avant d'ecrire : le nom se retouche, chaque produit se
+ * decoche. Rien ne bouge avant "Creer le rayon", et seuls les produits COCHES
+ * changent de rayon.
+ */
+function PropositionSheet({ proposition, onClose }: { readonly proposition: RayonPropose; readonly onClose: () => void }) {
+  const toast = useToast()
+  const creer = useCreerRayonPropose()
+  const [nom, setNom] = useState(proposition.nom)
+  const [retenus, setRetenus] = useState<ReadonlySet<number>>(() => new Set(proposition.produits.map((p) => p.id)))
+  const [erreur, setErreur] = useState<string | null>(null)
+
+  const basculer = (id: number, coche: boolean) =>
+    setRetenus((avant) => {
+      const apres = new Set(avant)
+      if (coche) apres.add(id)
+      else apres.delete(id)
+      return apres
+    })
+
+  const valider = async () => {
+    setErreur(null)
+    const propre = nom.trim()
+    if (propre === '') return setErreur('Le nom du rayon ne peut pas être vide.')
+    if (retenus.size === 0) return setErreur('Coche au moins un produit à y ranger.')
+    try {
+      const { ranges } = await creer.mutateAsync({ proposition: proposition.nom, nom: propre, produits: [...retenus] })
+      toast.show({ message: `Rayon "${propre}" créé : ${ranges} produit${ranges > 1 ? 's y sont rangés' : ' y est rangé'}.` })
+      onClose()
+    } catch (cause) {
+      setErreur(cause instanceof Error ? cause.message : 'Le rayon n’a pas pu être créé.')
+    }
+  }
+
+  return (
+    <Sheet
+      open
+      onClose={onClose}
+      title="Rayon proposé par Savarin"
+      actions={
+        <>
+          <button type="button" className="button button--ghost" onClick={onClose}>
+            Annuler
+          </button>
+          <button type="button" className="button button--primary" disabled={creer.isPending} onClick={() => void valider()}>
+            {creer.isPending ? 'Création…' : 'Créer le rayon'}
+          </button>
+        </>
+      }
+    >
+      <div className="form">
+        <p className="savarin-proposition__raison">
+          <Savarin size={18} className="icon--inline" /> {proposition.raison}
+        </p>
+        <TextField label="Nom du rayon" value={nom} onChange={setNom} required />
+        <fieldset className="savarin-proposition__produits">
+          <legend className="field__label">
+            Produits à y ranger · {retenus.size} sur {proposition.produits.length}
+          </legend>
+          {proposition.produits.map((p) => (
+            <CheckboxField
+              key={p.id}
+              label={p.nom}
+              hint={p.rayon === null ? 'Sans rayon aujourd’hui' : `Aujourd’hui dans ${p.rayon}`}
+              checked={retenus.has(p.id)}
+              onChange={(coche) => basculer(p.id, coche)}
+            />
+          ))}
+        </fieldset>
+        {erreur !== null && <p className="status status--error">{erreur}</p>}
+      </div>
+    </Sheet>
   )
 }
 

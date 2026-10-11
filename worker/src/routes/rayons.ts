@@ -8,12 +8,48 @@
  * recevrait « UNIQUE constraint failed » en pleine figure.
  */
 
+import { z } from 'zod'
 import { rayonWriteSchema } from '@prandia/shared'
 
 import { logActivity } from '../activity.js'
 import { HttpError, intParam, json, notFound, parseOrThrow, readJson, route } from '../http.js'
+import { rayonCree, refuserRayon, suggestionsDeRayons } from '../suggestionRayons.js'
 
 route('GET', '/api/rayons', async ({ repos }) => json({ items: await repos.rayons.list() }))
+
+// ------------------------------------------------ rayons proposes par Savarin
+
+/** Les idees de Savarin pour cette cuisine, souvent relues de sa memoire (voir suggestionRayons.ts). */
+route('GET', '/api/rayons/suggestions', async ({ repos, env }) => json(await suggestionsDeRayons(env, repos)))
+
+const nomSuggestion = z.string().trim().min(1, 'Le nom du rayon ne peut pas être vide.').max(60)
+
+const creerSchema = z.object({
+  /** Le nom propose, pour l'oublier : la personne a pu le retoucher. */
+  proposition: z.string().max(60),
+  nom: nomSuggestion,
+  // D1 refuse plus de 100 parametres par requete.
+  produits: z.array(z.number().int().positive()).min(1).max(90),
+})
+
+route('POST', '/api/rayons/suggestions/creer', async ({ repos, request, env, user }) => {
+  const { proposition, nom, produits } = parseOrThrow(creerSchema, await readJson(request))
+  const existant = await repos.rayons.findByName(nom)
+  if (existant) throw new HttpError(409, 'duplicate_name', `Le rayon "${existant.name}" existe déjà.`)
+
+  const ordinal = (await repos.rayons.maxOrdinal()) + 1
+  const { id, ranges } = await repos.rayons.creerAvecProduits(nom, ordinal, [...new Set(produits)])
+  await rayonCree(repos, proposition)
+
+  await logActivity(env.DB, user, { action: 'create', entity: 'rayon', entityId: id, label: `${nom} (proposé par Savarin)` })
+  return json({ id, nom, ranges }, 201)
+})
+
+route('POST', '/api/rayons/suggestions/refuser', async ({ repos, request }) => {
+  const { nom } = parseOrThrow(z.object({ nom: nomSuggestion }), await readJson(request))
+  await refuserRayon(repos, nom)
+  return json({ nom })
+})
 
 route('POST', '/api/rayons', async ({ repos, request, env, user }) => {
   const payload = parseOrThrow(rayonWriteSchema, await readJson(request))

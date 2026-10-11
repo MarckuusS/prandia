@@ -18,6 +18,8 @@
 
 import type { D1Database } from '@cloudflare/workers-types'
 
+import { NOW_SQL } from './sql.js'
+
 export interface RayonRow {
   readonly id: number
   readonly name: string
@@ -172,6 +174,37 @@ export class RayonRepo {
         .prepare('DELETE FROM category_definition WHERE id = ? AND household_id = ?')
         .bind(id, this.householdId),
     ])
+  }
+
+  /**
+   * Cree un rayon ET y range des produits de la bibliotheque, en un lot :
+   * D1 execute un `batch` dans une seule transaction, et un rayon cree sans
+   * ses produits laisserait une section vide sans rien pour dire pourquoi.
+   * Seuls les produits de la BIBLIOTHEQUE bougent : un identifiant du
+   * catalogue ou d'une autre cuisine ne trouve aucune ligne.
+   */
+  async creerAvecProduits(name: string, ordinal: number, ids: readonly number[]): Promise<{ id: number; ranges: number }> {
+    const [cree, range] = await this.db.batch<{ id: number }>([
+      this.db
+        .prepare(
+          `INSERT INTO category_definition (household_id, name, parent_id, ordinal, icon, color_hex)
+           VALUES (?, ?, NULL, ?, NULL, NULL) RETURNING id`,
+        )
+        .bind(this.householdId, name, ordinal),
+      // `+household_id` : la cle primaire d'abord, comme `byIds` (0021).
+      this.db
+        .prepare(
+          `UPDATE ingredient SET category_l1 = ?, updated_at = ${NOW_SQL}
+            WHERE id IN (${ids.map(() => '?').join(', ')}) AND +household_id = ? AND in_personal_library = 1
+            RETURNING id`,
+        )
+        .bind(name, ...ids, this.householdId),
+    ])
+    const id = cree?.results[0]?.id
+    if (id === undefined) throw new Error("INSERT category_definition n'a rien renvoye")
+    // Les lignes RENDUES, pas `meta.changes` : en local il comptait aussi les
+    // ecritures des declencheurs de l'index de recherche (5 pour un produit).
+    return { id, ranges: range?.results.length ?? 0 }
   }
 
   /** Rang le plus eleve, pour poser un nouveau rayon a la fin. */

@@ -16,6 +16,9 @@ Consequences:
 - The **PySide6/QML desktop app is slated for retirement**. It stays the reference implementation and
   the only usable client until the web app reaches feature parity on what is actually used — then it
   is removed. Do not invest in new QML features unless explicitly asked; port instead.
+  **Decided by the user on 2026-10-11: there will be no desktop version any more.** The web app
+  in a desktop browser is enough, an executable adds nothing. Removing the Python code from the
+  repo is a separate step, not done yet.
 - `app/domain/` (Pydantic models, nutrition, pricing, units, shopping) and the SQLite schema are the
   parts meant to survive. `app/ui/` is not portable and will be rewritten for the web.
 - **Cloudflare D1 is SQLite**, so the schema, the FTS5 virtual table and the triggers port over
@@ -1120,6 +1123,37 @@ jamais à la main, et que Claude connaît pour un produit courant. Ce qui ne se 
 - Pas de détour par les catégories d'OpenFoodFacts pour le rayon : elles disent "en:yogurts",
   pas le nom que la personne a donné à son rayon.
 
+## Savarin propose des rayons : `shared/src/suggestionRayons.ts`, `worker/src/suggestionRayons.ts`
+
+Sur l'écran des rayons, une bulle de Savarin : "D'après ta bibliothèque, un rayon Conserves
+pourrait t'aider", sa raison, "Voir les N produits" et "Non merci". Demandé le 2026-10-11. Ce qui
+ne se devine pas :
+
+- **Rien quand il n'y a rien à proposer**, ni pendant qu'il réfléchit : une bulle qui apparaît
+  pour dire "rien" apprendrait à ne plus la regarder. "Ne propose rien plutôt qu'une idée faible"
+  est dans la consigne, et la liste vide est la réponse la plus fréquente.
+- **Seule la BIBLIOTHÈQUE est lue**, pas le catalogue CIQUAL dupliqué dans la cuisine (les
+  effectifs de l'écran des rayons, eux, le comptent). Au plus 400 produits, et rien sous 20.
+- **Il se SOUVIENT** (`app_setting`, `rayons.suggestions`) : Claude n'est réinterrogé que si les
+  rayons ont changé ou si la bibliothèque a gagné ou perdu 10 produits, et JAMAIS deux fois le
+  même jour, panne comprise (un quota atteint ne doit pas faire réessayer à chaque ouverture).
+  Entre-temps, l'écran relit la mémoire et seuls les produits proposés sont relus, par leur clé.
+  Le compteur quotidien des appels (`compterAppel`) s'applique.
+- **Un rayon déjà là, même dit autrement, n'est jamais proposé** (`rayonDejaCouvert`) : tous les
+  mots du nom proposé, sans accents, articles, "produits" ni pluriel, sont dans un rayon existant
+  ("Produits frais" pour "Frais", "Œufs" pour "Produits laitiers & oeufs"). L'inverse reste
+  permis : "Épicerie sucrée" PRÉCISE "Epicerie", c'est le découpage qu'on attend.
+- **"Non merci" se retient** (`rayons.suggestions.refus`, 30 au plus) et la liste des refus est
+  donnée au modèle la fois suivante.
+- **Rien n'est écrit avant "Créer le rayon"** : la feuille montre le nom (modifiable) et chaque
+  produit avec son rayon du moment, tous cochés. Le rayon et le rangement des produits COCHÉS
+  partent en un lot (`creerAvecProduits`), et seuls les produits de la bibliothèque bougent.
+  Le nombre annoncé vient des lignes RENDUES (`RETURNING id`), pas de `meta.changes`, qui en
+  local comptait aussi les écritures des déclencheurs de l'index de recherche (5 pour un produit).
+  Au plus 90 produits par création : D1 refuse plus de 100 paramètres par requête.
+- Créer le rayon proposé retire l'idée de la mémoire SANS faire réinterroger : les autres idées
+  restent valables, la bibliothèque n'a rien appris de neuf.
+
 ## Le vrac pesé en caisse et le ticket : `shared/src/ticket.ts`, `screens/courses/TicketCaisse.tsx`
 
 Dans bien des magasins, fruits et légumes se pèsent à la caisse : au rayon, l'article n'a ni
@@ -1188,7 +1222,8 @@ apply` aussi ; le passage au plan payant l'a débloqué en quelques minutes. Ce 
 
 Des lunettes rondes et une moustache en guidon, au trait, nommé en clin d'œil à Brillat-Savarin.
 Il marque tout ce que fait l'IA : bouton IA du pied de la fiche, coin des champs qu'elle sait
-remplir, bandeau de complétion de la bibliothèque, revue d'une recette importée. Ce qui ne se
+remplir, bandeau de complétion de la bibliothèque, revue d'une recette importée, bulle des rayons
+proposés (à 40 px, il y vit au repos). Ce qui ne se
 devine pas :
 
 - **Les mascottes en couleur ont été écartées, à raison** : neuf essais (olive, chouette, radis,

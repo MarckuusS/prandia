@@ -852,6 +852,49 @@ export function useCreateRayon() {
   })
 }
 
+/** Un rayon que Savarin propose, avec les produits de la bibliotheque qui y passeraient. */
+export interface RayonPropose {
+  readonly nom: string
+  readonly raison: string
+  readonly produits: ReadonlyArray<{ readonly id: number; readonly nom: string; readonly rayon: string | null }>
+}
+
+const CLE_SUGGESTIONS = ['rayons', 'suggestions'] as const
+
+/**
+ * Les idees de rayons de Savarin. Le serveur s'en souvient et ne reinterroge
+ * Claude que quand la cuisine a change : relire a chaque ouverture ne coute
+ * presque rien, mais il n'y a aucune raison de relire au retour sur l'onglet.
+ */
+export const useRayonsProposes = () =>
+  useQuery({
+    queryKey: CLE_SUGGESTIONS,
+    queryFn: () =>
+      apiFetch<{ disponible: boolean; propositions: RayonPropose[] }>('/api/rayons/suggestions'),
+    staleTime: 10 * 60_000,
+    refetchOnWindowFocus: false,
+  })
+
+export function useCreerRayonPropose() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (choix: { proposition: string; nom: string; produits: number[] }) =>
+      post<{ id: number; nom: string; ranges: number }>('/api/rayons/suggestions/creer', choix),
+    onSuccess: () => {
+      rayonTouches(client)
+      void client.invalidateQueries({ queryKey: CLE_SUGGESTIONS })
+    },
+  })
+}
+
+export function useRefuserRayonPropose() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (nom: string) => post<{ nom: string }>('/api/rayons/suggestions/refuser', { nom }),
+    onSuccess: () => void client.invalidateQueries({ queryKey: CLE_SUGGESTIONS }),
+  })
+}
+
 export function useUpdateRayon() {
   const client = useQueryClient()
   return useMutation({
