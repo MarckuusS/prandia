@@ -19,16 +19,25 @@ import { photoPath } from '@prandia/shared'
 import { FieldShell, useFieldIds } from '../../components/Field.js'
 import { Icon } from '../../icons/index.js'
 import { PhotoIllisibleError, reduirePhoto } from '../../lib/photo.js'
-import { useDeleteRecipePhoto, useSetRecipePhoto } from '../../lib/queries.js'
+import { meilleurePhotoDuSite } from '../../lib/photoSite.js'
+import { fetchImagesDuSite, useDeleteRecipePhoto, useSetRecipePhoto } from '../../lib/queries.js'
 
-type Etat = 'repos' | 'preparation' | 'envoi'
+type Etat = 'repos' | 'site' | 'preparation' | 'envoi'
 
+/**
+ * `lienSource` : l'adresse d'origine d'une recette importee, deja repassee par
+ * `lienRecette`. Sans photo, elle offre "Reprendre la photo du site" : un
+ * import peut la manquer (site lent, refus passager), et la recette existe
+ * deja, on ne va pas la reimporter pour une image.
+ */
 export function PhotoField({
   recipeId,
   imageKey,
+  lienSource = null,
 }: {
   readonly recipeId: number
   readonly imageKey: string | null
+  readonly lienSource?: string | null
 }) {
   const [etat, setEtat] = useState<Etat>('repos')
   const [erreur, setErreur] = useState<string | null>(null)
@@ -54,11 +63,30 @@ export function PhotoField({
 
   const ids = useFieldIds(undefined, { error: erreur })
 
-  const choisir = async (fichier: File) => {
+  const reprendreDuSite = async () => {
+    if (lienSource === null) return
+    setErreur(null)
+    setEtat('site')
+    let photo: Blob | null = null
+    try {
+      photo = await meilleurePhotoDuSite((await fetchImagesDuSite(lienSource)).imageUrls)
+    } catch {
+      // Page illisible ou site qui refuse : meme message qu'une photo absente.
+    }
+    if (photo === null) {
+      setErreur('La photo du site n’a pas pu être récupérée. Réessaie plus tard, ou ajoute la tienne.')
+      setEtat('repos')
+      return
+    }
+    // Reduite comme a l'import : l'image d'un site est deja compressee.
+    await choisir(photo, 'import')
+  }
+
+  const choisir = async (fichier: Blob, usage?: 'import') => {
     setErreur(null)
     setEtat('preparation')
     try {
-      const reduite = await reduirePhoto(fichier)
+      const reduite = await reduirePhoto(fichier, usage)
 
       // L'apercu apparait AVANT la fin de l'envoi : sur un reseau de magasin,
       // l'attente se compte en secondes, et un ecran qui ne bouge pas se lit
@@ -150,6 +178,17 @@ export function PhotoField({
                 ? 'Ajouter une photo'
                 : 'Remplacer'}
         </button>
+
+        {source === null && lienSource !== null && (
+          <button
+            type="button"
+            className="button button--ghost champ-photo__site"
+            disabled={occupe}
+            onClick={() => void reprendreDuSite()}
+          >
+            {etat === 'site' ? 'Recherche…' : 'Reprendre la photo du site'}
+          </button>
+        )}
 
         {source !== null && (
           <button

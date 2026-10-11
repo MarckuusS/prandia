@@ -149,17 +149,38 @@ async function candidats(repos: Repositories, termes: readonly string[]): Promis
     .slice(0, CANDIDATS_MAX)
 }
 
-route('POST', '/api/recipe-import', async ({ repos, request }) => {
-  const { url: brut } = parseOrThrow(corpsSchema, await readJson(request))
-  const url = adresse(brut)
-
+/** La page de la recette, et l'adresse reellement servie (redirections comprises). */
+async function lirePage(url: URL): Promise<{ html: string; base: string }> {
   const reponse = await chercher(url, 'text/html,application/xhtml+xml')
   const type = reponse.headers.get('content-type') ?? ''
   if (type !== '' && !/html|xml/i.test(type)) {
     throw new HttpError(422, 'import_not_html', 'Ce lien ne mène pas à une page web.')
   }
   const html = new TextDecoder().decode(await lireBorne(reponse, PAGE_MAX, true))
+  return { html, base: reponse.url || url.toString() }
+}
 
+/**
+ * Deux images possibles : celle du bloc recette, parfois une simple vignette,
+ * puis l'image de partage de la page, presque toujours grande. Souvent
+ * relatives au site ("/img/gratin.jpg") : resolues contre la page reellement
+ * servie. L'ecran garde la premiere assez grande.
+ */
+function imagesDeLaPage(html: string, base: string, imageRecette: string | null): string[] {
+  const resoudre = (brute: string | null): string | null => {
+    if (brute === null) return null
+    try {
+      return lienRecette(new URL(brute, base).toString())
+    } catch {
+      return null
+    }
+  }
+  return [...new Set([resoudre(imageRecette), resoudre(extractOgImage(html))])].filter(
+    (u): u is string => u !== null,
+  )
+}
+
+function recetteDeLaPage(html: string) {
   const recette = parseRecipeJsonLd(extractJsonLdBlocks(html))
   if (recette === null) {
     throw new HttpError(
@@ -168,6 +189,14 @@ route('POST', '/api/recipe-import', async ({ repos, request }) => {
       'Aucune recette lisible sur cette page : le site ne la publie pas dans un format que Prandia sait lire.',
     )
   }
+  return recette
+}
+
+route('POST', '/api/recipe-import', async ({ repos, request }) => {
+  const { url: brut } = parseOrThrow(corpsSchema, await readJson(request))
+  const url = adresse(brut)
+  const { html, base } = await lirePage(url)
+  const recette = recetteDeLaPage(html)
 
   const lignes = await Promise.all(
     recette.ingredients.slice(0, LIGNES_MAX).map(async (raw) => {
@@ -193,28 +222,25 @@ route('POST', '/api/recipe-import', async ({ repos, request }) => {
     }),
   )
 
-  // Deux images possibles : celle du bloc recette, parfois une simple
-  // vignette, puis l'image de partage de la page, presque toujours grande.
-  // Souvent relatives au site ("/img/gratin.jpg") : resolues contre la page
-  // reellement servie, redirections comprises. L'ecran garde la premiere assez
-  // grande.
-  const base = reponse.url || url.toString()
-  const resoudre = (brute: string | null): string | null => {
-    if (brute === null) return null
-    try {
-      return lienRecette(new URL(brute, base).toString())
-    } catch {
-      return null
-    }
-  }
-  const imageUrls = [...new Set([resoudre(recette.imageUrl), resoudre(extractOgImage(html))])].filter(
-    (u): u is string => u !== null,
-  )
+  const imageUrls = imagesDeLaPage(html, base, recette.imageUrl)
 
   return json({
     recipe: { ...recette, imageUrl: imageUrls[0] ?? null, imageUrls, sourceUrl: url.toString() },
     lines: lignes,
   })
+})
+
+/**
+ * Les seules adresses des photos d'une page, pour reprendre la photo du site
+ * d'une recette deja creee (une photo manquee a l'import). Ne lit RIEN en
+ * base : relancer tout l'import chercherait des candidats pour chaque ligne,
+ * des milliers de lignes lues pour une photo.
+ */
+route('POST', '/api/recipe-import/images', async ({ request }) => {
+  const { url: brut } = parseOrThrow(corpsSchema, await readJson(request))
+  const url = adresse(brut)
+  const { html, base } = await lirePage(url)
+  return json({ imageUrls: imagesDeLaPage(html, base, recetteDeLaPage(html).imageUrl) })
 })
 
 /** Les signatures des formats qu'un navigateur sait decoder. */

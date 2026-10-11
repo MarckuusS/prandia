@@ -235,7 +235,7 @@ export function RecipeEditor({
               composition. Posee apres les etapes, elle serait derriere un bloc
               qui fait dix ecrans de haut. */}
           {recipe.id !== null && (
-            <PhotoField recipeId={recipe.id} imageKey={recipe.imageKey} />
+            <PhotoField recipeId={recipe.id} imageKey={recipe.imageKey} lienSource={lienSource} />
           )}
 
           <div className="form__row">

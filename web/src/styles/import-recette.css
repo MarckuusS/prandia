@@ -36,6 +36,21 @@
   opacity: 0.35;
 }
 
+/* La photo du site n'est pas arrivee : on le dit, avec de quoi relancer. */
+.import-entete__manquee {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+}
+
+.import-entete__manquee .button {
+  flex: none;
+}
+
 .import-entete__source {
   margin: 0 0 var(--space-sm);
   font-size: var(--font-size-md);

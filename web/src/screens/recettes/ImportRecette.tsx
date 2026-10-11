@@ -39,9 +39,9 @@ import { LoadingRows } from '../../components/States.js'
 import { useToast } from '../../components/Toast.js'
 import { Icon, RayonIcon } from '../../icons/index.js'
 import { reduirePhoto } from '../../lib/photo.js'
+import { meilleurePhotoDuSite } from '../../lib/photoSite.js'
 import {
   estimerQuantites,
-  fetchImportPhoto,
   lookupBarcode,
   useAddToLibrary,
   useCatalog,
@@ -217,54 +217,51 @@ function fusionner(retenues: readonly Choix[]) {
   return [...parId.values()]
 }
 
-/** Assez grande pour la largeur d'un telephone : on s'arrete a la premiere. */
-const PHOTO_LARGEUR_MIN = 600
+const PHOTO_A_REPRENDRE = 'Recette créée sans la photo du site. Tu peux la reprendre depuis l’éditeur.'
 
 /**
- * La photo du site, relayee par le serveur, en apercu. Les adresses sont
- * essayees dans l'ordre : la premiere d'au moins `PHOTO_LARGEUR_MIN` pixels
- * l'emporte, a defaut la plus grande. Le bloc recette de certains sites ne
- * donne qu'une vignette de 290 pixels.
+ * La photo du site, relayee par le serveur, en apercu (`meilleurePhotoDuSite`).
+ *
+ * Une photo manquee ne passe plus en silence : `manquee` le dit dans la revue,
+ * `reessayer` relance, et `attendre` rend la recherche en cours, pour que
+ * "Creer" touche avant son arrivee l'attende au lieu de creer la recette sans
+ * photo (vu sur un hachis HelloFresh, sans savoir lequel des deux s'est
+ * produit).
  */
 function usePhotoImportee(urls: readonly string[]) {
   const cle = urls.join(' ')
+  const [essai, setEssai] = useState(0)
   const [etat, setEtat] = useState<{ blob: Blob | null; apercu: string | null; enCours: boolean }>({
     blob: null,
     apercu: null,
     enCours: urls.length > 0,
   })
+  const enVol = useRef<Promise<Blob | null>>(Promise.resolve(null))
   useEffect(() => {
     if (cle === '') return
     let annule = false
     let apercu: string | null = null
-    void (async () => {
-      let meilleure: { blob: Blob; largeur: number } | null = null
-      for (const url of cle.split(' ')) {
-        try {
-          const blob = await fetchImportPhoto(url)
-          const image = await createImageBitmap(blob)
-          const largeur = image.width
-          image.close()
-          if (meilleure === null || largeur > meilleure.largeur) meilleure = { blob, largeur }
-          if (largeur >= PHOTO_LARGEUR_MIN) break
-        } catch {
-          // Une adresse morte ou une image illisible : on essaie la suivante.
-        }
-      }
+    const recherche = meilleurePhotoDuSite(cle.split(' '))
+    enVol.current = recherche
+    void recherche.then((blob) => {
       if (annule) return
-      if (meilleure === null) {
-        setEtat({ blob: null, apercu: null, enCours: false })
-        return
-      }
-      apercu = URL.createObjectURL(meilleure.blob)
-      setEtat({ blob: meilleure.blob, apercu, enCours: false })
-    })()
+      if (blob !== null) apercu = URL.createObjectURL(blob)
+      setEtat({ blob, apercu, enCours: false })
+    })
     return () => {
       annule = true
       if (apercu !== null) URL.revokeObjectURL(apercu)
     }
-  }, [cle])
-  return etat
+  }, [cle, essai])
+  return {
+    ...etat,
+    manquee: cle !== '' && !etat.enCours && etat.blob === null,
+    attendre: () => enVol.current,
+    reessayer: () => {
+      setEtat({ blob: null, apercu: null, enCours: true })
+      setEssai((n) => n + 1)
+    },
+  }
 }
 
 function Revue({ proposition, onRecommencer }: { readonly proposition: ImportProposal; readonly onRecommencer: () => void }) {
@@ -395,14 +392,18 @@ function Revue({ proposition, onRecommencer }: { readonly proposition: ImportPro
       if (recette.id === null) throw new Error('La recette n’a pas pu être créée.')
 
       // La photo AU MIEUX : la recette existe deja, une photo manquee ne doit
-      // pas la faire passer pour un echec.
-      if (garderPhoto && photo.blob !== null) {
+      // pas la faire passer pour un echec. Mais elle se DIT, avec le moyen de
+      // la reprendre.
+      const blob = !garderPhoto ? null : photo.enCours ? await photo.attendre() : photo.blob
+      if (blob !== null) {
         try {
-          const reduite = await reduirePhoto(photo.blob, 'import')
+          const reduite = await reduirePhoto(blob, 'import')
           await deposer.mutateAsync({ recipeId: recette.id, cover: reduite.cover, thumb: reduite.thumb })
         } catch {
-          toast.show({ message: 'Recette créée, mais sa photo n’a pas pu être importée.' })
+          toast.show({ message: PHOTO_A_REPRENDRE })
         }
+      } else if (garderPhoto && recipe.imageUrls.length > 0) {
+        toast.show({ message: PHOTO_A_REPRENDRE })
       }
       void navigate(`/recettes/${recette.id}`, { replace: true })
     } catch (e) {
@@ -419,6 +420,14 @@ function Revue({ proposition, onRecommencer }: { readonly proposition: ImportPro
         {(photo.enCours || photo.apercu !== null) && (
           <div className={`import-entete__photo${garderPhoto ? '' : ' import-entete__photo--retiree'}`}>
             {photo.apercu !== null ? <img src={photo.apercu} alt="" /> : <span className="skeleton import-entete__attente" />}
+          </div>
+        )}
+        {photo.manquee && (
+          <div className="import-entete__manquee" role="status">
+            <span>La photo du site n’a pas pu être récupérée.</span>
+            <button type="button" className="button button--ghost" onClick={photo.reessayer}>
+              Réessayer
+            </button>
           </div>
         )}
         <p className="import-entete__source">

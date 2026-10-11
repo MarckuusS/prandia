@@ -659,6 +659,10 @@ export async function fetchImportPhoto(url: string): Promise<Blob> {
   return reponse.blob()
 }
 
+/** Les adresses des photos d'une page de recette, sans relire tout l'import. */
+export const fetchImagesDuSite = (sourceUrl: string) =>
+  post<{ readonly imageUrls: readonly string[] }>('/api/recipe-import/images', { url: sourceUrl })
+
 /**
  * Deposer la photo d'une recette qui vient d'etre creee. `useSetRecipePhoto`
  * veut l'identifiant a la creation du hook ; ici il n'existe qu'apres.

@@ -911,6 +911,12 @@ Coller le lien d'une recette, relire, créer. Entrée en tête de "Nouvelle rece
   `sandbox`), puis par `reduirePhoto(blob, 'import')` : 1 080 px et qualité 0,72
   (`PHOTO_IMPORT_COVER`), à la demande, pour gagner de la place. L'image d'un site est déjà
   compressée, la réencoder à 0,82 ne rendait rien.
+- **Une photo manquée ne passe plus en silence** (vu sur un hachis HelloFresh, dont la page relue
+  plus tard rendait bien ses deux images) : la revue dit "La photo du site n'a pas pu être
+  récupérée" avec "Réessayer", "Créer" touché avant son arrivée l'ATTEND, et la recette créée
+  sans elle le dit. L'éditeur d'une recette importée sans photo offre "Reprendre la photo du
+  site" (`POST /api/recipe-import/images`, qui ne rend que les adresses des images et NE LIT
+  RIEN en base : relancer tout l'import chercherait des candidats pour chaque ligne).
 - **Les fiches du catalogue retenues entrent dans la bibliothèque**, et deux lignes du même
   ingrédient fusionnent (l'éditeur refuse les doublons). La photo est déposée AU MIEUX : manquée,
   la recette existe quand même et un message le dit.

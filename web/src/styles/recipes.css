@@ -671,8 +671,15 @@
 
 .champ-photo__actions {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-sm);
   margin-top: var(--space-sm);
+}
+
+/* "Reprendre la photo du site" sur sa propre ligne : a cote d'"Ajouter une
+   photo", les deux libelles passaient chacun sur deux lignes au telephone. */
+.champ-photo__actions .champ-photo__site {
+  flex-basis: 100%;
 }
 
 /* Le retrait n'a pas de dialogue de confirmation : le projet le reserve a ce
