@@ -138,6 +138,12 @@ route('POST', '/api/scan', async ({ request, url, env, repos }) => {
     if (/credit balance/i.test(detail)) {
       throw new HttpError(502, 'scan_credit', 'Les crédits de lecture sont épuisés pour ce mois.')
     }
+    // Le plafond de depense de l'espace de travail "Prandia", pose dans la
+    // Console : c'est lui qui arrete les lectures, et il faut le dire, sinon
+    // l'ecran n'affiche qu'un code d'erreur.
+    if (/usage limit|spend limit/i.test(detail)) {
+      throw new HttpError(502, 'scan_limit', 'Le plafond de dépense des lectures est atteint pour ce mois.')
+    }
     if (reponse.status === 429 || reponse.status === 529) {
       throw new HttpError(503, 'scan_busy', 'Le service de lecture est occupé. Réessaie dans un instant.')
     }
