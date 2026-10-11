@@ -456,12 +456,12 @@ function Revue({ proposition, onRecommencer }: { readonly proposition: ImportPro
         <p className={`import-ia${iaEtat === 'erreur' ? ' import-ia--erreur' : ''}`} role="status">
           <Savarin size={18} occupe={iaEtat === 'attente'} className="icon--inline" />{' '}
           {iaEtat === 'attente'
-            ? 'L’IA estime les quantités qui ne sont pas données en poids…'
+            ? 'Savarin estime les quantités qui ne sont pas données en poids…'
             : iaEtat === 'erreur'
-              ? 'L’IA n’a pas pu estimer les quantités : elles restent supposées.'
+              ? 'Savarin n’a pas pu estimer les quantités : elles restent supposées.'
               : estimeesParIA > 0
-                ? `L’IA a estimé ${estimeesParIA} quantité${estimeesParIA > 1 ? 's' : ''} d’après la recette, encadrée${estimeesParIA > 1 ? 's' : ''} en jaune. Vérifie-les.`
-                : 'L’IA n’a pas trouvé d’estimation sûre : les quantités restent supposées.'}
+                ? `Savarin a estimé ${estimeesParIA} quantité${estimeesParIA > 1 ? 's' : ''} d’après la recette, encadrée${estimeesParIA > 1 ? 's' : ''} en jaune. Vérifie-les.`
+                : 'Savarin n’a pas trouvé d’estimation sûre : les quantités restent supposées.'}
         </p>
       )}
       <ul className="import-lignes">
@@ -613,7 +613,7 @@ function LigneImport({
         </div>
       )}
       {ingredient !== null && choix.ia && (
-        <p className="field__hint">Estimée par l’IA d’après la recette : le site ne la donne pas en poids. Vérifie-la.</p>
+        <p className="field__hint">Estimée par Savarin d’après la recette : le site ne la donne pas en poids. Vérifie-la.</p>
       )}
       {ingredient !== null && choix.estimated && !choix.ia && (
         <p className="field__hint">Quantité supposée : le site ne la donne pas en poids. Vérifie-la.</p>

@@ -32,7 +32,7 @@ const CLE_COMPTEUR = 'scan.compteur'
 export function cleClaude(env: Env): string {
   const cle = env.ANTHROPIC_API_KEY
   if (cle === undefined || cle === '') {
-    throw new HttpError(503, 'scan_unconfigured', 'L’IA n’est pas encore configurée.')
+    throw new HttpError(503, 'scan_unconfigured', 'Savarin n’est pas encore configuré.')
   }
   return cle
 }

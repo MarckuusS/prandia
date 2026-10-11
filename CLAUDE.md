@@ -1068,8 +1068,8 @@ jamais à la main, et que Claude connaît pour un produit courant. Ce qui ne se 
 - **Trois chemins, un seul appel** pour les trois champs et jusqu'à 40 produits
   (`COMPLETION_MAX`) : en arrière-plan à la création d'une fiche (ajout, OpenFoodFacts, article du
   chariot) dès qu'un des trois manque ; à la demande pour la bibliothèque (bandeau "N produits à
-  compléter", `POST /api/completion`) ; en proposition pour la fiche ouverte (bouton "Compléter
-  avec l'IA", `POST /api/completion/proposition`), qui N'ÉCRIT RIEN : les champs vides se
+  compléter", `POST /api/completion`) ; en proposition pour la fiche ouverte (bouton "Savarin" du
+  pied, `POST /api/completion/proposition`), qui N'ÉCRIT RIEN : les champs vides se
   remplissent, une phrase dit lesquels, la personne enregistre.
 - **`ingredient.ai_completed_at` (0019) dit qu'une fiche a déjà été soumise**, que le modèle ait
   rempli quelque chose ou non. Sans elle, un yaourt (ni saison ni poids cuit, à juste titre)
@@ -1207,6 +1207,11 @@ devine pas :
   se lisaient comme des sourcils qui gigotent (signalé). Retirés.
 - En mode "réduire les animations", il reste immobile (CSS et glissements coupés). Le bouton qui
   le porte annonce `aria-busy` pendant la question ; Savarin lui-même est décoratif.
+- **À l'écran, l'IA s'appelle Savarin**, jamais "l'IA" : "Savarin a rempli 2 champs", "Estimée
+  par Savarin d'après la recette", "Savarin n'est pas encore configuré" (côté serveur aussi), et
+  le bouton du pied s'appelle "Savarin". À côté de ce bouton plus large, "Modifications non
+  enregistrées" passait sur trois lignes et le pied grandissait jusqu'à cacher le bas de la fiche
+  (mesuré : 104 px au lieu de 89) : la barre dit alors "À enregistrer".
 - **Pas encore sur l'Accueil** : en grand, il ouvrira l'assistant conversationnel, pas encore
   construit. Un toucher qui ne mène nulle part n'a pas sa place.
 

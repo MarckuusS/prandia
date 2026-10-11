@@ -686,7 +686,7 @@ function CompleterBibliotheque() {
         {enCours !== null
           ? `Complétion… ${enCours.faits} sur ${enCours.total}`
           : (bilan ??
-            `${restants} produit${restants > 1 ? 's' : ''} à compléter par l’IA : rayon, poids cuit, saison.`)}
+            `${restants} produit${restants > 1 ? 's' : ''} à compléter par Savarin : rayon, poids cuit, saison.`)}
       </p>
       {restants > 0 && (
         <button

@@ -200,11 +200,11 @@ export function IngredientForm({ ingredient }: IngredientFormProps) {
   const demanderIA = async (cible: ChampIA | 'tout') => {
     const nom = draft.name.trim()
     if (nom === '') {
-      toast.show({ message: 'Donne d’abord un nom au produit : l’IA part de lui.' })
+      toast.show({ message: 'Donne d’abord un nom au produit : Savarin part de lui.' })
       return
     }
     if (cible === 'tout' && !Object.values(champsACompleter(draft)).some(Boolean)) {
-      toast.show({ message: 'Tout est déjà rempli. Touche les lunettes d’un champ pour le redemander à l’IA.' })
+      toast.show({ message: 'Tout est déjà rempli. Touche les lunettes d’un champ pour le redemander à Savarin.' })
       return
     }
     setIaEnCours(cible)
@@ -218,20 +218,20 @@ export function IngredientForm({ ingredient }: IngredientFormProps) {
         toast.show({
           message:
             n === 0
-              ? 'L’IA n’a rien de sûr à proposer pour ce produit.'
-              : `L’IA a rempli ${n} champ${n > 1 ? 's' : ''}, encadré${n > 1 ? 's' : ''} en jaune. Vérifie, puis enregistre.`,
+              ? 'Savarin n’a rien de sûr à proposer pour ce produit.'
+              : `Savarin a rempli ${n} champ${n > 1 ? 's' : ''}, encadré${n > 1 ? 's' : ''} en jaune. Vérifie, puis enregistre.`,
         })
       } else {
         const valeur = propositionPour(proposition, cible)
         if (valeur === null) {
-          toast.show({ message: `L’IA n’a pas de proposition pour ${LIBELLES_IA[cible]}.` })
+          toast.show({ message: `Savarin n’a pas de proposition pour ${LIBELLES_IA[cible]}.` })
         } else {
           patch(valeur)
           setChampsIA((avant) => new Set([...avant, cible]))
         }
       }
     } catch (erreur) {
-      toast.show({ message: erreur instanceof Error ? erreur.message : 'L’IA n’a pas répondu.' })
+      toast.show({ message: erreur instanceof Error ? erreur.message : 'Savarin n’a pas répondu.' })
     } finally {
       setIaEnCours(null)
     }
@@ -499,13 +499,13 @@ export function IngredientForm({ ingredient }: IngredientFormProps) {
               className="button button--secondary ing-actions__ia"
               onClick={() => void demanderIA('tout')}
               disabled={iaEnCours !== null}
-              aria-label="Compléter avec l’IA"
+              aria-label="Compléter avec Savarin"
               aria-busy={iaEnCours === 'tout'}
             >
               {/* Savarin sursaute au toucher, reflechit pendant la question et
                   fait son clin d'oeil a la reponse (components/Savarin.tsx). */}
               <Savarin size={18} occupe={iaEnCours === 'tout'} className="icon--inline" />
-              IA
+              Savarin
             </button>
           )}
           <p className="ing-actions__state" aria-live="polite">
@@ -514,7 +514,10 @@ export function IngredientForm({ ingredient }: IngredientFormProps) {
                 {error.message}
               </span>
             ) : dirty ? (
-              'Modifications non enregistrées'
+              // A cote du bouton Savarin, la phrase longue n'avait plus que
+              // 85 px : trois lignes, et le pied grandissait jusqu'a cacher le
+              // bas de la fiche (mesure).
+              iaDisponible ? 'À enregistrer' : 'Modifications non enregistrées'
             ) : (
               ''
             )}
@@ -974,7 +977,7 @@ function BoutonChampIA({ champ, rempli, enCours, onDemander }: ChampIAProps) {
       className={`champ-ia__demander${rempli ? ' champ-ia__demander--rempli' : ''}`}
       onClick={() => onDemander(champ)}
       disabled={enCours !== null}
-      aria-label={rempli ? `Rempli par l’IA. Redemander ${libelle}` : `Demander ${libelle} à l’IA`}
+      aria-label={rempli ? `Rempli par Savarin. Redemander ${libelle}` : `Demander ${libelle} à Savarin`}
       aria-busy={enCours === champ}
     >
       <Savarin size={18} occupe={enCours === champ} />
