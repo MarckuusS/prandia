@@ -26,6 +26,33 @@ import '../styles/settings.css'
  */
 
 /**
+ * La sauvegarde quotidienne de la base est essayee toutes les heures : plus de
+ * 36 heures sans copie reussie, c'est qu'elle ne marche plus. Une sauvegarde
+ * qui s'arrete en silence est le defaut classique, d'ou le rouge.
+ */
+const SAUVEGARDE_RETARD_MS = 36 * 60 * 60 * 1000
+
+function sauvegardeEnRetard(s: HealthResponse['sauvegarde']): boolean {
+  return s != null && Date.now() - Date.parse(s.faiteLe) > SAUVEGARDE_RETARD_MS
+}
+
+function sauvegardeLisible(s: HealthResponse['sauvegarde']): string {
+  if (s == null) return 'aucune pour l’instant'
+  const quand = new Date(s.faiteLe).toLocaleString('fr-FR', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+  const taille =
+    s.octets >= 1_000_000
+      ? `${(s.octets / 1_000_000).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} Mo`
+      : `${Math.max(1, Math.round(s.octets / 1000))} Ko`
+  return `${quand} · ${taille}${sauvegardeEnRetard(s) ? ', en retard' : ''}`
+}
+
+/**
  * Une destination des parametres, dessinee comme une ligne de liste.
  *
  * Volontairement construite sur le vocabulaire commun — `row-list`, `row__link`,
@@ -291,6 +318,10 @@ export function SettingsScreen() {
               <dd>{health.data.database.reachable ? 'connectée' : 'injoignable'}</dd>
               <dt>Ingrédients</dt>
               <dd>{health.data.database.ingredients ?? '—'}</dd>
+              <dt>Sauvegarde</dt>
+              <dd className={sauvegardeEnRetard(health.data.sauvegarde) ? 'status--error' : undefined}>
+                {sauvegardeLisible(health.data.sauvegarde)}
+              </dd>
             </dl>
           </>
         )}

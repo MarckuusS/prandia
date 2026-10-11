@@ -1227,6 +1227,38 @@ apply` aussi ; le passage au plan payant l'a débloqué en quelques minutes. Ce 
 - Les recherches à la frappe (`LIKE '%x%'` plus FTS) lisent encore la cuisine entière, environ
   4 000 lignes par recherche : supportable, à surveiller.
 
+## La sauvegarde de la base : `worker/src/sauvegarde.ts`
+
+Une copie SQL complète par jour dans R2 (`prandia-media`, `sauvegardes/prandia-AAAA-MM-JJ.sql.gz`),
+par le déclencheur horaire du Worker `prandia-notifier`. Procédure de restauration :
+`docs/deploiement.md`, section 8. Ce qui ne se devine pas :
+
+- **Pourquoi la nôtre** : `wrangler d1 export` refuse la base (table virtuelle FTS5), et le
+  Time Travel de D1 vit DANS la base, il disparaît avec elle.
+- **Essayée toutes les heures, faite une fois par jour** (heure de Paris) : le bilan de la
+  dernière réussie (`app_setting`, foyer 0, `sauvegarde.derniere`) dit si celle du jour existe, et
+  il n'est écrit qu'APRÈS le dépôt dans R2. Une copie qui échoue est retentée l'heure d'après.
+  L'onglet Profil montre ce bilan, en rouge au-delà de 36 heures : une sauvegarde qui s'arrête en
+  silence est le défaut classique.
+- **L'ordre du fichier est ce qui le rend rejouable sur une base vide** : tables (parents avant
+  enfants, d'après leurs `REFERENCES`), lignes, PUIS index, déclencheurs et vues (un déclencheur
+  posé avant rejouerait ses effets sur chaque ligne chargée), puis le `rebuild` de la recherche,
+  dont les tables internes ne sont pas copiées. INSERT groupés sous 50 Ko (D1 refuse une
+  instruction de plus de 100 Ko). Lecture par pages à la suite du dernier `rowid`, jamais par
+  OFFSET ; les deux tables `WITHOUT ROWID` (hydratation, pesées) se lisent d'un coup.
+- **Le secret de signature des sessions n'est PAS copié** : une copie qui fuirait ne doit pas
+  permettre de fabriquer une session. Restaurée, la base en tire un nouveau (`auth.ts`).
+- **Vérifiée par restauration, pas seulement par écriture** : copie de la base locale enrichie
+  de 4 000 ingrédients et de lignes piégées (`;`, `--`, `/* */`, guillemets, retours à la ligne,
+  décimales, tables sans rowid, rayon enfant), rejouée sur une base vide : les 29 tables
+  identiques, la recherche refonctionne, seul le secret manque. **Rejouer en local avec
+  wrangler 4** : la base locale simulée de wrangler 3 échoue sur ce fichier par un défaut interne
+  de son cache de requêtes ("statementCache"), sans rapport avec le contenu.
+- Aucune route ne sert ces fichiers : la route des photos ne lit que la clé d'une recette.
+- **Le notifier a désormais UN déclencheur horaire** (plan payant), et un test le garde : les
+  crons se comptent au niveau du compte, et un retour au plan gratuit ferait échouer son
+  déploiement.
+
 ## Savarin, la signature de l'IA : `icons/savarin.ts`, `components/Savarin.tsx`
 
 Des lunettes rondes et une moustache en guidon, au trait, nommé en clin d'œil à Brillat-Savarin.

@@ -3,9 +3,10 @@
 #
 # Un Worker A PART, sans route : son horloge (un Durable Object) se reveille
 # toutes les cinq minutes, lit la base `prandia` et envoie les rappels dus.
-# Pages ne sait pas declencher une action a heure fixe, d'ou ce Worker. Pas de
-# declencheur horaire (cron) : le plan gratuit en borne le COMPTE a cinq, tous
-# pris par d'autres projets. Voir worker/src/notifier.ts.
+# Pages ne sait pas declencher une action a heure fixe, d'ou ce Worker. Les
+# rappels n'ont pas de declencheur horaire (cron) : le plan gratuit en bornait
+# le COMPTE a cinq, tous pris par d'autres projets. Depuis le plan payant, un
+# declencheur horaire porte la SAUVEGARDE de la base. Voir worker/src/notifier.ts.
 #
 # IL NE SE DEPLOIE PAS PAR LE PUSH SUR MAIN, contrairement au site :
 #     npx wrangler deploy --config notifier/wrangler.toml
@@ -36,6 +37,21 @@ new_sqlite_classes = ["Horloge"]
 binding = "DB"
 database_name = "prandia"
 database_id = "b8a05209-f6d0-4cbb-84e8-2fea44cf7e87"
+
+# La sauvegarde de la base (worker/src/sauvegarde.ts) : un passage par heure,
+# une copie par jour (heure de Paris), retentee l'heure d'apres si elle echoue.
+# Un declencheur horaire est possible depuis le plan payant (2026-10-11) ; les
+# rappels, eux, restent sur l'horloge.
+[triggers]
+crons = ["17 * * * *"]
+
+# Les sauvegardes vont dans le bucket des photos, sous `sauvegardes/`. Aucune
+# route ne les sert : la route des photos ne lit que la cle d'une recette.
+# `jurisdiction` est indispensable, comme pour le site (CLAUDE.md, photo de garde).
+[[r2_buckets]]
+binding = "MEDIA"
+bucket_name = "prandia-media"
+jurisdiction = "eu"
 
 [vars]
 # Memes valeurs que dans wrangler.toml a la racine : la cle publique doit etre

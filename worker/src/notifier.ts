@@ -27,7 +27,14 @@
  * reposera pas la question pendant toute la fenetre.
  */
 
-import type { D1Database, DurableObject, DurableObjectNamespace, DurableObjectState } from '@cloudflare/workers-types'
+import type {
+  D1Database,
+  DurableObject,
+  DurableObjectNamespace,
+  DurableObjectState,
+  R2Bucket,
+  ScheduledController,
+} from '@cloudflare/workers-types'
 import {
   NOTIFICATION_DEF,
   addDays,
@@ -56,6 +63,7 @@ import {
 } from '@prandia/shared'
 
 import { remonterHorloge } from './horloge.js'
+import { sauvegarder } from './sauvegarde.js'
 import { sendPush, vapidFrom, type PushContent, type VapidEnv } from './push.js'
 import { HydrationRepo } from './repos/hydration.js'
 import { Repositories } from './repos/index.js'
@@ -67,6 +75,8 @@ import { WeightRepo } from './repos/weight.js'
 export interface NotifierEnv extends VapidEnv {
   readonly DB: D1Database
   readonly HORLOGE: DurableObjectNamespace
+  /** Le bucket des photos, ou vont aussi les sauvegardes de la base (sauvegarde.ts). */
+  readonly MEDIA: R2Bucket
 }
 
 const PERIODE_MS = 5 * 60 * 1000
@@ -120,6 +130,17 @@ export default {
   async fetch(_request: Request, env: NotifierEnv): Promise<Response> {
     await remonterHorloge(env.HORLOGE)
     return new Response('horloge remontee\n')
+  },
+
+  /**
+   * Le declencheur horaire (plan payant, depuis le 2026-10-11) : la sauvegarde
+   * de la base, une fois par jour, essayee toutes les heures (sauvegarde.ts).
+   * Les rappels restent sur l'horloge, qui a fait ses preuves. Lever ici ne
+   * casse rien : le passage suivant reessaie.
+   */
+  async scheduled(_controller: ScheduledController, env: NotifierEnv): Promise<void> {
+    const bilan = await sauvegarder(env)
+    if (bilan !== null) console.log(`sauvegarde ${bilan.cle} : ${bilan.lignes} lignes, ${bilan.octets} octets`)
   },
 }
 

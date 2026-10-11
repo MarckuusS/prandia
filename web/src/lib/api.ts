@@ -93,6 +93,8 @@ export interface HealthResponse {
   readonly status: 'ok'
   readonly version: string
   readonly database: { readonly reachable: boolean; readonly ingredients: number | null }
+  /** La derniere sauvegarde de la base reussie ; `null` s'il n'y en a jamais eu. */
+  readonly sauvegarde?: { readonly jour: string; readonly octets: number; readonly faiteLe: string } | null
   readonly time: string
 }
 

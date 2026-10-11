@@ -185,7 +185,7 @@ Deux pièces, et seule la première part avec le push sur `main`.
 
 L'API (abonnement d'un appareil, préférences, bouton "Envoyer un test") est dans la Pages Function, comme le reste.
 
-La planification est un Worker à part, `prandia-notifier`, sans route : son horloge, un Durable Object, se réveille toutes les cinq minutes par une alarme, lit la base `prandia` et envoie les rappels dus. Pas de déclencheur horaire (cron) : le plan gratuit en accorde cinq au compte entier, et d'autres projets les occupent. Il se déploie à la main, après chaque modification de `worker/src/notifier.ts`, `worker/src/push.ts` ou `shared/src/notifications.ts`, et avant le site la toute première fois, car le site se lie à son horloge :
+La planification est un Worker à part, `prandia-notifier`, sans route : son horloge, un Durable Object, se réveille toutes les cinq minutes par une alarme, lit la base `prandia` et envoie les rappels dus. Les rappels n'ont pas de déclencheur horaire (cron) : le plan gratuit en accordait cinq au compte entier, et d'autres projets les occupent. Depuis le plan payant, un déclencheur horaire porte la sauvegarde de la base (section 8). Il se déploie à la main, après chaque modification de `worker/src/notifier.ts`, `worker/src/push.ts`, `worker/src/sauvegarde.ts` ou `shared/src/notifications.ts`, et avant le site la toute première fois, car le site se lie à son horloge :
 
 ```bash
 npx wrangler deploy --config notifier/wrangler.toml
@@ -222,6 +222,52 @@ npx wrangler pages secret put ANTHROPIC_API_KEY --project-name prandia
 Un secret ne s'applique qu'aux déploiements suivants : après l'avoir posé, il faut redéployer (un nouveau push sur `main`, ou "Retry deployment" dans le tableau de bord). Sans clé, le bouton répond que la lecture n'est pas configurée, et rien d'autre ne change.
 
 La clé vient d'un espace de travail "Prandia" de la Console Anthropic, avec un plafond de dépense mensuel : c'est le vrai garde-fou des crédits. Le serveur ajoute le sien, 150 lectures par jour et par cuisine. Une lecture coûte environ 500 tokens d'image, soit quelques centièmes de centime.
+
+## 8. La sauvegarde de la base, et sa restauration
+
+**Ce qui se passe tout seul.** Le Worker `prandia-notifier` porte un déclencheur horaire (à la 17e minute de chaque heure). Le premier passage de la journée, à l'heure de Paris, écrit une copie complète de la base dans le bucket des photos, sous `sauvegardes/prandia-AAAA-MM-JJ.sql.gz` ; les passages suivants ne lisent qu'une ligne et s'arrêtent. Une copie qui échoue est retentée l'heure d'après. Sont gardés les 30 derniers jours, puis la première copie de chaque mois pendant un an. Code : [`worker/src/sauvegarde.ts`](../worker/src/sauvegarde.ts).
+
+**Pourquoi la nôtre.** `wrangler d1 export` refuse la base, à cause de la table virtuelle de recherche. D1 garde aussi 30 jours de retour en arrière (Time Travel, plan payant), mais dans la base elle-même : une base supprimée ou une erreur remarquée trop tard l'emportent avec elle.
+
+**Vérifier qu'elle tourne.** L'onglet Profil, carte Serveur, ligne "Sauvegarde" : date et taille de la dernière copie réussie, en rouge au-delà de 36 heures.
+
+**Ce que le fichier ne contient pas.** Le secret de signature des sessions : restaurée, la base en tire un nouveau et chacun se reconnecte. Ni les tables internes de la recherche, reconstruites à la fin du fichier.
+
+### Restaurer
+
+Jamais par-dessus la base en service : dans une base NEUVE, que l'on vérifie, puis vers laquelle on bascule.
+
+1. Récupérer la copie voulue :
+
+```bash
+npx --yes wrangler@4 r2 object get prandia-media/sauvegardes/prandia-2026-10-12.sql.gz --jurisdiction eu --remote --file prandia.sql.gz
+```
+
+2. La décompresser :
+
+```bash
+node -e "process.stdout.write(require('zlib').gunzipSync(require('fs').readFileSync('prandia.sql.gz')))" > prandia.sql
+```
+
+3. Créer une base neuve et y rejouer le fichier :
+
+```bash
+npx --yes wrangler@4 d1 create prandia-restauree --location weur
+```
+
+```bash
+npx --yes wrangler@4 d1 execute prandia-restauree --remote --file prandia.sql
+```
+
+4. Comparer quelques comptes avec ce qu'on attend (`SELECT COUNT(*) FROM ingredient`, `recipe`, `user`), par `--command`, jamais par `--file` qui ne rend pas les colonnes.
+
+5. Basculer : mettre le nouvel identifiant de base dans `wrangler.toml` ET dans `notifier/wrangler.toml`, pousser sur `main`, redéployer le notifier.
+
+Pour un simple essai sur le poste, rejouer le fichier dans une base locale vide, avec **wrangler 4** : la base locale simulée de wrangler 3 échoue sur ce fichier par un défaut interne ("statementCache"), sans rapport avec son contenu. Chemin COURT pour `--persist-to`, à cause de la limite de 260 caractères de Windows :
+
+```bash
+npx --yes wrangler@4 d1 execute DB --local --persist-to C:/tmp/restau --file prandia.sql
+```
 
 ---
 

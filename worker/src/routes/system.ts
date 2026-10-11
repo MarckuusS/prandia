@@ -3,6 +3,7 @@
 import { listActivity } from '../activity.js'
 import { json, route } from '../http.js'
 import { NO_HOUSEHOLD } from '../repos/index.js'
+import { derniereSauvegarde } from '../sauvegarde.js'
 
 export const VERSION = '0.3.0'
 
@@ -18,11 +19,16 @@ route('GET', '/api/health', async ({ repos, env }) => {
     reachable = false
   }
 
+  // Une sauvegarde qui s'arrete en silence est le defaut classique : l'onglet
+  // Profil montre la date de la derniere reussie (voir sauvegarde.ts).
+  const sauvegarde = reachable ? await derniereSauvegarde(env.DB).catch(() => null) : null
+
   return json({
     status: 'ok',
     version: VERSION,
     environment: env.ENVIRONMENT,
     database: { reachable, ingredients },
+    sauvegarde: sauvegarde === null ? null : { jour: sauvegarde.jour, octets: sauvegarde.octets, faiteLe: sauvegarde.faiteLe },
     time: new Date().toISOString(),
   })
 })
