@@ -1442,22 +1442,34 @@ A barcode scanner gun (HID) the user may eventually plug in behaves as a keyboar
 
 <!-- Consigne commune ajoutée le 2026-08-18 par l'installation du catalogue. Tout ce qui précède est d'origine. -->
 
-# Consignes communes du catalogue (FICHE.md et JOURNAL.md)
+# Consignes communes du catalogue (FICHE.md, JOURNAL.md et CARTE.drawio)
 
-Modèle : application. Ce projet suit la convention commune de `_modele/` : une fiche `FICHE.md`, un journal `JOURNAL.md`, et c'est toi qui les tiens à jour.
+Modèle : application. Ce projet suit la convention commune de `_modele/` : une fiche `FICHE.md`, un journal `JOURNAL.md`, une carte du parcours `CARTE.drawio`, et c'est toi qui les tiens à jour.
 
 ## Au début de chaque session
 1. Lire `FICHE.md` (fiche d'identité) puis `JOURNAL.md` (historique, dernière entrée en haut).
 2. Si des champs de `FICHE.md` sont vides ou valent `AAAA-MM-JJ`, les renseigner : déduire ce qui peut l'être, demander le reste. Pour `id`, proposer une valeur au format `AAAA-MM-JJ-slug` et attendre validation avant de l'écrire.
+3. Lire `CARTE.drawio` : c'est la direction validée du projet et l'état de chaque étape.
 
 ## En fin de session
 1. Ajouter une entrée datée en haut de `JOURNAL.md` : ce qui a été fait, les décisions prises, ce qui reste à faire.
 2. Mettre `maj` à jour dans `FICHE.md` avec la date du jour.
 3. Si l'état ou la prochaine étape a changé, mettre à jour les sections `État actuel` et `Prochaine étape`. Si le statut a changé, mettre à jour `statut`.
+4. Si une étape a changé d'état, ou si un lien a été ajouté ou retiré, mettre à jour `CARTE.drawio`.
+
+## La carte du parcours
+`CARTE.drawio` dessine le chemin de l'utilisateur dans l'application : une tuile par étape, des flèches entre les étapes, une couleur par état. L'utilisateur la lit d'un coup d'œil pour savoir où en est le projet, plutôt que de longs fichiers Markdown.
+- Prandia est né avant cette convention : la carte a été dessinée après coup, le 2026-10-11, en version 1 à faire valider.
+- Une fois validée, elle fait foi. Si une demande la contredit, le signaler avant de coder.
+- Chaque demande qui touche une étape fait bouger la carte dans la même session (couleur, lien, tuile ajoutée ou retirée), et la réponse le dit.
+- Code couleur, celui de la légende, identique pour tous les projets : vert = fait et vérifié dans l'app ; ocre = en cours, à vérifier ou à adapter ; bordeaux = à faire ; blanc en pointillé = hors de l'app ; gris en pointillé = mis de côté.
+- Une tuile ne passe au vert que si l'étape a été vérifiée dans l'application qui tourne. Codée ou testée ne suffit pas : elle reste ocre. Ici, une fonction de Savarin vérifiée seulement avec une réponse simulée reste ocre jusqu'à une vraie lecture.
+- Le titre porte la version et sa date : "Version 2, validée le AAAA-MM-JJ". Une version reste un brouillon tant que l'utilisateur ne l'a pas validée.
+- Modifier le fichier en place, sans le régénérer : l'utilisateur déplace parfois des tuiles à la main dans draw.io, et ses retouches doivent survivre.
 
 ## Règles
 - `id` ne se modifie jamais, même si le dossier est renommé, déplacé ou archivé.
 - L'en-tête YAML de `FICHE.md` reste simple : une valeur par ligne, listes entre crochets, pas de bloc multi-lignes. Les noms de champs et les valeurs d'énumération restent en ASCII sans accent.
-- Pas d'autre fichier de métadonnées (pas de NOTES.md, pas de README parallèle) : tout passe par `FICHE.md` et `JOURNAL.md`. Si un `README.md` est nécessaire (dépôt publié), il reste court et ne remplace pas `FICHE.md`.
+- Pas d'autre fichier de métadonnées (pas de NOTES.md, pas de README parallèle) : tout passe par `FICHE.md`, `JOURNAL.md` et `CARTE.drawio`. Si un `README.md` est nécessaire (dépôt publié), il reste court et ne remplace pas `FICHE.md`.
 - Dans les fichiers Markdown, écrire en français accentué. Une phrase ou un paragraphe tient sur une seule ligne, sans retour à la ligne intermédiaire.
 - Dossiers : `src/` pour le code, `tests/` pour les tests, `docs/` pour la documentation. Aucun dossier protégé.
