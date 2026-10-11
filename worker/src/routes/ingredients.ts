@@ -120,13 +120,15 @@ const propositionSchema = z.object({
 
 /**
  * Ce que l'IA propose pour la fiche OUVERTE, sans rien ecrire : l'ecran remplit
- * ses champs vides, la personne relit et enregistre. Marche aussi pour une
- * fiche pas encore creee, d'ou un nom et non un identifiant.
+ * ses champs (vides, ou celui qu'on lui redemande), la personne relit et
+ * enregistre. D'ou le registre `relue` : meilleure estimation, et le poids
+ * d'une piece. Marche aussi pour une fiche pas encore creee, d'ou un nom et
+ * non un identifiant.
  */
 route('POST', '/api/completion/proposition', async ({ repos, env, request }) => {
   const { nom, marque } = parseOrThrow(propositionSchema, await readJson(request))
-  const completions = await demanderCompletion(env, repos, [{ id: 1, nom, marque: marque || null }])
-  return json(completions.get(1) ?? { rayon: null, poidsCuitG: null, moisSaison: null })
+  const completions = await demanderCompletion(env, repos, [{ id: 1, nom, marque: marque || null }], { relue: true })
+  return json(completions.get(1) ?? { rayon: null, poidsCuitG: null, moisSaison: null, poidsPieceG: null })
 })
 
 route('GET', '/api/ingredients/:id', async ({ repos, params }) => {

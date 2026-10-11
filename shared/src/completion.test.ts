@@ -22,6 +22,13 @@ describe('completionTool', () => {
   })
 })
 
+describe('completionTool, fiche relue', () => {
+  it('demande en plus le poids d’une piece', () => {
+    const schema = completionTool(RAYONS, { relue: true }).input_schema as Schema
+    expect(schema.properties.fiches.items.required).toEqual(['id', 'poids_cuit', 'mois_saison', 'poids_piece', 'rayon'])
+  })
+})
+
 describe('completionQuestion', () => {
   it('liste les rayons et les produits avec leur identifiant et leur marque', () => {
     const q = completionQuestion(RAYONS, [
@@ -32,6 +39,20 @@ describe('completionQuestion', () => {
     expect(q).toContain('7 : Riz basmati (Taureau Ailé)')
     expect(q).toContain('9 : Courgette')
     expect(q).toContain('Dans le doute, null')
+  })
+
+  it('dit que ", crue" designe l’aliment avant cuisson, celui dont on veut le poids cuit', () => {
+    expect(completionQuestion(RAYONS, [{ id: 1, nom: 'Echalote, crue', marque: null }])).toContain('", crue"')
+  })
+
+  it('prudent sans relecture, meilleure estimation quand la personne relira', () => {
+    const prudent = completionQuestion(RAYONS, [{ id: 1, nom: 'Riz', marque: null }])
+    const relue = completionQuestion(RAYONS, [{ id: 1, nom: 'Riz', marque: null }], { relue: true })
+    expect(prudent).toContain('Dans le doute, null')
+    expect(prudent).not.toContain('poids_piece')
+    expect(relue).toContain('meilleure estimation')
+    expect(relue).toContain('poids_piece')
+    expect(relue).not.toContain('Dans le doute, null')
   })
 
   it('ne parle pas de rayon sans rayon', () => {
@@ -51,8 +72,8 @@ describe('interpretCompletion', () => {
       RAYONS,
       [7, 9],
     )
-    expect(r.get(7)).toEqual({ rayon: 'Epicerie', poidsCuitG: 300, moisSaison: null })
-    expect(r.get(9)).toEqual({ rayon: 'Fruits et légumes', poidsCuitG: null, moisSaison: [6, 7, 8, 9] })
+    expect(r.get(7)).toEqual({ rayon: 'Epicerie', poidsCuitG: 300, moisSaison: null, poidsPieceG: null })
+    expect(r.get(9)).toEqual({ rayon: 'Fruits et légumes', poidsCuitG: null, moisSaison: [6, 7, 8, 9], poidsPieceG: null })
   })
 
   it('ecarte un rayon invente, un poids hors bornes ou sans ecart, une saison de douze mois', () => {
@@ -68,9 +89,9 @@ describe('interpretCompletion', () => {
       [1, 2, 3],
     )
     // Rendu quand meme : le modele a repondu, on ne le reinterrogera pas.
-    expect(r.get(1)).toEqual({ rayon: null, poidsCuitG: null, moisSaison: null })
-    expect(r.get(2)).toEqual({ rayon: null, poidsCuitG: null, moisSaison: null })
-    expect(r.get(3)).toEqual({ rayon: 'Boucherie', poidsCuitG: 75, moisSaison: null })
+    expect(r.get(1)).toEqual({ rayon: null, poidsCuitG: null, moisSaison: null, poidsPieceG: null })
+    expect(r.get(2)).toEqual({ rayon: null, poidsCuitG: null, moisSaison: null, poidsPieceG: null })
+    expect(r.get(3)).toEqual({ rayon: 'Boucherie', poidsCuitG: 75, moisSaison: null, poidsPieceG: null })
   })
 
   it('ignore un identifiant non demande, un doublon, et une reponse mal formee', () => {
@@ -89,6 +110,25 @@ describe('interpretCompletion', () => {
     expect(r.get(7)?.rayon).toBe('Epicerie')
     expect(interpretCompletion(null, RAYONS, [1]).size).toBe(0)
     expect(interpretCompletion({ fiches: 'Epicerie' }, RAYONS, [1]).size).toBe(0)
+  })
+})
+
+describe('interpretCompletion, poids d’une piece', () => {
+  it('garde un poids plausible, ecarte le reste', () => {
+    const r = interpretCompletion(
+      {
+        fiches: [
+          { id: 1, rayon: null, poids_cuit: null, mois_saison: null, poids_piece: 30 },
+          { id: 2, rayon: null, poids_cuit: null, mois_saison: null, poids_piece: 0.1 },
+          { id: 3, rayon: null, poids_cuit: null, mois_saison: null, poids_piece: 12000 },
+        ],
+      },
+      RAYONS,
+      [1, 2, 3],
+    )
+    expect(r.get(1)?.poidsPieceG).toBe(30)
+    expect(r.get(2)?.poidsPieceG).toBeNull()
+    expect(r.get(3)?.poidsPieceG).toBeNull()
   })
 })
 

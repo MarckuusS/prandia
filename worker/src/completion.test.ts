@@ -95,8 +95,27 @@ describe('demanderCompletion', () => {
     const { repos, ecrits } = fauxDepots(['Epicerie'])
     claudeRepond([{ id: 1, rayon: 'Epicerie', poids_cuit: 300, mois_saison: null }])
     const rendu = await demanderCompletion(env, repos, [{ id: 1, nom: 'Riz', marque: null }])
-    expect(rendu.get(1)).toEqual({ rayon: 'Epicerie', poidsCuitG: 300, moisSaison: null })
+    expect(rendu.get(1)).toEqual({ rayon: 'Epicerie', poidsCuitG: 300, moisSaison: null, poidsPieceG: null })
     expect(ecrits).toHaveLength(0)
+  })
+
+  it('pour une fiche relue, demande le poids d’une piece et une estimation', async () => {
+    const { repos } = fauxDepots(['Epicerie'])
+    const appels = claudeRepond([{ id: 1, rayon: null, poids_cuit: 85, mois_saison: null, poids_piece: 30 }])
+    const rendu = await demanderCompletion(env, repos, [{ id: 1, nom: 'Echalote, crue', marque: null }], {
+      relue: true,
+    })
+    expect(rendu.get(1)?.poidsPieceG).toBe(30)
+    const corps = JSON.stringify(appels[0]?.corps)
+    expect(corps).toContain('poids_piece')
+    expect(corps).toContain('meilleure estimation')
+  })
+
+  it('sans relecture, ne demande jamais le poids d’une piece', async () => {
+    const { repos } = fauxDepots(['Epicerie'])
+    const appels = claudeRepond([])
+    await completerProduits(env, repos, [{ id: 1, nom: 'Echalote, crue', marque: null }])
+    expect(JSON.stringify(appels[0]?.corps)).not.toContain('poids_piece')
   })
 })
 

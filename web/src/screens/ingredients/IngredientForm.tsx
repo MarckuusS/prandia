@@ -33,7 +33,7 @@
  *      seule, mene bien quelque part.
  */
 
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { SOURCE_LABELS, formatEuros, formatGrams, type Ingredient, type Source } from '@prandia/shared'
 
@@ -48,6 +48,7 @@ import {
 import { BoutonScan } from '../../components/ScanEtiquette.js'
 import { ConfirmDialog } from '../../components/Sheet.js'
 import { SourceBadge } from '../../components/States.js'
+import { useToast } from '../../components/Toast.js'
 import { Icon } from '../../icons/index.js'
 import { ApiError } from '../../lib/api.js'
 import {
@@ -63,9 +64,12 @@ import { PriceHistorySheet } from './PriceHistorySheet.js'
 import {
   EMPTY_DRAFT,
   MONTHS,
+  LIBELLES_IA,
   appliquerCompletion,
   champsACompleter,
   draftFromIngredient,
+  propositionPour,
+  type ChampIA,
   sourceUrl,
   toWritePayload,
   type IngredientDraft,
@@ -162,6 +166,83 @@ export function IngredientForm({ ingredient }: IngredientFormProps) {
   const patch = (changes: Partial<IngredientDraft>) =>
     setDraft((current) => ({ ...current, ...changes }))
 
+  // ---------------------------------------------------------------- IA
+  // Rayon, poids unitaire, poids cuit, saison (worker/src/completion.ts). Rien
+  // n'est enregistre : les champs remplis par l'IA sont ENCADRES en jaune, leur
+  // valeur en italique, jusqu'a l'enregistrement ou jusqu'a ce que la personne
+  // les retouche.
+  const [champsIA, setChampsIA] = useState<ReadonlySet<ChampIA>>(new Set())
+  const [iaEnCours, setIaEnCours] = useState<ChampIA | 'tout' | null>(null)
+  const iaDisponible = useCompletionEtat().data?.disponible === true
+  const toast = useToast()
+  // La proposition s'applique a la fiche telle qu'elle est A L'ARRIVEE de la
+  // reponse, pas au moment du toucher : un champ rempli entre-temps l'emporte.
+  const actuel = useRef(draft)
+  actuel.current = draft
+
+  /** Une retouche a la main rend le champ a la personne : le cadre s'en va. */
+  const saisir = (champ: ChampIA, changes: Partial<IngredientDraft>) => {
+    patch(changes)
+    setChampsIA((avant) => {
+      if (!avant.has(champ)) return avant
+      const suite = new Set(avant)
+      suite.delete(champ)
+      return suite
+    })
+  }
+
+  /**
+   * `tout` (bouton IA du pied) : les champs VIDES seulement. Un champ (son
+   * etincelle) : la valeur proposee REMPLACE la sienne, c'est ce qu'on demande
+   * en touchant l'etincelle d'un champ deja rempli.
+   */
+  const demanderIA = async (cible: ChampIA | 'tout') => {
+    const nom = draft.name.trim()
+    if (nom === '') {
+      toast.show({ message: 'Donne d’abord un nom au produit : l’IA part de lui.' })
+      return
+    }
+    if (cible === 'tout' && !Object.values(champsACompleter(draft)).some(Boolean)) {
+      toast.show({ message: 'Tout est déjà rempli. Touche l’étincelle d’un champ pour le redemander à l’IA.' })
+      return
+    }
+    setIaEnCours(cible)
+    try {
+      const proposition = await proposerCompletion(nom, draft.brand.trim() || null)
+      if (cible === 'tout') {
+        const { patch: changes, champs } = appliquerCompletion(actuel.current, proposition)
+        patch(changes)
+        setChampsIA((avant) => new Set([...avant, ...champs]))
+        const n = champs.length
+        toast.show({
+          message:
+            n === 0
+              ? 'L’IA n’a rien de sûr à proposer pour ce produit.'
+              : `L’IA a rempli ${n} champ${n > 1 ? 's' : ''}, encadré${n > 1 ? 's' : ''} en jaune. Vérifie, puis enregistre.`,
+        })
+      } else {
+        const valeur = propositionPour(proposition, cible)
+        if (valeur === null) {
+          toast.show({ message: `L’IA n’a pas de proposition pour ${LIBELLES_IA[cible]}.` })
+        } else {
+          patch(valeur)
+          setChampsIA((avant) => new Set([...avant, cible]))
+        }
+      }
+    } catch (erreur) {
+      toast.show({ message: erreur instanceof Error ? erreur.message : 'L’IA n’a pas répondu.' })
+    } finally {
+      setIaEnCours(null)
+    }
+  }
+  const champIA = (champ: ChampIA): ChampIAProps => ({
+    champ,
+    rempli: champsIA.has(champ),
+    enCours: iaEnCours,
+    disponible: iaDisponible,
+    onDemander: (cible: ChampIA) => void demanderIA(cible),
+  })
+
   // Source deduite plutot que choisie (regle 4 de l'en-tete). Tant que « Réf.
   // source » porte EXACTEMENT le code venu d'OpenFoodFacts, la fiche vient de
   // la ; des que l'utilisateur le retouche, elle redevient manuelle. Un menu
@@ -235,14 +316,28 @@ export function IngredientForm({ ingredient }: IngredientFormProps) {
         { ...payload, source, sourceRef: draft.sourceRef.trim() || null },
         // `replace` : le bouton Retour ne doit pas ramener sur un formulaire
         // vide qui recreerait un doublon au prochain envoi.
-        { onSuccess: (created) => void navigate(`/ingredients/${created.id}`, { replace: true }) },
+        {
+          onSuccess: (created) => {
+            setChampsIA(new Set())
+            void navigate(`/ingredients/${created.id}`, { replace: true })
+          },
+        },
       )
       return
     }
 
     // `id` APRES l'etalement : `Partial<Ingredient>` porte un `id` optionnel
     // qui, place en premier, ecraserait celui du chemin par `undefined`.
-    update.mutate({ ...payload, id }, { onSuccess: () => setSavedAt(Date.now()) })
+    update.mutate(
+      { ...payload, id },
+      {
+        onSuccess: () => {
+          setSavedAt(Date.now())
+          // Enregistre : la valeur est desormais celle de la personne.
+          setChampsIA(new Set())
+        },
+      },
+    )
   }
 
   return (
@@ -259,8 +354,6 @@ export function IngredientForm({ ingredient }: IngredientFormProps) {
             patch({ sourceRef: code })
           }}
         />
-
-        <CompletionIA draft={draft} onPatch={patch} />
 
         {duplicateId !== null && (
           <p className="note" role="alert">
@@ -312,26 +405,30 @@ export function IngredientForm({ ingredient }: IngredientFormProps) {
 
         <fieldset className="ing-form__section">
           <legend className="ing-form__legend">Quantités</legend>
+          <ChampIA {...champIA('poidsPiece')}>
           <NumberField
             label="Poids unitaire"
             value={draft.pieceWeightG}
-            onChange={(value) => patch({ pieceWeightG: value })}
+            onChange={(value) => saisir('poidsPiece', { pieceWeightG: value })}
             suffix="g / pièce"
             min={0}
             max={10000}
             decimals={1}
             hint="1 œuf ≈ 60 g, 1 oignon ≈ 150 g, 1 gousse d’ail ≈ 5 g. Renseigné, il fait apparaître l’unité « pièce » partout où l’on saisit une quantité. Vide pour l’huile, le lait, le riz, le sel."
           />
+          </ChampIA>
+          <ChampIA {...champIA('poidsCuit')}>
           <NumberField
             label="Poids cuit"
             value={draft.cookedWeightPer100gRaw}
-            onChange={(value) => patch({ cookedWeightPer100gRaw: value })}
+            onChange={(value) => saisir('poidsCuit', { cookedWeightPer100gRaw: value })}
             suffix="g / 100 g cru"
             min={0}
             max={1000}
             decimals={1}
             hint="Ex : 300 pour du riz (100 g cru → 300 g cuit). Optionnel — sert à estimer le poids d’une portion servie. Les valeurs nutritionnelles restent par 100 g cru."
           />
+          </ChampIA>
         </fieldset>
 
         <fieldset className="ing-form__section">
@@ -341,20 +438,27 @@ export function IngredientForm({ ingredient }: IngredientFormProps) {
               fantomes : « Epicerie » et « Épicerie » sont deux rayons pour la
               liste de courses, qui regroupe sur le texte exact. Creer un rayon
               se fait donc en un seul endroit, ou on le voit deja exister. */}
+          <ChampIA {...champIA('rayon')}>
           <SelectField
             label="Rayon"
             value={draft.categoryL1}
-            onChange={(value) => patch({ categoryL1: value })}
+            onChange={(value) => saisir('rayon', { categoryL1: value })}
             placeholder="Aucun rayon"
             options={rayonOptions(rayons.data?.items ?? [], draft.categoryL1)}
             hint="Regroupe l’ingrédient dans la liste de courses et dans le frigo."
           />
+          </ChampIA>
           <p className="field__hint">
             Il manque un rayon ? <Link to="/parametres/rayons">Gérer les rayons</Link>.
           </p>
         </fieldset>
 
-        <SeasonPicker months={draft.months} onChange={(months) => patch({ months })} />
+        <SeasonPicker
+          months={draft.months}
+          onChange={(months) => saisir('saison', { months })}
+          rempli={iaDisponible && champsIA.has('saison')}
+          action={iaDisponible ? <BoutonChampIA {...champIA('saison')} /> : null}
+        />
 
         {ingredient && <PriceSummary ingredient={ingredient} onOpenHistory={() => setPriceOpen(true)} />}
 
@@ -374,6 +478,20 @@ export function IngredientForm({ ingredient }: IngredientFormProps) {
         </div>
 
         <div className="ing-actions">
+          {/* En bas a gauche, en face d'Enregistrer : on le cherchait en haut
+              de la fiche apres avoir defile jusqu'aux champs a remplir. */}
+          {iaDisponible && (
+            <button
+              type="button"
+              className="button button--secondary ing-actions__ia"
+              onClick={() => void demanderIA('tout')}
+              disabled={iaEnCours !== null}
+              aria-label="Compléter avec l’IA"
+            >
+              <Icon name="ui-ia" size={16} className="icon--inline" />
+              {iaEnCours === 'tout' ? 'IA…' : 'IA'}
+            </button>
+          )}
           <p className="ing-actions__state" aria-live="polite">
             {error !== null && duplicateMessage === null ? (
               <span className="text-error" role="alert">
@@ -821,77 +939,48 @@ function ScannedFill({
 // Completion par l'IA
 // ---------------------------------------------------------------------------
 
-/**
- * "Compléter avec l’IA" : rayon, poids cuit et saison d'apres le nom et la
- * marque (worker/src/completion.ts), pour une fiche existante comme pour une
- * fiche en cours de creation.
- *
- * RIEN N'EST ENREGISTRE : les champs vides se remplissent, la phrase dit
- * lesquels, la personne relit puis touche Enregistrer. La proposition
- * s'applique a la fiche telle qu'elle est A L'ARRIVEE de la reponse (`actuel`),
- * pas au moment du toucher : un champ rempli entre-temps l'emporte.
- */
-function CompletionIA({
-  draft,
-  onPatch,
-}: {
-  readonly draft: IngredientDraft
-  readonly onPatch: (changes: Partial<IngredientDraft>) => void
-}) {
-  const etat = useCompletionEtat()
-  const actuel = useRef(draft)
-  actuel.current = draft
-  const [enCours, setEnCours] = useState(false)
-  const [message, setMessage] = useState<{ readonly texte: string; readonly erreur: boolean } | null>(null)
-  // Sans cle posee, le bouton n'aurait qu'une erreur a offrir.
-  if (etat.data?.disponible !== true) return null
+interface ChampIAProps {
+  readonly champ: ChampIA
+  /** L'IA vient de le remplir : cadre jaune et valeur en italique. */
+  readonly rempli: boolean
+  readonly enCours: ChampIA | 'tout' | null
+  /** Sans cle posee, ni etincelle ni cadre : ils n'auraient qu'une erreur a offrir. */
+  readonly disponible: boolean
+  readonly onDemander: (champ: ChampIA) => void
+}
 
-  const vides = champsACompleter(draft)
-  const lancer = async () => {
-    if (!vides.rayon && !vides.poidsCuit && !vides.saison) {
-      setMessage({ texte: 'Rayon, poids cuit et saison sont déjà remplis.', erreur: false })
-      return
-    }
-    setEnCours(true)
-    setMessage(null)
-    try {
-      const proposition = await proposerCompletion(draft.name.trim(), draft.brand.trim() || null)
-      const { patch, ajouts } = appliquerCompletion(actuel.current, proposition)
-      onPatch(patch)
-      setMessage({
-        texte:
-          ajouts.length > 0
-            ? `Rempli par l’IA : ${ajouts.join(' ; ')}. Vérifie, puis enregistre.`
-            : 'L’IA n’a rien de sûr à proposer pour ce produit.',
-        erreur: false,
-      })
-    } catch (erreur) {
-      setMessage({ texte: erreur instanceof Error ? erreur.message : 'La complétion a échoué.', erreur: true })
-    } finally {
-      setEnCours(false)
-    }
-  }
-
+/** L'etincelle d'un champ : le (re)demander a l'IA. Doree quand l'IA l'a rempli. */
+function BoutonChampIA({ champ, rempli, enCours, onDemander }: ChampIAProps) {
+  const libelle = LIBELLES_IA[champ]
   return (
-    <div className="ing-form__ia">
-      <div className="scan-ligne">
-        <button
-          type="button"
-          className="chip-toggle"
-          onClick={() => void lancer()}
-          disabled={enCours || draft.name.trim() === ''}
-        >
-          <Icon name="ui-ia" size={18} className="icon--inline" />
-          {enCours ? 'L’IA réfléchit…' : 'Compléter avec l’IA'}
-        </button>
-      </div>
-      {message === null ? (
-        <p className="field__hint">Rayon, poids cuit et saison, d’après le nom. Seuls les champs vides se remplissent.</p>
+    <button
+      type="button"
+      className={`champ-ia__demander${rempli ? ' champ-ia__demander--rempli' : ''}`}
+      onClick={() => onDemander(champ)}
+      disabled={enCours !== null}
+      aria-label={rempli ? `Rempli par l’IA. Redemander ${libelle}` : `Demander ${libelle} à l’IA`}
+    >
+      {enCours === champ ? (
+        <Icon name="ui-ia" size={16} className="champ-ia__attente" />
       ) : (
-        <p className={message.erreur ? 'field__error' : 'field__hint'} role={message.erreur ? 'alert' : 'status'}>
-          {message.texte}
-        </p>
+        <Icon name="ui-ia" size={16} />
       )}
+    </button>
+  )
+}
+
+/**
+ * Un champ que l'IA sait remplir : son etincelle au coin, sur la ligne du
+ * libelle, et le cadre tant que l'IA vient de le remplir. Le cadre DEBORDE du
+ * champ (marge negative egale au rembourrage) au lieu de le decaler : la
+ * fiche ne saute pas quand il apparait.
+ */
+function ChampIA({ children, ...props }: ChampIAProps & { readonly children: ReactNode }) {
+  if (!props.disponible) return <>{children}</>
+  return (
+    <div className={`champ-ia${props.rempli ? ' champ-ia--rempli' : ''}`}>
+      {children}
+      <BoutonChampIA {...props} />
     </div>
   )
 }
@@ -903,9 +992,15 @@ function CompletionIA({
 function SeasonPicker({
   months,
   onChange,
+  rempli = false,
+  action = null,
 }: {
   months: readonly number[]
   onChange: (months: readonly number[]) => void
+  /** Remplie par l'IA : la grille des mois prend le cadre jaune. */
+  rempli?: boolean
+  /** L'etincelle, sur la ligne du titre : posee sur la grille, elle couvrirait decembre. */
+  action?: ReactNode
 }) {
   const selected = new Set(months)
 
@@ -918,14 +1013,17 @@ function SeasonPicker({
 
   return (
     <fieldset className="ing-form__section">
-      <legend className="ing-form__legend">Saisonnalité</legend>
+      <legend className="ing-form__legend ing-form__legend--action">
+        Saisonnalité
+        {action}
+      </legend>
       <p className="field__hint">
         Coche les mois où l’ingrédient est de saison. Vide = pas de badge « de saison ».
       </p>
 
       {/* Deux rangees de six et non une de douze : douze cibles alignees sur
           375 px feraient 28 px de large, sous le minimum tactile. */}
-      <div className="ing-months" role="group" aria-label="Mois de saison">
+      <div className={`ing-months${rempli ? ' ing-months--ia' : ''}`} role="group" aria-label="Mois de saison">
         {MONTHS.map((month) => (
           <button
             key={month.number}

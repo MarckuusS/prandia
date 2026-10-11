@@ -14,7 +14,14 @@
  *   - le rayon est ferme sur les rayons DE LA CUISINE (`enum`, puis revu par
  *     `interpretCompletion`) : un rayon invente creerait une categorie que
  *     l'ecran des rayons ne connait pas ;
- *   - "dans le doute, null" est la consigne, et les bornes la font tenir : un
+ *   - DEUX REGISTRES. Sans relecture (creation, bibliotheque entiere), "dans
+ *     le doute, null" : rien ne repassera derriere. Pour la fiche OUVERTE
+ *     (`relue`), la personne relit chaque valeur avant d'enregistrer : on
+ *     demande la meilleure estimation, et le poids d'une piece en plus. Le
+ *     mode prudent laissait vides des cas evidents ("Echalote, crue" sans
+ *     poids cuit), le mode relu ne s'abstient que si la notion n'a pas de
+ *     sens pour le produit ;
+ *   - les bornes tiennent dans les deux registres : un
  *     poids cuit hors de 20 a 800 g, ou sans ecart avec le cru, n'est pas
  *     garde ; une saison de douze mois n'en est pas une (le badge "de saison"
  *     s'allumerait toute l'annee), elle redevient null.
@@ -39,13 +46,28 @@ export interface Completion {
   readonly poidsCuitG: number | null
   /** Mois de saison (1 a 12), tries ; `null` hors saisonnalite. */
   readonly moisSaison: readonly number[] | null
+  /** Poids d'une piece, demande seulement quand la fiche sera relue. */
+  readonly poidsPieceG: number | null
+}
+
+export interface OptionsCompletion {
+  /**
+   * La personne relira avant d'enregistrer (fiche ouverte) : meilleure
+   * estimation plutot que null au moindre doute, et le poids d'une piece.
+   * Jamais pour une ecriture sans relecture : le poids d'une piece fait
+   * passer l'unite par defaut a la piece partout ou l'on saisit le produit.
+   */
+  readonly relue?: boolean | undefined
 }
 
 /** Bornes d'un poids cuit plausible : une viande perd un quart, un riz triple. */
 export const POIDS_CUIT_MIN = 20
 export const POIDS_CUIT_MAX = 800
+/** D'une feuille de laurier a une pasteque entiere. */
+export const POIDS_PIECE_MIN = 0.5
+export const POIDS_PIECE_MAX = 5000
 
-export function completionTool(rayons: readonly string[]): ScanTool {
+export function completionTool(rayons: readonly string[], options: OptionsCompletion = {}): ScanTool {
   const champs: Record<string, unknown> = {
     id: { type: 'integer' },
     poids_cuit: {
@@ -57,6 +79,12 @@ export function completionTool(rayons: readonly string[]): ScanTool {
       items: { type: 'integer', minimum: 1, maximum: 12 },
       description: 'Mois ou le produit frais est de saison en France, ou null.',
     },
+  }
+  if (options.relue === true) {
+    champs['poids_piece'] = {
+      type: ['number', 'null'],
+      description: 'Poids moyen en grammes d’une piece telle qu’on la compte en cuisine, ou null.',
+    }
   }
   // Une cuisine sans rayon ne se voit pas demander de rayon : la seule
   // reponse possible serait "aucun".
@@ -77,7 +105,12 @@ export function completionTool(rayons: readonly string[]): ScanTool {
   }
 }
 
-export function completionQuestion(rayons: readonly string[], produits: readonly ProduitACompleter[]): string {
+export function completionQuestion(
+  rayons: readonly string[],
+  produits: readonly ProduitACompleter[],
+  options: OptionsCompletion = {},
+): string {
+  const relue = options.relue === true
   const lignes = produits.map((p) => `${p.id} : ${p.nom}${p.marque ? ` (${p.marque})` : ''}`).join('\n')
   const partieRayon =
     rayons.length > 0
@@ -91,8 +124,14 @@ export function completionQuestion(rayons: readonly string[], produits: readonly
   return [
     ...partieRayon,
     'poids_cuit : le poids en grammes qu’atteignent 100 g de l’aliment CRU apres sa cuisson habituelle (riz blanc : environ 300 ; pates : environ 230 ; lentilles : environ 250 ; viande : environ 75). null si l’aliment se mange tel quel, s’il est deja cuit ou transforme (yaourt, fromage, pain, conserve, plat prepare, boisson, condiment), ou si la cuisson ne change pas notablement son poids.',
+    'Un nom qui se termine par ", cru" ou ", crue" (convention de la table CIQUAL) designe l’aliment AVANT cuisson : c’est justement le cas ou le poids cuit est attendu, s’il se cuit couramment (oignon, echalote, legume, viande, poisson, feculent).',
     'mois_saison : les mois (1 a 12) ou le produit FRAIS est de saison en France metropolitaine : fruits, legumes, champignons, certains poissons et fruits de mer. null pour un produit disponible toute l’annee ou transforme (epicerie, conserve, surgele, laitage, viande, boisson).',
-    'Dans le doute, null : un champ vide vaut mieux qu’une valeur fausse.',
+    ...(relue
+      ? [
+          'poids_piece : le poids moyen en grammes d’une piece telle qu’on la compte en cuisine (un oeuf : 60 ; un oignon : 150 ; une gousse d’ail : 5 ; une echalote : 30 ; un pot de yaourt : 125). null pour ce qui ne se compte pas (riz, farine, huile, lait, sel).',
+          'La personne relira chaque valeur avant de l’enregistrer : donne ta meilleure estimation pour un usage domestique. null seulement quand la notion n’a pas de sens pour ce produit (poids cuit d’un yaourt ou d’une boisson, saison d’une conserve, piece pour du riz).',
+        ]
+      : ['Dans le doute, null : un champ vide vaut mieux qu’une valeur fausse.']),
     '',
     lignes,
   ].join('\n')
@@ -104,6 +143,12 @@ function poidsCuit(valeur: unknown): number | null {
   // Sans ecart avec le cru, le champ n'apprend rien et ferait proposer une
   // saisie "en cuit" inutile.
   if (Math.abs(valeur - 100) < 5) return null
+  return Math.round(valeur * 10) / 10
+}
+
+function poidsPiece(valeur: unknown): number | null {
+  if (typeof valeur !== 'number' || !Number.isFinite(valeur)) return null
+  if (valeur < POIDS_PIECE_MIN || valeur > POIDS_PIECE_MAX) return null
   return Math.round(valeur * 10) / 10
 }
 
@@ -145,6 +190,7 @@ export function interpretCompletion(
       rayon: typeof rayon === 'string' ? (parNom.get(normalizeName(rayon)) ?? null) : null,
       poidsCuitG: poidsCuit(champs['poids_cuit']),
       moisSaison: moisSaison(champs['mois_saison']),
+      poidsPieceG: poidsPiece(champs['poids_piece']),
     })
   }
   return resultat

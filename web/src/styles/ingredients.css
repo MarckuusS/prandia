@@ -1049,15 +1049,104 @@
   padding-bottom: calc(var(--space-md) + var(--scan-overlap));
 }
 
-/* "Completer avec l'IA", sous l'identite de la fiche : le bouton a sa taille,
-   et la phrase qui dit ce qui a ete rempli juste dessous. */
-.ing-form__ia {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
+/* ---------- Ce que l'IA vient de remplir ----------
+ *
+ * Un cadre jaune, la valeur en italique, l'etincelle doree au coin, jusqu'a
+ * l'enregistrement. Le cadre DEBORDE du champ (marge negative = rembourrage +
+ * trait) : le contenu ne bouge pas quand il apparait, et un trait transparent
+ * tient sa place quand il n'y est pas.
+ */
+.champ-ia {
+  position: relative;
+  margin: calc(-1 * (var(--space-sm) + 2px));
+  padding: var(--space-sm);
+  border: 2px solid transparent;
+  border-radius: var(--radius-md);
+  transition:
+    background-color var(--duration-fast, 150ms),
+    border-color var(--duration-fast, 150ms);
 }
 
-.ing-form__ia .field__hint,
-.ing-form__ia .field__error {
-  margin: 0;
+.champ-ia.champ-ia--rempli {
+  background: var(--color-ia-surface);
+  border-color: var(--color-ia-border);
+}
+
+.champ-ia--rempli .field__input,
+.champ-ia--rempli .field__select {
+  font-style: italic;
+}
+
+/* L'etincelle d'un champ, sur la ligne de son libelle, au bord droit. */
+.champ-ia > .champ-ia__demander {
+  position: absolute;
+  top: calc(var(--space-sm) - 6px);
+  right: var(--space-sm);
+}
+
+.champ-ia__demander {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: var(--color-primary-text);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+}
+
+.champ-ia__demander.champ-ia__demander--rempli {
+  color: var(--color-ia-ink);
+}
+
+.champ-ia__demander:disabled {
+  cursor: default;
+}
+
+/* Celle qui attend sa reponse bat doucement ; les autres restent fixes. */
+.champ-ia__attente {
+  animation: ia-attente 1s ease-in-out infinite;
+}
+
+@keyframes ia-attente {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .champ-ia__attente {
+    animation: none;
+  }
+}
+
+/* Saison : l'etincelle a cote du titre (sur la grille, elle couvrirait
+   decembre), et c'est la grille des mois qui prend le cadre. Pas de titre
+   etire sur toute la largeur pour la pousser a droite : un <legend> large
+   ouvre d'autant la bordure de la carte, qui disparaissait sur toute sa
+   longueur (vu en essai). */
+.ing-form__legend.ing-form__legend--action {
+  display: inline-flex;
+  gap: var(--space-xs);
+  align-items: center;
+}
+
+.ing-months.ing-months--ia {
+  margin: calc(-1 * (var(--space-sm) + 2px));
+  padding: var(--space-sm);
+  background: var(--color-ia-surface);
+  border: 2px solid var(--color-ia-border);
+  border-radius: var(--radius-md);
+}
+
+.ing-months--ia .ing-month--on {
+  font-style: italic;
+}
+
+/* Le bouton IA du pied, en face d'Enregistrer ; l'etat prend le milieu. */
+.ing-actions .ing-actions__state {
+  flex: 1;
 }

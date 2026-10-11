@@ -16,6 +16,7 @@ import {
   activeFilterCount,
   appliquerCompletion,
   bilanCompletion,
+  propositionPour,
   criterionValue,
   filterIngredients,
   readViewOptions,
@@ -227,27 +228,45 @@ describe('URL', () => {
 })
 
 describe('appliquerCompletion', () => {
-  const proposition = { rayon: 'Epicerie', poidsCuitG: 300, moisSaison: [6, 7, 8, 9] }
+  const proposition = { rayon: 'Epicerie', poidsCuitG: 300, moisSaison: [6, 7, 8, 9], poidsPieceG: 30 }
 
-  it('remplit les champs vides et dit en clair ce qu’il a rempli', () => {
-    const { patch, ajouts } = appliquerCompletion(EMPTY_DRAFT, proposition)
-    expect(patch).toEqual({ categoryL1: 'Epicerie', cookedWeightPer100gRaw: 300, months: [6, 7, 8, 9] })
-    expect(ajouts).toEqual(['rayon Epicerie', 'poids cuit 300 g pour 100 g cru', 'saison de juin à septembre'])
+  it('remplit les champs vides et dit lesquels', () => {
+    const { patch, champs } = appliquerCompletion(EMPTY_DRAFT, proposition)
+    expect(patch).toEqual({
+      categoryL1: 'Epicerie',
+      cookedWeightPer100gRaw: 300,
+      months: [6, 7, 8, 9],
+      pieceWeightG: 30,
+    })
+    expect(champs).toEqual(['rayon', 'poidsPiece', 'poidsCuit', 'saison'])
   })
 
   it('ne remplace jamais une saisie', () => {
-    const draft = { ...EMPTY_DRAFT, categoryL1: 'Vrac', cookedWeightPer100gRaw: 250, months: [5] }
-    expect(appliquerCompletion(draft, proposition)).toEqual({ patch: {}, ajouts: [] })
+    const draft = { ...EMPTY_DRAFT, categoryL1: 'Vrac', cookedWeightPer100gRaw: 250, months: [5], pieceWeightG: 40 }
+    expect(appliquerCompletion(draft, proposition)).toEqual({ patch: {}, champs: [] })
   })
 
   it('laisse vide ce que l’IA ne sait pas', () => {
-    const { patch } = appliquerCompletion(EMPTY_DRAFT, { rayon: null, poidsCuitG: null, moisSaison: null })
-    expect(patch).toEqual({})
+    const rien = { rayon: null, poidsCuitG: null, moisSaison: null, poidsPieceG: null }
+    expect(appliquerCompletion(EMPTY_DRAFT, rien)).toEqual({ patch: {}, champs: [] })
   })
 
   it('ignore une reponse a laquelle il manque une cle, au lieu de casser la fiche', () => {
     const incomplete = { poidsCuitG: 75 } as unknown as Parameters<typeof appliquerCompletion>[1]
-    expect(appliquerCompletion(EMPTY_DRAFT, incomplete).patch).toEqual({ cookedWeightPer100gRaw: 75 })
+    expect(appliquerCompletion(EMPTY_DRAFT, incomplete)).toEqual({
+      patch: { cookedWeightPer100gRaw: 75 },
+      champs: ['poidsCuit'],
+    })
+  })
+})
+
+describe('propositionPour', () => {
+  it('rend la valeur d’un seul champ, meme si la fiche en a deja une', () => {
+    const c = { rayon: 'Boucherie', poidsCuitG: 75, moisSaison: null, poidsPieceG: null }
+    expect(propositionPour(c, 'rayon')).toEqual({ categoryL1: 'Boucherie' })
+    expect(propositionPour(c, 'poidsCuit')).toEqual({ cookedWeightPer100gRaw: 75 })
+    expect(propositionPour(c, 'saison')).toBeNull()
+    expect(propositionPour(c, 'poidsPiece')).toBeNull()
   })
 })
 

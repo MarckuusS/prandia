@@ -21,7 +21,6 @@ import {
   isInSeasonNow,
   normalizeName,
   parseCriteria,
-  saisonLisible,
   seasonMonths as parseSeasonMonths,
   type Completion,
   type Ingredient,
@@ -734,43 +733,72 @@ export const catalogKey = (ingredient: Ingredient): string =>
 // Completion par l'IA (worker/src/completion.ts)
 // ---------------------------------------------------------------------------
 
+/** Les champs de la fiche que l'IA sait remplir. */
+export type ChampIA = 'rayon' | 'poidsCuit' | 'saison' | 'poidsPiece'
+
+export const CHAMPS_IA: readonly ChampIA[] = ['rayon', 'poidsPiece', 'poidsCuit', 'saison']
+
+/** Pour les phrases : "Demander le poids cuit a l'IA". */
+export const LIBELLES_IA: Readonly<Record<ChampIA, string>> = {
+  rayon: 'le rayon',
+  poidsCuit: 'le poids cuit',
+  saison: 'la saison',
+  poidsPiece: 'le poids unitaire',
+}
+
 /** Les champs que l'IA sait remplir et qui sont encore vides dans la fiche. */
-export function champsACompleter(draft: IngredientDraft): { rayon: boolean; poidsCuit: boolean; saison: boolean } {
+export function champsACompleter(draft: IngredientDraft): Readonly<Record<ChampIA, boolean>> {
   return {
     rayon: draft.categoryL1.trim() === '',
     poidsCuit: draft.cookedWeightPer100gRaw === null,
     saison: draft.months.length === 0,
+    poidsPiece: draft.pieceWeightG === null,
   }
 }
 
 /**
- * Ce que la proposition de l'IA change a la fiche ouverte : les champs VIDES
- * seulement, comme cote serveur. Rend la modification et, en clair, ce qui a
- * ete rempli, pour que la personne sache quoi relire avant d'enregistrer.
+ * La valeur que l'IA propose pour UN champ, prete a poser dans la fiche, ou
+ * `null` si elle n'en a pas.
+ *
+ * Les TYPES d'abord, et non `!== null` : une reponse a laquelle il manque une
+ * cle poserait `undefined` dans la fiche, et le premier `.trim()` de l'ecran
+ * ferait tomber toute l'application (vu en essai).
+ */
+export function propositionPour(c: Completion, champ: ChampIA): Partial<IngredientDraft> | null {
+  switch (champ) {
+    case 'rayon':
+      return typeof c.rayon === 'string' && c.rayon.trim() !== '' ? { categoryL1: c.rayon } : null
+    case 'poidsCuit':
+      return typeof c.poidsCuitG === 'number' && Number.isFinite(c.poidsCuitG)
+        ? { cookedWeightPer100gRaw: c.poidsCuitG }
+        : null
+    case 'saison':
+      return Array.isArray(c.moisSaison) && c.moisSaison.length > 0 ? { months: [...c.moisSaison] } : null
+    case 'poidsPiece':
+      return typeof c.poidsPieceG === 'number' && Number.isFinite(c.poidsPieceG) ? { pieceWeightG: c.poidsPieceG } : null
+  }
+}
+
+/**
+ * Le bouton IA de la fiche : la proposition, posee dans les champs VIDES
+ * seulement, comme cote serveur. Rend la modification et les champs remplis,
+ * que l'ecran encadre jusqu'a l'enregistrement.
  */
 export function appliquerCompletion(
   draft: IngredientDraft,
   c: Completion,
-): { readonly patch: Partial<IngredientDraft>; readonly ajouts: readonly string[] } {
-  // Les types d'abord, et non `!== null` : une reponse a laquelle il manque
-  // une cle poserait `undefined` dans la fiche, et le premier `.trim()` de
-  // l'ecran ferait tomber toute l'application (vu en essai).
+): { readonly patch: Partial<IngredientDraft>; readonly champs: readonly ChampIA[] } {
   const vides = champsACompleter(draft)
-  const patch: { -readonly [K in keyof IngredientDraft]?: IngredientDraft[K] } = {}
-  const ajouts: string[] = []
-  if (vides.rayon && typeof c.rayon === 'string' && c.rayon.trim() !== '') {
-    patch.categoryL1 = c.rayon
-    ajouts.push(`rayon ${c.rayon}`)
+  let patch: Partial<IngredientDraft> = {}
+  const champs: ChampIA[] = []
+  for (const champ of CHAMPS_IA) {
+    if (!vides[champ]) continue
+    const valeur = propositionPour(c, champ)
+    if (valeur === null) continue
+    patch = { ...patch, ...valeur }
+    champs.push(champ)
   }
-  if (vides.poidsCuit && typeof c.poidsCuitG === 'number' && Number.isFinite(c.poidsCuitG)) {
-    patch.cookedWeightPer100gRaw = c.poidsCuitG
-    ajouts.push(`poids cuit ${c.poidsCuitG.toLocaleString('fr-FR')} g pour 100 g cru`)
-  }
-  if (vides.saison && Array.isArray(c.moisSaison) && c.moisSaison.length > 0) {
-    patch.months = [...c.moisSaison]
-    ajouts.push(`saison ${saisonLisible(c.moisSaison)}`)
-  }
-  return { patch, ajouts }
+  return { patch, champs }
 }
 
 const pluriel = (n: number, mot: string, motPluriel = `${mot}s`) => `${n} ${n > 1 ? motPluriel : mot}`

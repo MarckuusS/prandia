@@ -1046,12 +1046,30 @@ jamais à la main, et que Claude connaît pour un produit courant. Ce qui ne se 
   s'allumerait toute l'année.
 - **Une cuisine sans rayon reçoit quand même poids cuit et saison** : l'outil n'y porte
   simplement pas de champ rayon.
-- **Le poids unitaire n'est PAS complété**, volontairement : renseigné, il fait passer l'unité par
-  défaut à la pièce partout où l'on saisit le produit, un changement de comportement à ne pas
-  faire en masse et sans relecture.
-- **Le bouton et le bandeau disparaissent sans clé** (`GET /api/completion` rend `disponible`) :
-  ils n'auraient qu'une erreur à offrir.
-- **Une réponse à laquelle il manque une clé ne doit rien casser** : `appliquerCompletion` teste
+- **DEUX REGISTRES** (`OptionsCompletion.relue`). Sans relecture (création, bibliothèque),
+  "dans le doute, null" : rien ne repassera derrière. Pour la fiche OUVERTE, la personne relit :
+  on demande la meilleure estimation, et le POIDS UNITAIRE en plus. Le mode prudent laissait vides
+  des cas évidents (une échalote crue sans poids cuit). Le poids unitaire n'est JAMAIS écrit sans
+  relecture : renseigné, il fait passer l'unité par défaut à la pièce partout où l'on saisit le
+  produit.
+- **Les noms CIQUAL en ", cru" / ", crue" sont expliqués au modèle** : c'est l'aliment AVANT
+  cuisson, celui dont on veut justement le poids cuit. Sans la phrase, "Échalote, crue" pouvait se
+  lire comme un aliment qui se mange cru.
+- **Dans la fiche, ce que l'IA vient de remplir est ENCADRÉ** (fond jaune pâle, cadre doré, valeur
+  en italique, étincelle dorée) jusqu'à l'enregistrement, ou jusqu'à ce que la personne retouche
+  le champ (`saisir`, qui retire le champ de `champsIA`). Le cadre DÉBORDE du champ (marge
+  négative égale au rembourrage plus le trait) : rien ne bouge quand il apparaît. Le jaune franc
+  tombe sous 3:1 sur une carte blanche : le cadre est un or plus sombre (`--color-ia-border`,
+  3,82:1 clair, 9,8:1 sombre), c'est le fond qui dit "jaune".
+- **Deux gestes.** Le bouton IA du PIED (en bas à gauche, en face d'Enregistrer : en haut de la
+  fiche, il fallait remonter le chercher) remplit les champs VIDES. L'étincelle d'UN champ le
+  redemande et REMPLACE sa valeur : c'est ce qu'on veut en touchant l'étincelle d'un champ déjà
+  rempli. Pour la saison, l'étincelle est à côté du titre : sur la grille elle couvrirait
+  décembre, et un `<legend>` étiré sur toute la largeur pour la pousser à droite ouvrait d'autant
+  la bordure de la carte (vu en essai).
+- **Boutons, étincelles et bandeau disparaissent sans clé** (`GET /api/completion` rend
+  `disponible`) : ils n'auraient qu'une erreur à offrir.
+- **Une réponse à laquelle il manque une clé ne doit rien casser** : `propositionPour` teste
   les TYPES, pas `!== null`. Vu en essai : un `undefined` posé dans le rayon a fait tomber toute
   l'application au premier `.trim()`.
 - **L'IA porte les étincelles** (`ui-ia`, Lucide `sparkles`), pas le logo de Claude : ni Lucide

@@ -24,6 +24,7 @@ import {
   interpretCompletion,
   moisCsv,
   type Completion,
+  type OptionsCompletion,
   type ProduitACompleter,
 } from '@prandia/shared'
 
@@ -31,11 +32,15 @@ import { cleClaude, compterAppel, demanderOutil } from './anthropic.js'
 import type { Env } from './http.js'
 import type { Repositories } from './repos/index.js'
 
-/** Une question pour au plus `COMPLETION_MAX` produits, rien d'ecrit. */
+/**
+ * Une question pour au plus `COMPLETION_MAX` produits, rien d'ecrit.
+ * `relue` : seulement quand la personne relira (fiche ouverte).
+ */
 export async function demanderCompletion(
   env: Env,
   repos: Repositories,
   produits: readonly ProduitACompleter[],
+  options: OptionsCompletion = {},
 ): Promise<Map<number, Completion>> {
   if (produits.length === 0) return new Map()
   const rayons = (await repos.rayons.list()).map((r) => r.name)
@@ -44,8 +49,8 @@ export async function demanderCompletion(
   const lot = produits.slice(0, COMPLETION_MAX)
   const sortie = await demanderOutil(
     cle,
-    [{ type: 'text', text: completionQuestion(rayons, lot) }],
-    completionTool(rayons),
+    [{ type: 'text', text: completionQuestion(rayons, lot, options) }],
+    completionTool(rayons, options),
     4000,
   )
   return interpretCompletion(

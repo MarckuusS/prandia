@@ -89,6 +89,17 @@
   --color-warning-strong: #8a6a2b;
 
   /*
+   * CE QUE L'IA VIENT DE REMPLIR, en attendant l'enregistrement : un fond
+   * jaune pale et un cadre dore. Le jaune franc tombe sous 3:1 sur une carte
+   * blanche (2,36:1 pour #D4A100) : le cadre prend un or plus sombre, mesure a
+   * 3,82:1, et c'est le fond qui dit "jaune". L'encre de l'etincelle tient
+   * 5,8:1 sur ce fond. Pas l'ambre d'avertissement : ce n'est pas une alerte.
+   */
+  --color-ia-surface: #fff7d1;
+  --color-ia-border: #a67c00;
+  --color-ia-ink: #7a5c00;
+
+  /*
    * LE BADGE D'ECHEANCE, trois niveaux.
    *
    * Ils ne reprennent PAS le tricolore des macros : la framboise y veut dire
@@ -352,6 +363,10 @@
     --color-warning-ink: #ded6bd;
     --color-warning-strong: #f2c14e;
 
+    --color-ia-surface: #3a3110;
+    --color-ia-border: #e8c547;
+    --color-ia-ink: #f2d16b;
+
     --color-echeance-urgent-pale: #3a1f28;
     --color-echeance-urgent-ink: #f5a3bd;
     --color-success-pale: #1b3621;
@@ -430,6 +445,10 @@
   --color-warning-border: #4d452a;
   --color-warning-ink: #ded6bd;
   --color-warning-strong: #f2c14e;
+
+  --color-ia-surface: #3a3110;
+  --color-ia-border: #e8c547;
+  --color-ia-ink: #f2d16b;
 
   --color-echeance-urgent-pale: #3a1f28;
   --color-echeance-urgent-ink: #f5a3bd;
