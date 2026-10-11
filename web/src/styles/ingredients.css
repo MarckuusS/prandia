@@ -1049,7 +1049,7 @@
   padding-bottom: calc(var(--space-md) + var(--scan-overlap));
 }
 
-/* Saison : l'etincelle a cote du titre (sur la grille, elle couvrirait
+/* Saison : Savarin a cote du titre (sur la grille, il couvrirait
    decembre), et c'est la grille des mois qui prend le cadre. Pas de titre
    etire sur toute la largeur pour la pousser a droite : un <legend> large
    ouvre d'autant la bordure de la carte, qui disparaissait sur toute sa

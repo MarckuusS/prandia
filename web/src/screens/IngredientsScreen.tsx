@@ -28,6 +28,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
 import { formatGrams, isInSeasonNow, type Ingredient } from '@prandia/shared'
 
+import { Savarin } from '../components/Savarin.js'
 import { Sheet } from '../components/Sheet.js'
 import { EmptyState, ErrorState, LoadingRows, SourceBadge } from '../components/States.js'
 import {
@@ -694,7 +695,7 @@ function CompleterBibliotheque() {
           onClick={() => void lancer()}
           disabled={enCours !== null}
         >
-          <Icon name="ui-ia" size={16} className="icon--inline" /> Compléter
+          <Savarin size={18} occupe={enCours !== null} className="icon--inline" /> Compléter
         </button>
       )}
     </div>

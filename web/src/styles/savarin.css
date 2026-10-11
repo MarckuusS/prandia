@@ -1,0 +1,119 @@
+/*
+ * Savarin anime (components/Savarin.tsx). Les etats sont portes par
+ * `data-etat` (repos, touche, reflechit, fini) et les gestes du repos par
+ * `data-idle`.
+ *
+ * Chaque animation d'etat ATTEND le glissement que lance le composant
+ * (`animation-delay` egal a sa duree) et tient sa premiere image pendant ce
+ * temps (`backwards`). Sans cela, la premiere image n'est pas lisible au
+ * moment du changement, et le passage saute.
+ */
+
+.savarin {
+  display: inline-flex;
+  flex: none;
+  line-height: 0;
+}
+
+.savarin svg {
+  overflow: visible;
+}
+
+.savarin .tout { transform-origin: 12px 18px; }
+.savarin .lunettes { transform-origin: 12px 8px; }
+.savarin .oeil,
+.savarin .pupille { transform-box: fill-box; transform-origin: center; }
+.savarin .mg,
+.savarin .md { transform-origin: 12px 16px; }
+.savarin .bulle { transform-box: fill-box; transform-origin: center; opacity: 0; }
+.savarin .ampoule { transform-origin: 21.4px 3.6px; opacity: 0; color: var(--color-ia-ink); }
+.savarin .rayons { opacity: 0; color: var(--color-ia-ink); }
+.savarin .ferme-g { opacity: 0; }
+
+/* ---------- Repos : il respire, et ses gestes viennent au hasard ---------- */
+.savarin[data-etat='repos'] .tout { animation: savarin-respire 3.6s ease-in-out 0.3s infinite alternate backwards; }
+.savarin[data-idle='cligne'] .oeil { animation: savarin-cligne 0.22s ease-in-out; }
+.savarin[data-idle='double'] .oeil { animation: savarin-cligne 0.2s ease-in-out 2; }
+.savarin[data-idle='gauche'] .regard { animation: savarin-coup-g 1.5s cubic-bezier(0.4, 0, 0.2, 1); }
+.savarin[data-idle='droite'] .regard { animation: savarin-coup-d 1.5s cubic-bezier(0.4, 0, 0.2, 1); }
+.savarin[data-idle='fretille'] .mg { animation: savarin-fr-g 0.55s ease-in-out; }
+.savarin[data-idle='fretille'] .md { animation: savarin-fr-d 0.55s ease-in-out 0.06s; }
+
+/* ---------- Toucher : il s'ecrase, rebondit, la moustache suit ---------- */
+.savarin[data-etat='touche'] .tout { animation: savarin-ecrase 0.55s ease-out 0.1s backwards; }
+.savarin[data-etat='touche'] .pupille { animation: savarin-surprise 0.55s ease-out 0.1s backwards; }
+.savarin[data-etat='touche'] .mg { animation: savarin-flic-g 0.55s ease-out 0.18s backwards; }
+.savarin[data-etat='touche'] .md { animation: savarin-flic-d 0.55s ease-out 0.18s backwards; }
+
+/* ---------- Reflexion : tete penchee, lunettes remontees, points ---------- */
+.savarin[data-etat='reflechit'] .tout { animation: savarin-penche 2.4s ease-in-out 0.35s infinite backwards; }
+.savarin[data-etat='reflechit'] .regard { animation: savarin-pense 2.4s ease-in-out 0.35s infinite backwards; }
+.savarin[data-etat='reflechit'] .lunettes { animation: savarin-remonte 2.4s ease-in-out 0.35s infinite backwards; }
+.savarin[data-etat='reflechit'] .mg { animation: savarin-lisse-g 1.2s ease-in-out 0.35s infinite backwards; }
+.savarin[data-etat='reflechit'] .md { animation: savarin-lisse-d 1.2s ease-in-out 0.95s infinite backwards; }
+.savarin[data-etat='reflechit'] .bulle { animation: savarin-bulle 1.2s ease-in-out 0.35s infinite backwards; }
+.savarin[data-etat='reflechit'] .b2 { animation-delay: 0.55s; }
+.savarin[data-etat='reflechit'] .b3 { animation-delay: 0.75s; }
+
+/* ---------- Fin : saut, clin d'oeil, sourire, ampoule ---------- */
+.savarin[data-etat='fini'] .tout { animation: savarin-hourra 0.9s ease-out 0.25s backwards; }
+.savarin[data-etat='fini'] .oeil-g { animation: savarin-cache 1.8s ease-in-out 0.25s both; }
+.savarin[data-etat='fini'] .ferme-g { animation: savarin-montre 1.8s ease-in-out 0.25s both; }
+.savarin[data-etat='fini'] .mg { animation: savarin-sourire-g 1.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.25s both; }
+.savarin[data-etat='fini'] .md { animation: savarin-sourire-d 1.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.25s both; }
+.savarin[data-etat='fini'] .ampoule { animation: savarin-ampoule 1.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both; }
+.savarin[data-etat='fini'] .rayons { animation: savarin-rayons 1.8s ease-out 0.2s both; }
+
+@keyframes savarin-respire { from { transform: scale(1, 1); } to { transform: scale(1.012, 1.025); } }
+@keyframes savarin-cligne { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(0.1); } }
+@keyframes savarin-coup-g { 0%, 100% { transform: translateX(0); } 18%, 72% { transform: translateX(-0.95px); } }
+@keyframes savarin-coup-d { 0%, 100% { transform: translateX(0); } 18%, 72% { transform: translateX(0.95px); } }
+@keyframes savarin-fr-g { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(6deg); } 55% { transform: rotate(-3deg); } 80% { transform: rotate(1.5deg); } }
+@keyframes savarin-fr-d { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-6deg); } 55% { transform: rotate(3deg); } 80% { transform: rotate(-1.5deg); } }
+@keyframes savarin-ecrase {
+  0% { transform: translateY(0) scale(1, 1); }
+  18% { transform: translateY(0.4px) scale(1.07, 0.9); }
+  45% { transform: translateY(-1.5px) scale(0.95, 1.08); }
+  68% { transform: translateY(0.25px) scale(1.02, 0.98); }
+  100% { transform: translateY(0) scale(1, 1); }
+}
+@keyframes savarin-surprise { 0%, 15% { transform: scale(1); } 45% { transform: scale(1.7); } 100% { transform: scale(1); } }
+@keyframes savarin-flic-g { 0% { transform: rotate(0); } 40% { transform: rotate(10deg); } 70% { transform: rotate(-3deg); } 100% { transform: rotate(0); } }
+@keyframes savarin-flic-d { 0% { transform: rotate(0); } 40% { transform: rotate(-10deg); } 70% { transform: rotate(3deg); } 100% { transform: rotate(0); } }
+@keyframes savarin-penche { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(-5.5deg); } }
+@keyframes savarin-pense {
+  0%, 38% { transform: translate(-0.9px, -0.9px); }
+  50%, 88% { transform: translate(0.9px, -0.9px); }
+  100% { transform: translate(-0.9px, -0.9px); }
+}
+@keyframes savarin-remonte {
+  0%, 58% { transform: translateY(0); }
+  74% { transform: translateY(0.75px); }
+  81% { transform: translateY(-0.4px); }
+  90%, 100% { transform: translateY(0); }
+}
+@keyframes savarin-lisse-g { 0%, 100% { transform: rotate(0); } 30% { transform: rotate(5deg); } 60% { transform: rotate(1deg); } }
+@keyframes savarin-lisse-d { 0%, 100% { transform: rotate(0); } 30% { transform: rotate(-5deg); } 60% { transform: rotate(-1deg); } }
+@keyframes savarin-bulle { 0%, 100% { opacity: 0.15; transform: scale(0.6); } 40% { opacity: 1; transform: scale(1); } }
+@keyframes savarin-hourra {
+  0% { transform: translateY(0) scale(1, 1); }
+  14% { transform: translateY(0.35px) scale(1.05, 0.92); }
+  38% { transform: translateY(-1.6px) scale(0.96, 1.06); }
+  58% { transform: translateY(0.25px) scale(1.02, 0.98); }
+  74%, 100% { transform: translateY(0) scale(1, 1); }
+}
+@keyframes savarin-cache { 0%, 18% { opacity: 1; } 24%, 72% { opacity: 0; } 78%, 100% { opacity: 1; } }
+@keyframes savarin-montre { 0%, 18% { opacity: 0; } 24%, 72% { opacity: 1; } 78%, 100% { opacity: 0; } }
+@keyframes savarin-sourire-g { 0% { transform: rotate(0); } 22%, 72% { transform: rotate(9deg); } 100% { transform: rotate(0); } }
+@keyframes savarin-sourire-d { 0% { transform: rotate(0); } 22%, 72% { transform: rotate(-9deg); } 100% { transform: rotate(0); } }
+@keyframes savarin-ampoule {
+  0% { opacity: 0; transform: scale(0.2); }
+  20% { opacity: 1; transform: scale(1); }
+  78% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.85); }
+}
+@keyframes savarin-rayons { 0%, 22% { opacity: 0; } 32% { opacity: 1; } 42% { opacity: 0.35; } 52% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .savarin * { animation: none !important; }
+}

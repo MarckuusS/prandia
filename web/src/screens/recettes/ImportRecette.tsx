@@ -33,6 +33,7 @@ import {
 
 import { NumberField, SwitchField, TextField } from '../../components/Field.js'
 import { QuantityField } from '../../components/QuantityField.js'
+import { Savarin } from '../../components/Savarin.js'
 import { Sheet } from '../../components/Sheet.js'
 import { LoadingRows } from '../../components/States.js'
 import { useToast } from '../../components/Toast.js'
@@ -453,7 +454,7 @@ function Revue({ proposition, onRecommencer }: { readonly proposition: ImportPro
       </p>
       {iaEtat !== null && (
         <p className={`import-ia${iaEtat === 'erreur' ? ' import-ia--erreur' : ''}`} role="status">
-          <Icon name="ui-ia" size={16} className="icon--inline" />{' '}
+          <Savarin size={18} occupe={iaEtat === 'attente'} className="icon--inline" />{' '}
           {iaEtat === 'attente'
             ? 'L’IA estime les quantités qui ne sont pas données en poids…'
             : iaEtat === 'erreur'

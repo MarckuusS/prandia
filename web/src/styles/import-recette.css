@@ -194,14 +194,14 @@
   color: var(--color-text-secondary);
 }
 
-/* L'estimation par l'IA : une ligne sous le bilan, l'etincelle en tete. */
+/* L'estimation par l'IA : une ligne sous le bilan, Savarin en tete. */
 .import-ia {
   margin: 0 0 var(--space-md);
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
 }
 
-.import-ia .icon {
+.import-ia .savarin {
   color: var(--color-ia-ink);
 }
 

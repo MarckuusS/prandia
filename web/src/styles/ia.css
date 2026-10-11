@@ -4,7 +4,7 @@
  * Global, importe par main.tsx : deux ecrans s'en servent.
  */
 
-/* Un cadre jaune, la valeur en italique, l'etincelle doree au coin, jusqu'a
+/* Un cadre jaune, la valeur en italique, les lunettes de Savarin dorees au coin, jusqu'a
  * l'enregistrement. Le cadre DEBORDE du champ (marge negative = rembourrage +
  * trait) : le contenu ne bouge pas quand il apparait, et un trait transparent
  * tient sa place quand il n'y est pas.
@@ -30,7 +30,7 @@
   font-style: italic;
 }
 
-/* L'etincelle d'un champ, sur la ligne de son libelle, au bord droit. */
+/* Savarin sur un champ, sur la ligne de son libelle, au bord droit. */
 .champ-ia > .champ-ia__demander {
   position: absolute;
   top: calc(var(--space-sm) - 6px);
@@ -57,23 +57,6 @@
 
 .champ-ia__demander:disabled {
   cursor: default;
-}
-
-/* Celle qui attend sa reponse bat doucement ; les autres restent fixes. */
-.champ-ia__attente {
-  animation: ia-attente 1s ease-in-out infinite;
-}
-
-@keyframes ia-attente {
-  50% {
-    opacity: 0.3;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .champ-ia__attente {
-    animation: none;
-  }
 }
 
 /* Le simple marqueur (revue d'import), qui n'est pas un bouton. */

@@ -53,8 +53,9 @@ L'application web n'utilise **plus d'émoji**. 67 icônes les remplacent : **10 
 - **`paths/ui.ts` et `paths/rayons.ts` sont GÉNÉRÉS.** Ne pas éditer à la main : ajouter la ligne
   dans `MAP` (`scripts/import-lucide.mjs`) puis relancer le script, qui récupère, filtre et réécrit.
 - **`paths/overrides.ts` ne l'est pas** : c'est là que vivent les dessins maison, fusionnés **en
-  dernier** dans `registry.ts` donc prioritaires. Deux tests protègent le mécanisme. **Une seule
-  entrée**, le pot de yaourt à opercule, qu'aucun des deux jeux n'a. Avant d'en ajouter une
+  dernier** dans `registry.ts` donc prioritaires. Deux tests protègent le mécanisme. **Deux
+  entrées** : le pot de yaourt à opercule, qu'aucun des deux jeux n'a, et Savarin (`ui-ia`,
+  voir plus bas). Avant d'en ajouter une
   autre, chercher chez Tabler : un dessin qu'on n'a pas à maintenir vaut mieux qu'un dessin
   qu'on maintient mal.
 - Pas de dépendance `lucide-react` : le paquet laisse chaque icône poser ses propres attributs, ce
@@ -1107,8 +1108,8 @@ jamais à la main, et que Claude connaît pour un produit courant. Ce qui ne se 
 - **Une réponse à laquelle il manque une clé ne doit rien casser** : `propositionPour` teste
   les TYPES, pas `!== null`. Vu en essai : un `undefined` posé dans le rayon a fait tomber toute
   l'application au premier `.trim()`.
-- **L'IA porte les étincelles** (`ui-ia`, Lucide `sparkles`), pas le logo de Claude : ni Lucide
-  ni Tabler ne dessinent la marque d'Anthropic (vérifié), et c'est le signe que tout le monde lit.
+- **L'IA porte Savarin** (`ui-ia`), ses lunettes à moustache : voir la section qui lui est
+  consacrée. Il a remplacé l'étincelle de Lucide, restée en repli dans `MAP`.
 - Pas de détour par les catégories d'OpenFoodFacts pour le rayon : elles disent "en:yogurts",
   pas le nom que la personne a donné à son rayon.
 
@@ -1172,6 +1173,42 @@ aussi. Ce qui ne se devine pas :
   chaque question à Claude a fait déborder le quota.
 - Les recherches à la frappe (`LIKE '%x%'` plus FTS) lisent encore la cuisine entière, environ
   4 000 lignes par recherche : supportable, à surveiller.
+
+## Savarin, la signature de l'IA : `icons/savarin.ts`, `components/Savarin.tsx`
+
+Des lunettes rondes et une moustache en guidon, au trait, nommé en clin d'œil à Brillat-Savarin.
+Il marque tout ce que fait l'IA : bouton IA du pied de la fiche, coin des champs qu'elle sait
+remplir, bandeau de complétion de la bibliothèque, revue d'une recette importée. Ce qui ne se
+devine pas :
+
+- **Les mascottes en couleur ont été écartées, à raison** : neuf essais (olive, chouette, radis,
+  avocat, œuf...) détonnaient tous dans une interface au trait, sans émoji, à deux polices.
+  Un pictogramme au trait, de la même grammaire que les autres icônes, y trouve sa place.
+- **Le tracé est écrit UNE fois** (`icons/savarin.ts`) et lu deux fois : l'icône fixe
+  (`paths/overrides.ts`) et le composant animé. La moitié droite de la moustache est le miroir
+  CALCULÉ de la gauche. La moustache est PLEINE (seul aplat avec les pupilles) : au trait, ses deux
+  bords se confondaient dès 20 px. Elle ne touche jamais les verres, même quand elle frémit.
+- **Quatre états, une seule prop** (`occupe`) : repos (il respire ; cligne, jette un œil ou
+  lisse sa moustache AU HASARD toutes les deux à cinq secondes, une boucle fixe se remarquait),
+  toucher (il s'écrase puis rebondit, la moustache suit avec un temps de retard), réflexion (tête
+  penchée, regard en l'air, il remonte ses lunettes ; en grand, trois points montent), fin (saut,
+  clin d'œil, moustache qui sourit ; en grand, une ampoule s'allume à la place des points). Points
+  et ampoule seulement à partir de 40 px : plus petits, ce sont des taches.
+- **Les passages ne doivent pas sauter.** La réflexion commence tête penchée alors que le rebond
+  finit tête droite : enchaînées telles quelles, la tête sautait (signalé). `poser` relève la
+  pose de chaque pièce AVANT de changer d'état et la fait glisser vers la première image du suivant
+  (Web Animations, 0,1 à 0,35 s). Chaque animation CSS d'état attend ce glissement
+  (`animation-delay`) en tenant sa première image (`backwards`) : c'est ce qui rend cette image
+  lisible au moment du changement. Vérifié : pendant le glissement, la tête garde sa pose au lieu
+  de sauter à -3°.
+- **Pas de `<use>` pour les pièces animées** : les sélecteurs d'état n'atteignent pas l'arbre
+  cloné d'un `<use>`, et rien n'y bougeait (vu en maquette).
+- **Pas de reflet sur les verres** : deux petits traits obliques au-dessus des yeux, qui glissaient,
+  se lisaient comme des sourcils qui gigotent (signalé). Retirés.
+- En mode "réduire les animations", il reste immobile (CSS et glissements coupés). Le bouton qui
+  le porte annonce `aria-busy` pendant la question ; Savarin lui-même est décoratif.
+- **Pas encore sur l'Accueil** : en grand, il ouvrira l'assistant conversationnel, pas encore
+  construit. Un toucher qui ne mène nulle part n'a pas sa place.
 
 ## Common commands
 

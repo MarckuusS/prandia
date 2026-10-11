@@ -47,6 +47,7 @@ import {
 } from '../../components/Field.js'
 import { BoutonScan } from '../../components/ScanEtiquette.js'
 import { ConfirmDialog } from '../../components/Sheet.js'
+import { Savarin } from '../../components/Savarin.js'
 import { SourceBadge } from '../../components/States.js'
 import { useToast } from '../../components/Toast.js'
 import { Icon } from '../../icons/index.js'
@@ -192,9 +193,9 @@ export function IngredientForm({ ingredient }: IngredientFormProps) {
   }
 
   /**
-   * `tout` (bouton IA du pied) : les champs VIDES seulement. Un champ (son
-   * etincelle) : la valeur proposee REMPLACE la sienne, c'est ce qu'on demande
-   * en touchant l'etincelle d'un champ deja rempli.
+   * `tout` (bouton IA du pied) : les champs VIDES seulement. Un champ (ses
+   * lunettes de Savarin) : la valeur proposee REMPLACE la sienne, c'est ce
+   * qu'on demande en les touchant sur un champ deja rempli.
    */
   const demanderIA = async (cible: ChampIA | 'tout') => {
     const nom = draft.name.trim()
@@ -203,7 +204,7 @@ export function IngredientForm({ ingredient }: IngredientFormProps) {
       return
     }
     if (cible === 'tout' && !Object.values(champsACompleter(draft)).some(Boolean)) {
-      toast.show({ message: 'Tout est déjà rempli. Touche l’étincelle d’un champ pour le redemander à l’IA.' })
+      toast.show({ message: 'Tout est déjà rempli. Touche les lunettes d’un champ pour le redemander à l’IA.' })
       return
     }
     setIaEnCours(cible)
@@ -499,9 +500,12 @@ export function IngredientForm({ ingredient }: IngredientFormProps) {
               onClick={() => void demanderIA('tout')}
               disabled={iaEnCours !== null}
               aria-label="Compléter avec l’IA"
+              aria-busy={iaEnCours === 'tout'}
             >
-              <Icon name="ui-ia" size={16} className="icon--inline" />
-              {iaEnCours === 'tout' ? 'IA…' : 'IA'}
+              {/* Savarin sursaute au toucher, reflechit pendant la question et
+                  fait son clin d'oeil a la reponse (components/Savarin.tsx). */}
+              <Savarin size={18} occupe={iaEnCours === 'tout'} className="icon--inline" />
+              IA
             </button>
           )}
           <p className="ing-actions__state" aria-live="polite">
@@ -956,12 +960,12 @@ interface ChampIAProps {
   /** L'IA vient de le remplir : cadre jaune et valeur en italique. */
   readonly rempli: boolean
   readonly enCours: ChampIA | 'tout' | null
-  /** Sans cle posee, ni etincelle ni cadre : ils n'auraient qu'une erreur a offrir. */
+  /** Sans cle posee, ni Savarin ni cadre : ils n'auraient qu'une erreur a offrir. */
   readonly disponible: boolean
   readonly onDemander: (champ: ChampIA) => void
 }
 
-/** L'etincelle d'un champ : le (re)demander a l'IA. Doree quand l'IA l'a rempli. */
+/** Les lunettes de Savarin sur un champ : le (re)demander a l'IA. Dorees quand l'IA l'a rempli. */
 function BoutonChampIA({ champ, rempli, enCours, onDemander }: ChampIAProps) {
   const libelle = LIBELLES_IA[champ]
   return (
@@ -971,18 +975,15 @@ function BoutonChampIA({ champ, rempli, enCours, onDemander }: ChampIAProps) {
       onClick={() => onDemander(champ)}
       disabled={enCours !== null}
       aria-label={rempli ? `Rempli par l’IA. Redemander ${libelle}` : `Demander ${libelle} à l’IA`}
+      aria-busy={enCours === champ}
     >
-      {enCours === champ ? (
-        <Icon name="ui-ia" size={16} className="champ-ia__attente" />
-      ) : (
-        <Icon name="ui-ia" size={16} />
-      )}
+      <Savarin size={18} occupe={enCours === champ} />
     </button>
   )
 }
 
 /**
- * Un champ que l'IA sait remplir : son etincelle au coin, sur la ligne du
+ * Un champ que l'IA sait remplir : Savarin au coin, sur la ligne du
  * libelle, et le cadre tant que l'IA vient de le remplir. Le cadre DEBORDE du
  * champ (marge negative egale au rembourrage) au lieu de le decaler : la
  * fiche ne saute pas quand il apparait.
@@ -1011,7 +1012,7 @@ function SeasonPicker({
   onChange: (months: readonly number[]) => void
   /** Remplie par l'IA : la grille des mois prend le cadre jaune. */
   rempli?: boolean
-  /** L'etincelle, sur la ligne du titre : posee sur la grille, elle couvrirait decembre. */
+  /** Savarin, sur la ligne du titre : pose sur la grille, il couvrirait decembre. */
   action?: ReactNode
 }) {
   const selected = new Set(months)

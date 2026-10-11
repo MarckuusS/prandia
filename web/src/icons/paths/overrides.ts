@@ -20,11 +20,22 @@
  * `resolve.test.ts` parcourent le registre fusionne et s'appliquent donc ici.
  */
 
+import { SAVARIN_FIXE } from '../savarin.js'
+
 export const OVERRIDE_PATHS = {
+  /*
+   * Savarin, la signature de l'IA : lunettes rondes et moustache en guidon.
+   * Remplace l'etincelle de Lucide (`sparkles`), restee en repli dans `MAP`.
+   * Le trace vit dans icons/savarin.ts, partage avec la version animee
+   * (components/Savarin.tsx). Seule entorse au "trait seul" : la moustache
+   * est pleine, en `currentColor`, sans quoi elle se brouillait des 20 px.
+   */
+  'ui-ia': SAVARIN_FIXE,
+
   /*
    * Pot de yaourt, opercule souleve.
    *
-   * SEULE entree de ce fichier. La brique de lait qui s'y trouvait a ete
+   * Seul dessin d'OBJET de ce fichier (Savarin est un personnage). La brique de lait qui s'y trouvait a ete
    * retiree : Tabler en a une, mieux dessinee que la mienne, et un dessin qu'on
    * n'a pas a maintenir vaut mieux qu'un dessin qu'on maintient mal.
    *
