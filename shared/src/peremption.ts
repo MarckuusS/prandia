@@ -160,6 +160,24 @@ export function parseExpiryText(texte: string, aujourdhui: string): ExpiryReadin
   return null
 }
 
+/**
+ * L'annee d'une date BIEN FORMEE mais hors de portee, ou `null`.
+ *
+ * "30.06.2081" lu sur une boite de thon (constate le 2026-10-11) : le jour et
+ * le mois existent, l'annee est a cinquante-cinq ans. La lecture s'est
+ * trompee d'un chiffre, et "date non reconnue" ne disait pas lequel : l'ecran
+ * nomme desormais l'annee a corriger.
+ */
+export function implausibleExpiryYear(texte: string, aujourdhui: string): number | null {
+  const annee = Number(aujourdhui.slice(0, 4))
+  for (const m of normalizeName(texte).matchAll(JOUR_MOIS_ANNEE)) {
+    const a = anneePleine(m[3] ?? '')
+    if (a >= annee - 2 && a <= annee + 15) continue
+    if (dateValide(a, Number(m[2]), Number(m[1])) !== null) return a
+  }
+  return null
+}
+
 /** 'AAAA-MM-JJ' en "14/10/25", la forme qu'on lit et qu'on tape. */
 export function formatExpiryInput(iso: string): string {
   const [a, m, j] = iso.split('-')

@@ -21,7 +21,13 @@
  */
 
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
-import { addDaysIso, formatExpiryInput, parseExpiryText, todayLocalIsoDate } from '@prandia/shared'
+import {
+  addDaysIso,
+  formatExpiryInput,
+  implausibleExpiryYear,
+  parseExpiryText,
+  todayLocalIsoDate,
+} from '@prandia/shared'
 
 import { Icon } from '../icons/index.js'
 import '../styles/peremption.css'
@@ -119,6 +125,7 @@ export function DatePeremption({
   }
 
   const nonLu = texte.trim() !== '' && value === null
+  const anneeDouteuse = nonLu ? implausibleExpiryYear(texte, aujourdhui) : null
   const lecture =
     value === null
       ? null
@@ -173,7 +180,9 @@ export function DatePeremption({
         aria-live="polite"
       >
         {nonLu
-          ? 'Date non reconnue. Écris-la comme sur l’emballage, par exemple 14/10/26.'
+          ? anneeDouteuse !== null
+            ? `L’année ${anneeDouteuse} paraît mal lue : corrige-la dans le champ.`
+            : 'Date non reconnue. Écris-la comme sur l’emballage, par exemple 14/10/26.'
           : (lecture ?? `${hint === undefined ? '' : `${hint} `}Touche le jour, ou tape la date.`)}
       </p>
 

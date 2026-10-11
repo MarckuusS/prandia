@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { addDaysIso, formatExpiryInput, parseExpiryText } from './peremption.js'
+import { addDaysIso, formatExpiryInput, implausibleExpiryYear, parseExpiryText } from './peremption.js'
 
 /** Un dimanche d'octobre : assez loin de janvier pour que l'annee se devine. */
 const AUJOURDHUI = '2026-10-11'
@@ -67,6 +67,20 @@ describe('parseExpiryText, sans annee', () => {
 
   it('renvoie a l’an prochain une date de plus de deux mois en arriere', () => {
     expect(lire('05/01')?.date).toBe('2027-01-05')
+  })
+})
+
+describe('implausibleExpiryYear', () => {
+  it('nomme l’annee d’une date bien formee mais hors de portee', () => {
+    // Lu par l'iPhone sur une boite de thon : un chiffre de travers.
+    expect(lire('30.06.2081')).toBeNull()
+    expect(implausibleExpiryYear('30.06.2081', AUJOURDHUI)).toBe(2081)
+  })
+
+  it('se tait sur une date plausible, inexistante ou absente', () => {
+    expect(implausibleExpiryYear('30.06.2028', AUJOURDHUI)).toBeNull()
+    expect(implausibleExpiryYear('31.02.2081', AUJOURDHUI)).toBeNull()
+    expect(implausibleExpiryYear('Thon à l’huile', AUJOURDHUI)).toBeNull()
   })
 })
 
