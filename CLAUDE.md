@@ -949,7 +949,11 @@ le prix. Ce qui ne se devine pas :
   `parseExpiryText` en retrouve la date : formes numériques, mois en lettres, "141026" tapé d'un
   trait (seulement si le texte n'est que chiffres, sinon un numéro de lot passerait), date au mois
   pour une DDM ("03/2027" vaut fin mars), date sans année. La plus tardive gagne, la date de
-  fabrication imprimée à côté la précède toujours. Clavier texte et non numérique : rien ne garantit
+  fabrication imprimée à côté la précède toujours. **iOS CACHE la lecture** : depuis iOS 17, "Scanner
+  le texte" est dans le sous-menu "Remplissage automatique" du menu du champ (deuxième toucher dans
+  le champ), et rien ne l'annonce ; "touche le champ, puis Scanner le texte" n'ouvrait que le
+  clavier. Le chemin exact est écrit dans un dépliant sous le champ, avec le réglage Texte en
+  direct. Clavier texte et non numérique : rien ne garantit
   que la lecture soit offerte sur le pavé. Pas de lecteur de texte embarqué : celui d'Apple lit mieux
   les dates imprimées en points, et ne pèse rien.
 - **Trois semaines de jours à toucher** sous le champ : le cas courant (un produit frais) tient en
@@ -960,12 +964,20 @@ le prix. Ce qui ne se devine pas :
   d'un article du chariot (elle part avec le lot à la validation), et en rangeant, par une ligne
   "Ajouter la date lue sur l'emballage" sous les trois places, qui ouvre une feuille réduite à la
   date (`frigo/DateLotSheet.tsx`).
+- **UN PRIX N'EST JAMAIS PRÉ-REMPLI, IL EST PROPOSÉ.** Il l'a été au chariot (ton dernier prix,
+  sinon la médiane d'Open Prices) : en magasin on touche "Ajouter" sans relire, et un prix d'il y a
+  trois semaines partait pour celui du jour. Taux d'erreur jugé élevé par l'utilisateur. Le champ
+  reste vide, sans exemple de montant en gris (un "2,49" se lisait comme saisi) ; un bouton
+  "Reprendre 1,89 €" le remplit d'un geste et disparaît. Même règle au frigo et au scan de la
+  bibliothèque, où la médiane s'enregistrait comme un prix payé.
 - **Le prix proposé est TON dernier prix** (`lastPaidPrice`, `pricing.ts`), dans le magasin des
-  courses en cours d'abord, sinon le dernier payé ailleurs, ramené à la quantité. Il passe avant la
-  médiane d'Open Prices, qu'il remplace si elle est arrivée la première, jamais une saisie. Sa
-  source est toujours écrite ("Ton dernier prix chez Lidl, le 20 septembre"). Au frigo il ne remplit
-  le formulaire qu'au toucher du bouton qui l'annonce : ranger ne doit pas relever un prix lu nulle
-  part. Le magasin suit : celui des courses en cours, sinon celui du dernier prix.
+  courses en cours d'abord, sinon le dernier payé ailleurs, ramené à la quantité ; à défaut la
+  médiane d'Open Prices. Sa source est toujours écrite ("Ton dernier prix chez Lidl, le 20
+  septembre"). Le magasin suit : celui des courses en cours, sinon celui du dernier prix.
+- **Un lot se saisit tel qu'il est écrit** ("+ Saisir un lot", feuille de l'article du chariot) :
+  nombre d'unités et contenance d'une unité, la masse se calcule (12 × 125 g, soit 1,5 kg). La
+  contenance devient la PIÈCE de la ligne : elle se relit "12 pièces (125 g)", et une fiche créée à
+  la validation garde 125 g pour pièce, pas le paquet.
 - **Le poids du paquet scanné au frigo se perdait** : `toCreatePayload` (`ScanToStock.tsx`)
   oubliait `pieceWeightG`, et le lot partait à 100 g quand OpenFoodFacts disait 500.
 

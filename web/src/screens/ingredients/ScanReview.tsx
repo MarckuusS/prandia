@@ -112,35 +112,31 @@ export function ScanReview({ ean, product, known, onAdded, onDismiss }: ScanRevi
   const [draft, setDraft] = useState<Draft>(() => draftFrom(product))
   const [macrosOpen, setMacrosOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  /** Vrai tant que le prix affiche est la suggestion et non une saisie. */
-  const [priceIsSuggested, setPriceIsSuggested] = useState(false)
-
   const observed = useObservedPrice(known ? null : ean)
 
   /*
-   * Pre-remplissage a l'arrivee des prix constates.
-   *
-   * On n'ecrase JAMAIS une saisie : la condition ne pose la suggestion que sur
-   * des champs restes vides. Quelqu'un qui tape son prix pendant que la
-   * requete est en vol ne doit pas le voir remplace sous ses doigts.
-   *
    * La contenance d'Open Prices sert de repli quand la fiche OpenFoodFacts n'a
-   * pas de quantite — le cas du Nutella, vide chez OFF et connu a 400 g ici.
+   * pas de quantite, le cas du Nutella, vide chez OFF et connu a 400 g ici.
+   *
+   * LE PRIX, LUI, N'EST JAMAIS PRE-REMPLI : la mediane d'Open Prices est
+   * PROPOSEE sous le champ, et ne part qu'au toucher de "Reprendre". Pre-
+   * remplie, elle s'enregistrait comme un prix paye sans que personne l'ait
+   * lue sur une etiquette (meme regle qu'au chariot, 2026-10-11).
    */
   const suggestion = observed.data
   const [applied, setApplied] = useState<string | null>(null)
   if (suggestion?.found === true && applied !== ean) {
     setApplied(ean)
-    setDraft((previous) => {
-      const quantity = previous.priceQuantityG ?? previous.pieceWeightG ?? suggestion.quantityG ?? null
-      return {
-        ...previous,
-        pieceWeightG: previous.pieceWeightG ?? suggestion.quantityG ?? null,
-        priceEur: previous.priceEur ?? (suggestion.priceEur ? Number(suggestion.priceEur) : null),
-        priceQuantityG: quantity,
-      }
-    })
-    setPriceIsSuggested(true)
+    setDraft((previous) => ({ ...previous, pieceWeightG: previous.pieceWeightG ?? suggestion.quantityG ?? null }))
+  }
+  const reprendreMediane = () => {
+    if (suggestion?.found !== true || suggestion.priceEur === undefined) return
+    const prix = Number(suggestion.priceEur)
+    setDraft((previous) => ({
+      ...previous,
+      priceEur: prix,
+      priceQuantityG: previous.priceQuantityG ?? previous.pieceWeightG ?? suggestion.quantityG ?? null,
+    }))
   }
 
   const create = useCreateIngredient()
@@ -266,10 +262,7 @@ export function ScanReview({ ean, product, known, onAdded, onDismiss }: ScanRevi
         <NumberField
           label="Montant"
           value={draft.priceEur}
-          onChange={(v) => {
-            set('priceEur', v)
-            setPriceIsSuggested(false)
-          }}
+          onChange={(v) => set('priceEur', v)}
           suffix="€"
           emptyOnZero
           {...(priceState === 'partial' && draft.priceEur === null
@@ -298,19 +291,23 @@ export function ScanReview({ ean, product, known, onAdded, onDismiss }: ScanRevi
         {/* La provenance et l'etendue accompagnent TOUJOURS le montant : une
             mediane presentee seule passerait pour un prix officiel, alors que
             l'ecart entre releves depasse souvent l'euro. */}
-        {suggestion?.found === true && priceIsSuggested && (
+        {suggestion?.found === true && (
           <p className="scan-review__suggested">
             Prix médian relevé par Open Prices : <strong>{formatEuros(suggestion.priceEur ?? null)}</strong>
             {suggestion.minEur && suggestion.maxEur && (
               <>
-                {' '}
-                — observé entre {formatEuros(suggestion.minEur)} et {formatEuros(suggestion.maxEur)} sur{' '}
+                , observé entre {formatEuros(suggestion.minEur)} et {formatEuros(suggestion.maxEur)} sur{' '}
                 {suggestion.sampleCount} relevé{suggestion.sampleCount > 1 ? 's' : ''}
-                {suggestion.lastSeen ? `, le plus récent du ${formatDay(suggestion.lastSeen)}` : ''}.
+                {suggestion.lastSeen ? `, le plus récent du ${formatDay(suggestion.lastSeen)}` : ''}
               </>
-            )}{' '}
-            Corrige-le si tu as le vrai prix sous les yeux.
+            )}
+            .
           </p>
+        )}
+        {suggestion?.found === true && suggestion.priceEur !== undefined && draft.priceEur === null && (
+          <button type="button" className="chip-toggle" onClick={reprendreMediane}>
+            Reprendre {formatEuros(suggestion.priceEur)}
+          </button>
         )}
 
         {suggestion?.found === false && (

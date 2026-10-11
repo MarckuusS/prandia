@@ -16,7 +16,7 @@
  */
 
 import { useState } from 'react'
-import { formatEuros } from '@prandia/shared'
+import { formatEuros, formatGrams } from '@prandia/shared'
 
 import { DatePeremption } from '../../components/DatePeremption.js'
 import { NumberField, TextField } from '../../components/Field.js'
@@ -41,13 +41,11 @@ export interface SessionItemFieldsProps {
   /** Prix constates pour ce code-barres. Absent sur un article sans code. */
   readonly observed?: ObservedPrice | undefined
   readonly observedPending?: boolean | undefined
-  /** Vrai tant que le montant affiche vient d'Open Prices et non d'une saisie. */
-  readonly priceIsSuggested?: boolean | undefined
   /**
-   * D'ou vient le montant quand c'est TON dernier prix ("Ton dernier prix chez
-   * Lidl, le 20 sept."), tant qu'on n'y a pas touche ; sinon `null`.
+   * Le prix a PROPOSER, et d'ou il vient ("Ton dernier prix chez Lidl, le 20
+   * septembre."). Jamais ecrit dans le champ sans un toucher.
    */
-  readonly ownPriceSource?: string | null | undefined
+  readonly proposition?: { readonly priceEur: number; readonly source: string } | null | undefined
   readonly error?: string | null | undefined
   readonly disabled?: boolean | undefined
 }
@@ -58,14 +56,32 @@ export function SessionItemFields({
   onList,
   observed,
   observedPending,
-  priceIsSuggested,
-  ownPriceSource,
+  proposition,
   error,
   disabled,
 }: SessionItemFieldsProps) {
   const set = <K extends keyof ItemDraft>(key: K, value: ItemDraft[K]) =>
     onChange({ ...draft, [key]: value })
   const [dateOuverte, setDateOuverte] = useState(draft.expiryDate !== null)
+
+  const [lotOuvert, setLotOuvert] = useState(false)
+  const [lot, setLot] = useState<{ nombre: number | null; contenanceG: number | null }>({
+    nombre: null,
+    contenanceG: null,
+  })
+  /** Ouvert sur ce qu'on sait deja : la piece connue, et combien la quantite en fait. */
+  const ouvrirLot = () => {
+    const piece = draft.pieceWeightG
+    const nombre =
+      piece !== null && piece > 0 && draft.quantityG !== null ? Math.max(1, Math.round(draft.quantityG / piece)) : null
+    setLot({ nombre, contenanceG: piece })
+    setLotOuvert(true)
+  }
+  const changerLot = (suite: { nombre: number | null; contenanceG: number | null }) => {
+    setLot(suite)
+    if (suite.nombre === null || suite.nombre <= 0 || suite.contenanceG === null || suite.contenanceG <= 0) return
+    onChange({ ...draft, quantityG: suite.nombre * suite.contenanceG, pieceWeightG: suite.contenanceG })
+  }
 
   return (
     <>
@@ -110,6 +126,44 @@ export function SessionItemFields({
         hint="Ce qui entre vraiment dans le chariot : deux paquets, c'est deux fois la contenance."
       />
 
+      {/* UN LOT SANS CALCUL : "12 x 125 g" se saisit tel qu'on le lit sur
+          l'emballage, et la masse se calcule. La contenance d'une unite devient
+          la PIECE de la ligne : la quantite se relit "12 pieces (125 g)", et au
+          frigo "1 pot" vaut 125 g, pas le paquet entier. */}
+      {lotOuvert ? (
+        <div className="session-lot">
+          <NumberField
+            label="Nombre d’unités"
+            value={lot.nombre}
+            onChange={(nombre) => changerLot({ ...lot, nombre })}
+            min={1}
+            decimals={0}
+            placeholder="12"
+            disabled={disabled}
+          />
+          <QuantityField
+            label="Contenance d’une unité"
+            value={lot.contenanceG}
+            onChange={(contenanceG) => changerLot({ ...lot, contenanceG })}
+            disabled={disabled}
+          />
+          {lot.nombre !== null && lot.nombre > 0 && lot.contenanceG !== null && lot.contenanceG > 0 && (
+            <p className="field__hint">
+              {lot.nombre} × {formatGrams(lot.contenanceG)}, soit {formatGrams(lot.nombre * lot.contenanceG)}.
+            </p>
+          )}
+        </div>
+      ) : (
+        <button
+          type="button"
+          className="button button--ghost session-lot__ouvrir"
+          onClick={ouvrirLot}
+          disabled={disabled}
+        >
+          + Saisir un lot (ex. 12 × 125 g)
+        </button>
+      )}
+
       <NumberField
         label="Prix payé"
         value={draft.priceEur}
@@ -118,15 +172,27 @@ export function SessionItemFields({
         min={0}
         decimals={2}
         emptyOnZero
-        placeholder="2,49"
+        // Pas d'exemple de montant : "2,49" en gris dans un champ vide se
+        // lisait comme un prix deja saisi, la ou l'on veut justement qu'un
+        // champ vide se voie vide.
         disabled={disabled}
-        hint="Facultatif — sans lui l'article compte dans le chariot, mais pas dans le total."
+        hint="Facultatif : sans lui, l’article compte dans le chariot mais pas dans le total."
       />
 
-      {ownPriceSource !== null && ownPriceSource !== undefined && (
-        <p className="session-observed">
-          {ownPriceSource} Il est pré-rempli : corrige-le si l’étiquette dit autre chose.
-        </p>
+      {/* Un prix PROPOSE, jamais pre-rempli : il ne part qu'au toucher. Le
+          bouton disparait une fois le champ rempli, de la main ou par lui. */}
+      {proposition !== null && proposition !== undefined && draft.priceEur === null && (
+        <div className="session-proposition">
+          <button
+            type="button"
+            className="chip-toggle"
+            onClick={() => set('priceEur', proposition.priceEur)}
+            disabled={disabled}
+          >
+            Reprendre {formatEuros(proposition.priceEur.toFixed(2))}
+          </button>
+          <span className="session-proposition__source">{proposition.source}</span>
+        </div>
       )}
 
       {observedPending === true && <p className="field__hint">Recherche des prix constatés…</p>}
@@ -140,13 +206,12 @@ export function SessionItemFields({
           <strong>{formatEuros(observed.priceEur ?? null)}</strong>
           {observed.minEur && observed.maxEur && (
             <>
-              {' '}
-              — observé entre {formatEuros(observed.minEur)} et {formatEuros(observed.maxEur)} sur{' '}
+              , observé entre {formatEuros(observed.minEur)} et {formatEuros(observed.maxEur)} sur{' '}
               {observed.sampleCount} relevé{observed.sampleCount > 1 ? 's' : ''}
               {observed.lastSeen ? `, le plus récent du ${formatDay(observed.lastSeen)}` : ''}
             </>
           )}
-          .{priceIsSuggested === true && ' Il est pré-rempli : corrige-le si l’étiquette dit autre chose.'}
+          .
         </p>
       )}
 

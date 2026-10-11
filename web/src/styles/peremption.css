@@ -21,6 +21,34 @@
   color: var(--color-text-secondary);
 }
 
+/* Le chemin vers la lecture de texte d'iOS, replie. */
+.peremption__aide {
+  margin-top: var(--space-xs);
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+}
+
+.peremption__aide summary {
+  min-height: var(--control-height-md);
+  padding: var(--space-xs) 0;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-primary-text);
+  cursor: pointer;
+}
+
+.peremption__aide ol {
+  padding-left: var(--space-xl);
+  margin: var(--space-xs) 0;
+}
+
+.peremption__aide li + li {
+  margin-top: var(--space-xs);
+}
+
+.peremption__aide p {
+  margin: var(--space-xs) 0 0;
+}
+
 /* Trois semaines en une rangee qui defile. `none` et non `contain` : comme
    toute zone qui defile ici, elle ne doit ni rebondir ni entrainer la page. */
 .peremption__jours {

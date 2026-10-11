@@ -436,6 +436,38 @@
   margin: 0 0 var(--space-md);
 }
 
+/* Le lot : un geste secondaire sous la quantite, puis deux champs. */
+.button.session-lot__ouvrir {
+  align-self: flex-start;
+  min-height: var(--control-height-md);
+  padding: 0;
+  font-size: var(--font-size-md);
+}
+
+.session-lot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: var(--color-surface-hover);
+  border-radius: var(--radius-md);
+}
+
+/* Le prix propose : un bouton a toucher, et sa source a cote. */
+.session-proposition {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs) var(--space-md);
+  align-items: center;
+}
+
+.session-proposition__source {
+  flex: 1;
+  min-width: 10rem;
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+}
+
 .session-observed {
   margin: 0;
   font-size: var(--font-size-md);

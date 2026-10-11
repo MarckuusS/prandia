@@ -174,9 +174,27 @@ export function DatePeremption({
       >
         {nonLu
           ? 'Date non reconnue. Écris-la comme sur l’emballage, par exemple 14/10/26.'
-          : (lecture ??
-            `${hint === undefined ? '' : `${hint} `}Touche le jour, ou fais lire la date par l’iPhone : touche le champ, puis Scanner le texte.`)}
+          : (lecture ?? `${hint === undefined ? '' : `${hint} `}Touche le jour, ou tape la date.`)}
       </p>
+
+      {/* LE CHEMIN EXACT, parce qu'iOS le cache. Depuis iOS 17, "Scanner le
+          texte" n'est plus dans le menu du champ mais dans son sous-menu
+          "Remplissage automatique", et rien ne l'annonce : "touche le champ,
+          puis Scanner le texte" ouvrait le clavier, et l'on s'arretait la
+          (constate sur iPhone le 2026-10-11). Replie : on le lit une fois. */}
+      <details className="peremption__aide">
+        <summary>Faire lire la date par l’iPhone</summary>
+        <ol>
+          <li>Touche le champ, puis touche-le une seconde fois : un petit menu apparaît.</li>
+          <li>
+            Choisis <strong>Remplissage automatique</strong>, puis <strong>Scanner le texte</strong>.
+          </li>
+          <li>Vise la date sur l’emballage, puis touche Insérer.</li>
+        </ol>
+        <p>
+          Si l’option manque : Réglages, Général, Langue et région, active Texte en direct.
+        </p>
+      </details>
 
       <div className="peremption__jours" role="group" aria-label="Les trois semaines à venir">
         {jours.map((j) => (

@@ -222,9 +222,7 @@ function ScannedItemSheet({
   )
   const [error, setError] = useState<string | null>(null)
   const [productApplied, setProductApplied] = useState(known !== undefined)
-  const [priceApplied, setPriceApplied] = useState(false)
-  /** Vrai des que l'utilisateur touche au montant : la suggestion se tait alors. */
-  const [priceTouched, setPriceTouched] = useState(false)
+  const [contenanceAppliquee, setContenanceAppliquee] = useState(false)
 
   /*
    * Pre-remplissage PENDANT le rendu, et non dans un effet.
@@ -242,26 +240,29 @@ function ScannedItemSheet({
     setDraft((previous) => mergeProduct(previous, product))
   }
 
-  const suggestion = observed.data
-  if (suggestion?.found === true && !priceApplied) {
-    setPriceApplied(true)
+  // La contenance d'Open Prices sert de repli quand OpenFoodFacts n'en a pas,
+  // le cas du Nutella, vide chez OFF et connu a 400 g ici. Le PRIX, lui, n'est
+  // jamais ecrit ici : voir plus bas.
+  const observe = observed.data
+  if (observe?.found === true && !contenanceAppliquee) {
+    setContenanceAppliquee(true)
     setDraft((previous) => ({
       ...previous,
-      priceEur:
-        previous.priceEur ??
-        (suggestion.priceEur === undefined ? null : Number(suggestion.priceEur)),
-      // La contenance d'Open Prices sert de repli quand OpenFoodFacts n'en a
-      // pas — le cas du Nutella, vide chez OFF et connu a 400 g ici.
-      quantityG: previous.quantityG ?? suggestion.quantityG ?? null,
-      pieceWeightG: previous.pieceWeightG ?? suggestion.quantityG ?? null,
+      quantityG: previous.quantityG ?? observe.quantityG ?? null,
+      pieceWeightG: previous.pieceWeightG ?? observe.quantityG ?? null,
     }))
   }
 
   /*
-   * TON DERNIER PRIX passe AVANT la mediane d'Open Prices : dans le meme
-   * magasin d'abord, sinon le dernier paye ailleurs (`lastPaidPrice`). Il
-   * remplace la mediane si elle est arrivee la premiere, jamais une saisie.
-   * Un produit jamais achete n'a pas d'historique : la mediane reste.
+   * LE PRIX EST PROPOSE, JAMAIS PRE-REMPLI. Il l'a ete (ton dernier prix,
+   * sinon la mediane d'Open Prices) : en magasin, on touche "Ajouter" sans
+   * relire, et un prix d'il y a trois semaines partait pour celui du jour.
+   * Taux d'erreur constate par l'utilisateur le 2026-10-11. Le champ reste
+   * vide ; un bouton "Reprendre 1,89 EUR" le remplit d'un geste.
+   *
+   * TON DERNIER PRIX passe avant la mediane : dans le meme magasin d'abord,
+   * sinon le dernier paye ailleurs (`lastPaidPrice`). Un produit jamais achete
+   * n'a pas d'historique : la mediane d'Open Prices est proposee a sa place.
    */
   const historique = usePriceHistory(draft.ingredientId)
   const magasin = useShoppingSession().data?.session?.store ?? null
@@ -269,15 +270,14 @@ function ScannedItemSheet({
     historique.data === undefined
       ? null
       : lastPaidPrice(historique.data.items, { store: magasin, quantityG: draft.quantityG })
-  const [ownApplied, setOwnApplied] = useState(false)
-  if (dernier !== null && !ownApplied && !priceTouched) {
-    setOwnApplied(true)
-    setDraft((previous) => ({ ...previous, priceEur: Number(dernier.priceEur) }))
-  }
-  const ownPriceSource = ownApplied && !priceTouched && dernier !== null ? formatPriceSource(dernier) : null
+  const proposition =
+    dernier !== null
+      ? { priceEur: Number(dernier.priceEur), source: formatPriceSource(dernier) }
+      : observe?.found === true && observe.priceEur !== undefined
+        ? { priceEur: Number(observe.priceEur), source: 'Prix médian relevé par Open Prices.' }
+        : null
 
   const change = (next: ItemDraft) => {
-    if (next.priceEur !== draft.priceEur) setPriceTouched(true)
     if (error !== null) setError(null)
     setDraft(next)
   }
@@ -350,8 +350,7 @@ function ScannedItemSheet({
         onList={onList}
         observed={observed.data}
         observedPending={observed.isFetching}
-        priceIsSuggested={priceApplied && !ownApplied && !priceTouched && draft.priceEur !== null}
-        ownPriceSource={ownPriceSource}
+        proposition={proposition}
         error={error ?? add.error?.message}
         disabled={add.isPending}
       />
