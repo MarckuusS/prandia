@@ -17,7 +17,7 @@ function fauxDepots(rayons: string[]) {
   const reglages = new Map<string, unknown>()
   const ecrits: Array<[number, unknown]> = []
   const repos = {
-    rayons: { list: async () => rayons.map((name, i) => ({ id: i + 1, name })) },
+    rayons: { noms: async () => rayons },
     settings: {
       getJson: async (cle: string, defaut: unknown) => reglages.get(cle) ?? defaut,
       setJson: async (cle: string, valeur: unknown) => void reglages.set(cle, valeur),

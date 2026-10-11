@@ -102,11 +102,13 @@ export class PantryRepo {
   private async retenirLieu(lotId: number, storage: StorageSpace): Promise<void> {
     await this.db
       .prepare(
+        // Par la cle primaire ; `+household_id` empeche SQLite de lui
+        // preferer l'index du foyer (voir IngredientRepo.byIds).
         `UPDATE ingredient SET usual_storage = ?
-          WHERE household_id = ?
-            AND id = (SELECT ingredient_id FROM pantry_stock WHERE id = ? AND household_id = ?)`,
+          WHERE id = (SELECT ingredient_id FROM pantry_stock WHERE id = ? AND household_id = ?)
+            AND +household_id = ?`,
       )
-      .bind(storage, this.householdId, lotId, this.householdId)
+      .bind(storage, lotId, this.householdId, this.householdId)
       .run()
   }
 

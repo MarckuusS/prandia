@@ -1147,6 +1147,32 @@ poids ni prix. Ce qui ne se devine pas :
 - **La session vit en JSON dans `app_setting`** : aucune migration. Un chariot enregistré avant
   ce champ n'a pas `aPeser`, et `load()` le ramène à `false`.
 
+## Le quota de lectures de D1 (plan gratuit)
+
+**Le 2026-10-11, le compte a dépassé les 5 millions de lignes lues par jour** que le plan
+gratuit de D1 accorde au COMPTE entier : toute requête qui lit une ligne échoue alors jusqu'à
+minuit UTC (2 h à Paris l'été), l'application comprise, et `wrangler d1 migrations apply`
+aussi. Ce qui ne se devine pas :
+
+- **Le coupable se trouve en une commande** : `npx wrangler d1 insights prandia --timePeriod 1d
+  --sort-by reads --json` (elle passe par l'API d'analyse, pas par D1, et marche même quota
+  dépassé). Ce jour-là : la liste des rayons, 7,2 millions de lignes à elle seule.
+- **Le catalogue est DUPLIQUÉ par cuisine** (4 231 fiches par foyer, CIQUAL compris) : toute
+  requête sur `ingredient` qui parcourt la cuisine lit 4 000 lignes pour en rendre une. Chaque
+  filtre doit avoir son index qui COMMENCE par `household_id` puis la colonne d'égalité
+  (`ix_ingredient_household_category`, `ix_ingredient_household_name`, migration 0021 ;
+  `ix_ingredient_personal` pour la bibliothèque). Vérifier par `EXPLAIN QUERY PLAN` sur la base
+  locale : "SEARCH ... USING INDEX ... (household_id=? AND ...)".
+- **Une recherche par identifiant passe par la clé primaire, et il faut parfois l'imposer** :
+  `WHERE id IN (...) AND +household_id = ?`. Sans le "+", SQLite préférait l'index du foyer et
+  lisait toute la cuisine (`byIds`, 4 231 lignes pour 13 fiches). Le filtre du foyer reste, il
+  s'applique aux seules lignes trouvées.
+- **Rien de lourd dans un chemin appelé souvent.** La liste des rayons COMPTE les ingrédients de
+  chaque rayon ; la complétion par l'IA ne veut que leurs NOMS (`rayons.noms()`). L'appeler à
+  chaque question à Claude a fait déborder le quota.
+- Les recherches à la frappe (`LIKE '%x%'` plus FTS) lisent encore la cuisine entière, environ
+  4 000 lignes par recherche : supportable, à surveiller.
+
 ## Common commands
 
 ```bash

@@ -43,7 +43,9 @@ export async function demanderCompletion(
   options: OptionsCompletion = {},
 ): Promise<Map<number, Completion>> {
   if (produits.length === 0) return new Map()
-  const rayons = (await repos.rayons.list()).map((r) => r.name)
+  // Les noms seuls : compter les ingredients de chaque rayon lisait des
+  // dizaines de milliers de lignes par question (migration 0021).
+  const rayons = await repos.rayons.noms()
   const cle = cleClaude(env)
   await compterAppel(repos)
   const lot = produits.slice(0, COMPLETION_MAX)

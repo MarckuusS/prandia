@@ -35,6 +35,23 @@ export class RayonRepo {
   ) {}
 
   /**
+   * Les NOMS des rayons racine, et rien d'autre : ce que la completion par
+   * l'IA leur demande. `list()` compte en plus les ingredients de chaque
+   * rayon, ce qu'une question a Claude n'a pas a payer (voir 0021).
+   */
+  async noms(): Promise<string[]> {
+    const { results } = await this.db
+      .prepare(
+        `SELECT name FROM category_definition
+          WHERE household_id = ? AND parent_id IS NULL
+          ORDER BY ordinal, name`,
+      )
+      .bind(this.householdId)
+      .all<{ name: string }>()
+    return results.map((r) => r.name)
+  }
+
+  /**
    * Les rayons racine, avec leur effectif.
    *
    * Le compte est une sous-requete bornee au foyer : sans le `household_id`

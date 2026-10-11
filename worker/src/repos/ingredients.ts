@@ -114,10 +114,14 @@ export class IngredientRepo {
     const unique = [...new Set(ids)]
     if (unique.length === 0) return new Map()
 
+    // `+household_id` : le "+" interdit a SQLite de prendre l'index du foyer.
+    // Il le preferait a la cle primaire et lisait les 4 231 fiches de la
+    // cuisine pour en rendre une poignee (`wrangler d1 insights`, 0021). Le
+    // filtre sur le foyer reste, il s'applique aux seules lignes trouvees.
     const { results } = await this.db
       .prepare(
         `SELECT ${INGREDIENT_COLUMNS} FROM ingredient
-         WHERE id IN (${placeholders(unique.length)}) AND household_id = ?`,
+         WHERE id IN (${placeholders(unique.length)}) AND +household_id = ?`,
       )
       .bind(...unique, this.householdId)
       .all<IngredientRow>()
