@@ -37,6 +37,7 @@ import {
   type Criterion,
   type ScanKind,
   type ScanResult,
+  type TicketReading,
   type WeighIn,
 } from '@prandia/shared'
 
@@ -1365,6 +1366,23 @@ export const useUpdateSessionItem = () =>
 
 export const useRemoveSessionItem = () =>
   useSessionMutation<string>((id) => del<SessionState>(`/api/courses/items/${id}`))
+
+/**
+ * Lire une photo du ticket contre le chariot. Rien n'est ecrit : la reponse
+ * est une proposition (shared/src/ticket.ts), relue avant d'etre appliquee.
+ */
+export const lireTicket = (image: Blob): Promise<TicketReading> =>
+  apiFetch<TicketReading>('/api/courses/ticket', {
+    method: 'POST',
+    headers: { 'content-type': image.type || 'image/jpeg' },
+    body: image,
+  })
+
+/** Ce que la personne a retenu du ticket, en une seule ecriture de la session. */
+export const useAppliquerTicket = () =>
+  useSessionMutation<
+    ReadonlyArray<{ id: string; quantityG: number | null; priceEur: string | null }>
+  >((lignes) => patch<SessionState>('/api/courses/items', { lignes }))
 
 export const useAbandonSession = () =>
   useSessionMutation<void>(() => del<SessionState>('/api/courses'))

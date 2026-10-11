@@ -20,7 +20,7 @@ import { formatEuros, formatGrams } from '@prandia/shared'
 
 import { DatePeremption } from '../../components/DatePeremption.js'
 import { BoutonScan } from '../../components/ScanEtiquette.js'
-import { NumberField, TextField } from '../../components/Field.js'
+import { NumberField, SwitchField, TextField } from '../../components/Field.js'
 import { QuantityField } from '../../components/QuantityField.js'
 import { Icon } from '../../icons/index.js'
 import type { ObservedPrice } from '../../lib/queries.js'
@@ -138,17 +138,32 @@ export function SessionItemFields({
         autoComplete="off"
       />
 
+      {/* Le vrac pese par le caissier n'a pas de poids au rayon : le ticket le
+          donnera ("Lire le ticket", avant Terminer). La quantite devient
+          facultative, une estimation ("3 tomates") reste possible. */}
+      <SwitchField
+        label="À peser en caisse"
+        checked={draft.aPeser}
+        onChange={(aPeser) => set('aPeser', aPeser)}
+        hint="Le poids et le prix seront lus sur le ticket."
+        disabled={disabled}
+      />
+
       {/* Piece-aware : « 1 pièce (400 g) » quand la contenance est connue,
           grammes sinon. Le champ reste modifiable en toutes circonstances —
           800 g de boeuf au rayon boucherie ne se deduisent d'aucun code. */}
       <QuantityField
-        label="Quantité"
+        label={draft.aPeser ? 'Quantité, si tu veux l’estimer' : 'Quantité'}
         value={draft.quantityG}
         onChange={(quantityG) => set('quantityG', quantityG)}
         pieceWeightG={draft.pieceWeightG}
-        required
+        required={!draft.aPeser}
         disabled={disabled}
-        hint="Ce qui entre vraiment dans le chariot : deux paquets, c'est deux fois la contenance."
+        hint={
+          draft.aPeser
+            ? 'Facultatif : le ticket donnera le poids exact.'
+            : "Ce qui entre vraiment dans le chariot : deux paquets, c'est deux fois la contenance."
+        }
       />
 
       {/* UN LOT SANS CALCUL : "12 x 125 g" se saisit tel qu'on le lit sur

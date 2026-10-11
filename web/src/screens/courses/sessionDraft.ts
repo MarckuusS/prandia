@@ -49,6 +49,8 @@ export interface ItemDraft {
   readonly pieceWeightG: number | null
   /** Date lue sur l'emballage, facultative ; sinon elle se donne en rangeant. */
   readonly expiryDate: string | null
+  /** Vrac pese en caisse : poids et prix viendront du ticket. */
+  readonly aPeser: boolean
 }
 
 export const emptyDraft = (ean: string | null): ItemDraft => ({
@@ -61,6 +63,7 @@ export const emptyDraft = (ean: string | null): ItemDraft => ({
   macros: null,
   pieceWeightG: null,
   expiryDate: null,
+  aPeser: false,
 })
 
 /** Les macros connues, sous la forme attendue par la creation differee. */
@@ -107,6 +110,7 @@ export function draftFromProduct(ean: string | null, product: Ingredient): ItemD
     macros: ingredientId === null ? macrosOf(product) : null,
     pieceWeightG: product.pieceWeightG,
     expiryDate: null,
+    aPeser: false,
   }
 }
 
@@ -127,6 +131,7 @@ export function mergeProduct(draft: ItemDraft, product: Ingredient): ItemDraft {
     quantityG: draft.quantityG ?? found.quantityG,
     priceEur: draft.priceEur ?? found.priceEur,
     expiryDate: draft.expiryDate,
+    aPeser: draft.aPeser,
   }
 }
 
@@ -142,6 +147,7 @@ export function draftFromItem(item: SessionItem): ItemDraft {
     macros: item.macros,
     pieceWeightG: item.pieceWeightG,
     expiryDate: item.expiryDate,
+    aPeser: item.aPeser,
   }
 }
 
@@ -161,7 +167,10 @@ export function readDraft(draft: ItemDraft): DraftReading {
   const name = draft.name.trim()
   if (name === '') return { kind: 'invalid', message: 'Donne un nom à cet article.' }
 
-  if (draft.quantityG === null || draft.quantityG <= 0) {
+  // Un article "a peser en caisse" n'a pas encore de poids : le ticket le
+  // donnera. Une quantite estimee ("3 tomates") reste permise.
+  const quantite = draft.quantityG !== null && draft.quantityG > 0 ? draft.quantityG : null
+  if (quantite === null && !draft.aPeser) {
     return { kind: 'invalid', message: 'Indique la quantité mise dans le chariot.' }
   }
 
@@ -172,7 +181,8 @@ export function readDraft(draft: ItemDraft): DraftReading {
       ean: draft.ean,
       name,
       brand: brand === '' ? null : brand,
-      quantityG: draft.quantityG,
+      quantityG: quantite,
+      aPeser: draft.aPeser,
       // Chaine decimale et non flottant : 0,1 € n'a pas de representation
       // binaire exacte et l'ecart s'accumule sur trente articles. Le serveur
       // refuse d'ailleurs tout ce qui ne ressemble pas a « 2.49 ».

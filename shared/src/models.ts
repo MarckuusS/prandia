@@ -585,7 +585,15 @@ export const sessionItemSchema = z.object({
   ean: z.string().nullable().default(null),
   name: nonEmpty('Donne un nom à cet article.'),
   brand: z.string().nullable().default(null),
-  quantityG: z.number().positive('La quantité doit être strictement positive.'),
+  /**
+   * `null` SEULEMENT pour un article "a peser en caisse" (`aPeser`) : le vrac
+   * pese par le caissier n'a pas de poids avant le ticket. La regle est tenue
+   * par la route (un objet zod a raffinement ne se laisse plus `omit`), et la
+   * validation des courses refuse un article encore sans poids.
+   */
+  quantityG: z.number().positive('La quantité doit être strictement positive.').nullable(),
+  /** Vrac pese en caisse : poids et prix viendront du ticket (shared/src/ticket.ts). */
+  aPeser: z.boolean().default(false),
   /** `null` quand on n'a pas note le prix — l'article compte quand meme. */
   priceEur: positiveDecimalString.nullable().default(null),
   /**

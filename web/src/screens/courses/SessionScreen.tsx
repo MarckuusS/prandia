@@ -42,6 +42,7 @@ import {
 import { CartLineSheet } from './CartLineSheet.js'
 import type { ScanRequest } from '../../lib/useScanParam.js'
 import { ScanToCart } from './ScanToCart.js'
+import { TicketCaisse } from './TicketCaisse.js'
 import '../../styles/session.css'
 
 export interface SessionScreenProps {
@@ -69,6 +70,7 @@ export function SessionScreen({ state, session, onShowList, onCommitted, scan, o
 
   const [dialog, setDialog] = useState<'none' | 'commit' | 'abandon'>('none')
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [ticketOuvert, setTicketOuvert] = useState(false)
   // Ouvert quand le chariot est vide : au depart, ce qui reste a prendre EST
   // la liste entiere et c'est la seule chose utile a l'ecran. Passe le premier
   // article, le chariot reprend la vedette.
@@ -101,6 +103,8 @@ export function SessionScreen({ state, session, onShowList, onCommitted, scan, o
   // que l'annonce doit dire.
   const unknownCount = items.filter((item) => item.ingredientId === null).length
   const pricedCount = items.filter((item) => item.priceEur !== null).length
+  // Le vrac pese en caisse attend son poids : la validation le refuserait.
+  const aPeserCount = items.filter((item) => item.quantityG === null).length
 
   const editing = editingId === null ? null : (items.find((item) => item.id === editingId) ?? null)
   const cart = [...items].reverse()
@@ -138,6 +142,16 @@ export function SessionScreen({ state, session, onShowList, onCommitted, scan, o
         <div className="session-head__actions">
           <button type="button" className="button button--secondary" onClick={onShowList}>
             Ma liste
+          </button>
+          {/* Entre la liste et Terminer, dans l'ordre des gestes : on passe en
+              caisse, on lit le ticket, on termine. */}
+          <button
+            type="button"
+            className="button button--secondary"
+            onClick={() => setTicketOuvert(true)}
+            disabled={items.length === 0}
+          >
+            Lire le ticket
           </button>
           <button
             type="button"
@@ -202,7 +216,14 @@ export function SessionScreen({ state, session, onShowList, onCommitted, scan, o
                     <span className="session-line__body">
                       <span className="session-line__name">{item.name}</span>
                       <span className="session-line__meta">
-                        <span>{formatGrams(item.quantityG)}</span>
+                        {item.quantityG === null ? (
+                          <span className="badge badge--a-peser">à peser en caisse</span>
+                        ) : (
+                          <span>
+                            {item.aPeser ? 'environ ' : ''}
+                            {formatGrams(item.quantityG)}
+                          </span>
+                        )}
                         {item.brand !== null && <span>{item.brand}</span>}
                         {onList && <span className="badge badge--pantry">
                             <Icon name="ui-check" size={12} /> sur ta liste
@@ -241,6 +262,8 @@ export function SessionScreen({ state, session, onShowList, onCommitted, scan, o
         onScanTraite={onScanTraite}
       />
 
+      {ticketOuvert && <TicketCaisse items={items} onClose={() => setTicketOuvert(false)} />}
+
       {editing !== null && (
         <CartLineSheet
           item={editing}
@@ -258,12 +281,25 @@ export function SessionScreen({ state, session, onShowList, onCommitted, scan, o
       <ConfirmDialog
         open={dialog === 'commit'}
         title="Terminer les courses ?"
-        message={commitAnnounce(items.length, unknownCount, pricedCount, session.store)}
-        confirmLabel="Tout enregistrer"
+        message={
+          aPeserCount > 0
+            ? `${aPeserCount === 1 ? 'Un article attend encore son poids' : `${aPeserCount} articles attendent encore leur poids`} : le ticket le donne. Tu peux aussi le saisir dans l’article.`
+            : commitAnnounce(items.length, unknownCount, pricedCount, session.store)
+        }
+        // Le serveur refuserait la validation : le bouton mene la ou elle se
+        // debloque, plutot qu'a une erreur.
+        confirmLabel={aPeserCount > 0 ? 'Lire le ticket' : 'Tout enregistrer'}
         busy={commit.isPending}
         error={commit.error?.message}
         onClose={() => setDialog('none')}
-        onConfirm={() => commit.mutate(undefined, { onSuccess: onCommitted })}
+        onConfirm={() => {
+          if (aPeserCount > 0) {
+            setDialog('none')
+            setTicketOuvert(true)
+            return
+          }
+          commit.mutate(undefined, { onSuccess: onCommitted })
+        }}
       />
 
       <ConfirmDialog

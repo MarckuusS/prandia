@@ -1035,6 +1035,41 @@ payé au frigo) et de la quantité (chariot, qui remplit le lot). Ce qui ne se d
   `POST /api/rangement`), par lots de 40 (`RANGEMENT_MAX`) : la liste des rayons n'est payée
   qu'une fois par lot.
 
+## Le vrac pesé en caisse et le ticket : `shared/src/ticket.ts`, `screens/courses/TicketCaisse.tsx`
+
+Dans bien des magasins, fruits et légumes se pèsent à la caisse : au rayon, l'article n'a ni
+poids ni prix. Ce qui ne se devine pas :
+
+- **Un article du chariot peut être "à peser en caisse"** (`aPeser`, interrupteur de sa feuille).
+  Son `quantityG` peut alors valoir `null` : c'est la SEULE exception à "une quantité strictement
+  positive", tenue par `articleValide` côté serveur (un schéma zod raffiné ne se laisse plus
+  `omit`). Une quantité estimée reste permise et se relit "environ 600 g".
+- **La validation refuse un article sans poids** (422 `a_peser`, qui nomme les articles) : un lot
+  du frigo a toujours une masse. L'écran le dit avant, et le bouton de la confirmation devient
+  "Lire le ticket" au lieu de mener à l'erreur.
+- **Le ticket se lit CONTRE le chariot** : le modèle reçoit la photo ET la liste numérotée des
+  articles (`ticketQuestion`), et rend pour chacun la ligne qui le paie. Transcrire le ticket puis
+  rapprocher nous-mêmes obligerait à deviner que "COURG VRAC" est la courgette, ce que le modèle
+  fait mieux. `interpretTicket` revérifie : numéro existant, un article servi une seule fois,
+  poids de 1 g à 20 kg, prix d'un centime à 500 euros, remises (montants négatifs) ignorées.
+- **`POST /api/courses/ticket` n'écrit rien.** La feuille montre ce qui changerait, cases cochées
+  par défaut, avec le libellé du ticket et l'écart à un prix déjà saisi. Seules les cases
+  retenues partent, en UNE écriture (`PATCH /api/courses/items`) : trente PUT depuis un magasin au
+  réseau incertain, ce sont trente occasions d'échouer à moitié. Un article qui reçoit son poids
+  n'est plus "à peser".
+- **Le poids du ticket ne remplace que celui d'un article à peser** : un pack de yaourts de
+  1,5 kg ne prend pas le "1" de sa ligne. Le prix se pose s'il manque ou s'il diffère : sur ce qui
+  a été payé, c'est le ticket qui fait foi.
+- **Un long ticket se lit en plusieurs photos** ("Lire la suite") : `mergeTicketReadings` ajoute
+  la nouvelle lecture sans servir deux fois un article, et ce qui a été décoché le reste.
+- **La photo passe par l'appareil du téléphone** (`<input type="file" accept="image/*">`, sans
+  `capture`), pas par le viseur : un ticket est long et imprimé petit. Réduite à 2 400 px dans le
+  navigateur (`imageOrientation: 'from-image'`, JPEG 0,85), plafonnée à 6 Mo côté serveur, type lu
+  dans les octets (`worker/src/imageRecue.ts`, partagé avec `/api/scan`). Elle compte dans le
+  plafond quotidien comme une lecture.
+- **La session vit en JSON dans `app_setting`** : aucune migration. Un chariot enregistré avant
+  ce champ n'a pas `aPeser`, et `load()` le ramène à `false`.
+
 ## Common commands
 
 ```bash

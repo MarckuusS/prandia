@@ -172,8 +172,11 @@
   gap: var(--space-sm);
 }
 
+/* `auto` et non `1` : trois parts egales donnaient 109 px a chacun, et
+   "Lire le ticket" passait sur deux lignes a cote de deux boutons a moitie
+   vides. Chacun part de sa largeur de texte, le reste se partage. */
 .session-head__actions .button {
-  flex: 1;
+  flex: 1 1 auto;
 }
 
 /* ---------- Avancement sur la liste ---------- */
@@ -525,4 +528,82 @@
  */
 .session-scan {
   padding-bottom: calc(var(--space-md) + var(--scan-overlap));
+}
+
+/* ---------- A peser en caisse ----------
+ *
+ * Un contour et non un aplat : ce n'est ni une reussite ni une erreur, c'est
+ * une chose a faire plus tard ("Lire le ticket"). L'encre olive, pas la teinte,
+ * parce que ce sont des mots.
+ */
+.badge.badge--a-peser {
+  color: var(--color-primary-text);
+  background: transparent;
+  border: 1px solid currentColor;
+}
+
+/* ---------- Lire le ticket ---------- */
+
+.ticket-lignes,
+.ticket-hors {
+  margin: var(--space-sm) 0 var(--space-md);
+  padding: 0;
+  list-style: none;
+}
+
+/* Toute la ligne coche : viser une case de 24 px, ticket dans l'autre main,
+   ne marche pas. Meme raison que .shopping-row. */
+.ticket-ligne {
+  display: flex;
+  gap: var(--space-md);
+  align-items: flex-start;
+  min-height: 56px;
+  padding: var(--space-sm) 0;
+  cursor: pointer;
+}
+
+.ticket-lignes li + li .ticket-ligne {
+  border-top: 1px solid var(--color-border);
+}
+
+.ticket-ligne input {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  margin: 2px 0 0;
+  accent-color: var(--color-primary);
+}
+
+.ticket-ligne__corps {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.ticket-ligne__nom {
+  font-weight: var(--font-weight-semibold);
+}
+
+.ticket-ligne__valeurs {
+  font-variant-numeric: tabular-nums;
+}
+
+.ticket-ligne__ecart,
+.ticket-ligne__libelle {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+/* Le libelle du ticket, tel qu'imprime : c'est lui qui permet de dire "non,
+   ce n'est pas ma courgette", il ne doit pas etre coupe. */
+.ticket-ligne__libelle {
+  overflow-wrap: anywhere;
+}
+
+.ticket-hors li {
+  padding: var(--space-xs) 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
 }
