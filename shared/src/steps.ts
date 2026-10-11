@@ -159,3 +159,98 @@ export function extractDurations(text: string): number[] {
   }
   return trouvees
 }
+
+// ---------------------------------------------------------------------------
+// Lire une etape : ses gestes, ses reperes, son astuce
+// ---------------------------------------------------------------------------
+
+/**
+ * Une fin de phrase : ponctuation forte, espace, puis une MAJUSCULE.
+ *
+ * La majuscule ecarte les abreviations des recettes : "1 c. a s. de sel",
+ * "env. 5 min", "th. 6" ne sont suivies ni d'une capitale ni d'une nouvelle
+ * phrase. Pas d'assertion arriere (`(?<=`) : Safari ne la lit que depuis la
+ * 16.4, et une expression qu'il ne sait pas lire fait echouer tout le paquet,
+ * pas seulement cet ecran.
+ */
+const FIN_DE_PHRASE = /([.!?…]+["')\]]*)\s+(?=\(?\p{Lu})/gu
+
+/** Les phrases d'un texte, dans l'ordre, sans en perdre un caractere. */
+export function splitSentences(text: string): string[] {
+  return text
+    .replace(FIN_DE_PHRASE, '$1\n')
+    .split('\n')
+    .map((p) => p.trim())
+    .filter((p) => p !== '')
+}
+
+/**
+ * L'etiquette d'un conseil en tete de phrase : "Astuce :", "L'astuce du chef :",
+ * "Conseil :", "Bon a savoir :". Le deux-points est exige : "Astucieux, ce
+ * plat" ou "Conseil de saison" en debut de phrase ne sont pas des conseils.
+ */
+const ETIQUETTE_ASTUCE = /^(?:l['’]\s*)?(?:astuces?|conseils?|bon [aà] savoir)\b[^:.!?]{0,24}:\s*/i
+
+/** Une etape decoupee pour la lecture. */
+export interface StepParts {
+  /** Une phrase par geste, dans l'ordre du texte. */
+  readonly gestures: readonly string[]
+  /** Le conseil qui suit les gestes, sans son etiquette ; `null` s'il n'y en a pas. */
+  readonly tip: string | null
+}
+
+/**
+ * Les GESTES d'une etape, une phrase chacun, puis son astuce.
+ *
+ * Derivation d'affichage, comme `parseSteps` : rien n'est reecrit en base. Un
+ * site publie souvent une etape de six phrases d'un seul bloc ; a l'ecran,
+ * chaque phrase prend sa ligne, et l'on retrouve ou l'on en est d'un coup
+ * d'oeil, les mains occupees. L'astuce commence a la phrase qui porte son
+ * etiquette et court jusqu'a la fin de l'etape : un conseil se lit a part, pas
+ * comme un geste de plus.
+ */
+export function stepParts(text: string): StepParts {
+  const phrases = splitSentences(text)
+  const debut = phrases.findIndex((p) => ETIQUETTE_ASTUCE.test(p))
+  if (debut < 0) return { gestures: phrases, tip: null }
+  const tip = phrases.slice(debut).join(' ').replace(ETIQUETTE_ASTUCE, '').trim()
+  return { gestures: phrases.slice(0, debut), tip: tip === '' ? null : tip }
+}
+
+/**
+ * Durees ("25-30 min", "1 h 30", "45 secondes") et temperatures ("220 °C",
+ * "th. 6"). L'unite doit etre ECRITE, comme pour `extractDurations` : "10 cl"
+ * et "4 oeufs" restent du texte, et `(?!\p{L})` ecarte "3 mini-poivrons".
+ * Le tiret demi-cadratin d'une fourchette s'ecrit par son code, `\u2013`.
+ */
+const REPERE =
+  /\b\d+(?:[.,]\d+)?(?:\s*(?:-|\u2013|à|a|ou)\s*\d+(?:[.,]\d+)?)?\s*(?:h(?:eures?)?(?:\s*\d{1,2}(?:\s*(?:min(?:utes?)?|mn))?)?|min(?:utes?)?|mn|sec(?:ondes?)?)(?!\p{L})|\b\d{2,3}\s*°\s*C?(?!\p{L})|\bth(?:ermostat)?\.?\s*\d{1,2}(?:\s*(?:-|\/|à|a)\s*\d{1,2})?(?!\d)/giu
+
+/** Un morceau de geste : du texte, ou un repere a faire ressortir. */
+export interface CueSegment {
+  readonly text: string
+  readonly cue: boolean
+}
+
+/**
+ * Le geste en morceaux, ses REPERES (durees, temperatures) mis a part pour
+ * ressortir LA OU ILS SONT ECRITS.
+ *
+ * Ce n'est pas l'extraction que ce module refuse plus haut : rien n'est pose a
+ * cote du texte, aucun compte a rebours n'est arme, le mot reste dans sa
+ * phrase et se voit seulement mieux. En cuisine, on cherche "combien de temps"
+ * et "quel four" sans relire la phrase. Recoller les morceaux rend le texte
+ * exact.
+ */
+export function cueSegments(text: string): CueSegment[] {
+  const morceaux: CueSegment[] = []
+  let depuis = 0
+  for (const m of text.matchAll(REPERE)) {
+    const debut = m.index
+    if (debut > depuis) morceaux.push({ text: text.slice(depuis, debut), cue: false })
+    morceaux.push({ text: m[0], cue: true })
+    depuis = debut + m[0].length
+  }
+  if (depuis < text.length) morceaux.push({ text: text.slice(depuis), cue: false })
+  return morceaux
+}

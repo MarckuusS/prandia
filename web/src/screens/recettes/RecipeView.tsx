@@ -63,6 +63,7 @@ import {
   useRecipe,
 } from '../../lib/queries.js'
 import { toDraft } from './draft.js'
+import { EtapesRecette } from './EtapesRecette.js'
 import { useDerived } from './RecipeDerived.js'
 import '../../styles/recette.css'
 
@@ -371,20 +372,7 @@ function Fiche({ recipe }: { readonly recipe: Recipe }) {
       {etapes.length > 0 && (
         <div className="card">
           <h3 className="card__title">Instructions</h3>
-          <ol className="fiche-etapes">
-            {etapes.map((e, i) =>
-              e.heading ? (
-                <li key={i} className="fiche-etape fiche-etape--titre">
-                  {e.text}
-                </li>
-              ) : (
-                <li key={i} className="fiche-etape">
-                  <span className="fiche-etape__numero chiffre">{e.index}</span>
-                  <p>{e.text}</p>
-                </li>
-              ),
-            )}
-          </ol>
+          <EtapesRecette etapes={etapes} />
         </div>
       )}
 

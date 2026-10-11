@@ -279,6 +279,45 @@ describe('extractJsonLdBlocks et parseRecipeJsonLd', () => {
     expect(recette?.steps).toEqual(['Pour la pâte :', 'Mélanger.', 'Garniture :', 'Étaler.'])
   })
 
+  it('garde les puces d’une etape comme des phrases, et retire le renvoi a la page', () => {
+    // Le format exact de HelloFresh : une liste HTML par etape, des <span>
+    // dans les puces, une astuce en paragraphe, et une premiere puce qui
+    // renvoie aux quantites "indiquees a gauche" sur le site.
+    const recette = parseRecipeJsonLd([
+      JSON.stringify({
+        '@type': 'Recipe',
+        name: 'Potatoes',
+        recipeInstructions: [
+          {
+            '@type': 'HowToStep',
+            text: '<ul>\n<li>Veillez à bien respecter les quantités indiquées à gauche pour préparer votre recette !</li>\n<li><span>Préchauffez le four à 220°C.</span></li>\n<li><span>Lavez les pommes de terre. </span><span>Tamponnez-les.</span></li>\n<li><span>enfournez 25-30 min</span></li>\n</ul>',
+          },
+          {
+            '@type': 'HowToStep',
+            text: '<ul>\n<li>Faites dorer les nuggets 3-4 min.</li>\n</ul>\n<p>L&#39;ASTUCE DU CHEF : Enfournez-les avec les potatoes.</p>',
+          },
+        ],
+      }),
+    ])
+    expect(recette?.steps).toEqual([
+      // Une puce sans point en recoit un, et une capitale : sinon elle se
+      // collerait a la suivante a la lecture.
+      'Préchauffez le four à 220°C. Lavez les pommes de terre. Tamponnez-les. Enfournez 25-30 min.',
+      "Faites dorer les nuggets 3-4 min. L'ASTUCE DU CHEF : Enfournez-les avec les potatoes.",
+    ])
+  })
+
+  it('ne retire pas une quantite indiquee qui ne renvoie pas a la page', () => {
+    const recette = parseRecipeJsonLd([
+      JSON.stringify({
+        '@type': 'Recipe',
+        name: 'Vinaigrette',
+        recipeInstructions: [{ '@type': 'HowToStep', text: '<p>Mélangez la quantité indiquée de vinaigre.</p>' }],
+      }),
+    ])
+    expect(recette?.steps).toEqual(['Mélangez la quantité indiquée de vinaigre.'])
+  })
+
   it('accepte des instructions en un seul texte, et une image objet', () => {
     const recette = parseRecipeJsonLd([
       JSON.stringify({

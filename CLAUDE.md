@@ -879,6 +879,18 @@ Coller le lien d'une recette, relire, créer. Entrée en tête de "Nouvelle rece
 - **Les fiches du catalogue retenues entrent dans la bibliothèque**, et deux lignes du même
   ingrédient fusionnent (l'éditeur refuse les doublons). La photo est déposée AU MIEUX : manquée,
   la recette existe quand même et un message le dit.
+- **Les étapes se lisent geste par geste**, avec le même rendu sur la fiche et dans la revue
+  (`screens/recettes/EtapesRecette.tsx`) : la revue montre ce que la fiche montrera. Une étape de
+  plusieurs phrases devient une liste à puces, une phrase par ligne (`stepParts`, `steps.ts`) ;
+  durées et températures écrites passent en gras À LEUR PLACE (`cueSegments`), jamais posées à
+  côté du texte ; l'astuce d'un site ("L'astuce du chef :") se lit à part, dans un encadré. Rien
+  n'est stocké : `instructions` reste le texte importé, et une recette tapée en profite aussi.
+- **HelloFresh publie chaque étape en liste HTML**, un geste par puce. `texteBrut` les recollait en
+  un bloc de six phrases : `texteEtape` fait de chaque puce une phrase qui finit par un point, et
+  retire celle qui renvoie à la page ("les quantités indiquées à gauche").
+- **Une phrase ne se coupe que devant une MAJUSCULE**, ce qui épargne "c. à s.", "env. 5 min" et
+  "th. 6". Et sans assertion arrière (`(?<=`) : Safari ne la lit que depuis la 16.4, et une
+  expression qu'il ne sait pas lire fait échouer tout le paquet, pas seulement l'écran.
 - **Essayer en local demande le catalogue CIQUAL**, que la base de développement n'a pas : le
   charger depuis `scripts/_dump/d1-seed.sql` (hors bibliothèque), puis le retirer.
 

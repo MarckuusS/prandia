@@ -114,17 +114,8 @@
   color: var(--color-text-secondary);
 }
 
-/* ---------- Etapes et fin ---------- */
-
-.import-etapes {
-  margin: 0;
-  padding-left: var(--space-xl);
-  line-height: 1.5;
-}
-
-.import-etapes li + li {
-  margin-top: var(--space-xs);
-}
+/* ---------- Fin ----------
+   Les etapes ont le rendu de la fiche (`etapes.css`). */
 
 .import-fin {
   display: flex;

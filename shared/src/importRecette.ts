@@ -19,6 +19,7 @@
  */
 
 import { toGrams, PIECE_UNIT_CODE } from './units.js'
+import { splitSentences } from './steps.js'
 import { normalizeName } from './text.js'
 
 // ---------------------------------------------------------------------------
@@ -502,6 +503,43 @@ function portionsDe(valeur: unknown): number {
   return Math.min(50, Math.max(1, Number.isFinite(n) ? n : 1))
 }
 
+/**
+ * Une phrase qui renvoie a la mise en page du SITE : "les quantites indiquees
+ * a gauche". Dans Prandia il n'y a rien a gauche, la phrase est retiree.
+ * HelloFresh en ouvre chacune de ses recettes.
+ */
+const RENVOI_A_LA_PAGE = /indiqu\p{L}*\s+(?:[aà]\s+)?(?:gauche|droite|ci-contre|ci-dessus|ci-dessous)\b/iu
+
+/** Une puce sans ponctuation finale en recoit une : sinon deux gestes se colleraient. */
+const PONCTUATION_FINALE = /[.!?:;…]["')\]]*$/
+
+/** Les frontieres de puce, de paragraphe et de ligne d'une etape en HTML. */
+const BLOC_HTML = /<\/?(?:li|p|div|ul|ol)\b[^>]*>|<br\s*\/?>/i
+
+/**
+ * Le texte d'une etape, SES PUCES GARDEES COMME DES PHRASES.
+ *
+ * Certains sites (HelloFresh) publient chaque etape en liste HTML, un geste
+ * par puce. `texteBrut` aplatissait le tout en un bloc de six phrases. Chaque
+ * puce, paragraphe ou `<br>` devient ici une phrase qui commence par
+ * une capitale et finit par un point, et la lecture (`stepParts`, dans
+ * steps.ts) en refait une ligne par geste. La base ne stocke toujours que du
+ * texte, et une etape tapee a la main se lit de la meme facon.
+ */
+function texteEtape(html: string): string {
+  const morceaux = BLOC_HTML.test(html) ? html.split(BLOC_HTML) : [html]
+  const phrases = morceaux
+    .map(texteBrut)
+    .filter((m) => m !== '')
+    .map((m) => {
+      const capitale = m.charAt(0).toLocaleUpperCase('fr') + m.slice(1)
+      return PONCTUATION_FINALE.test(capitale) ? capitale : `${capitale}.`
+    })
+  return splitSentences(phrases.join(' '))
+    .filter((p) => !RENVOI_A_LA_PAGE.test(p))
+    .join(' ')
+}
+
 function etapesDe(valeur: unknown): string[] {
   if (valeur === null || valeur === undefined) return []
   if (typeof valeur === 'string') {
@@ -520,7 +558,8 @@ function etapesDe(valeur: unknown): string[] {
       const sous = etapesDe(o['itemListElement'])
       return titre === '' ? sous : [`${titre.replace(/\s*:\s*$/, '')} :`, ...sous]
     }
-    const texte = enTexte(o['text'] ?? o['name'])
+    const brut = o['text'] ?? o['name']
+    const texte = typeof brut === 'string' ? texteEtape(brut) : enTexte(brut)
     return texte === '' ? [] : [texte]
   }
   return []

@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest'
 
-import { extractDurations, isHeading, parseSteps, splitSteps, stepRanks } from './steps.js'
+import {
+  cueSegments,
+  extractDurations,
+  isHeading,
+  parseSteps,
+  splitSentences,
+  splitSteps,
+  stepParts,
+  stepRanks,
+} from './steps.js'
 
 describe('parseSteps', () => {
   it('numerote une etape par ligne', () => {
@@ -189,5 +198,98 @@ describe('splitSteps, sur des donnees reelles', () => {
   it('rend une liste vide sur du vide', () => {
     expect(splitSteps('')).toEqual([])
     expect(splitSteps('  \n\n  ')).toEqual([])
+  })
+})
+
+/** Une etape telle que HelloFresh la publie, puces recollees par l'import. */
+const HELLOFRESH =
+  'Faites chauffer une poêle à feu moyen-vif. Faites-y dorer les lardons, l’oignon et les cuisses de poulet (côté peau vers le bas) à sec 4-5 min. Disposez les cuisses de poulet dans une plaque de cuisson. Enfournez-les 28-35 min, ou jusqu’à ce qu’elles soient cuites à cœur.'
+
+describe('splitSentences', () => {
+  it('rend une phrase par geste', () => {
+    expect(splitSentences(HELLOFRESH)).toEqual([
+      'Faites chauffer une poêle à feu moyen-vif.',
+      'Faites-y dorer les lardons, l’oignon et les cuisses de poulet (côté peau vers le bas) à sec 4-5 min.',
+      'Disposez les cuisses de poulet dans une plaque de cuisson.',
+      'Enfournez-les 28-35 min, ou jusqu’à ce qu’elles soient cuites à cœur.',
+    ])
+  })
+
+  it('ne coupe pas apres une abreviation de recette', () => {
+    // Ni "c. à s.", ni "env.", ni "th." ne sont suivies d'une capitale.
+    expect(splitSentences('Ajoutez 1 c. à s. de sel et env. 5 cl d’eau, th. 6.')).toHaveLength(1)
+  })
+
+  it('ne coupe pas un nombre decimal', () => {
+    expect(splitSentences('Versez 1.5 L de bouillon.')).toEqual(['Versez 1.5 L de bouillon.'])
+  })
+
+  it('coupe apres un point d’exclamation precede d’une espace, et une majuscule accentuee', () => {
+    expect(splitSentences('Goûtez ! Égouttez. Réservez.')).toEqual(['Goûtez !', 'Égouttez.', 'Réservez.'])
+  })
+
+  it('garde une parenthese fermante avec sa phrase', () => {
+    expect(splitSentences('Salez (sans excès.) Poivrez.')).toEqual(['Salez (sans excès.)', 'Poivrez.'])
+  })
+
+  it('rend le texte exact une fois recolle', () => {
+    expect(splitSentences(HELLOFRESH).join(' ')).toBe(HELLOFRESH)
+  })
+})
+
+describe('stepParts', () => {
+  it('rend les gestes, sans astuce', () => {
+    expect(stepParts(HELLOFRESH)).toEqual({ gestures: splitSentences(HELLOFRESH), tip: null })
+  })
+
+  it('met a part l’astuce du site, sans son etiquette, jusqu’a la fin de l’etape', () => {
+    const p = stepParts(
+      'Faites dorer les nuggets 3-4 min. L’ASTUCE DU CHEF : Vous ne voulez pas d’ustensile de plus ? Enfournez-les avec les potatoes.',
+    )
+    expect(p.gestures).toEqual(['Faites dorer les nuggets 3-4 min.'])
+    expect(p.tip).toBe('Vous ne voulez pas d’ustensile de plus ? Enfournez-les avec les potatoes.')
+  })
+
+  it('reconnait les etiquettes courantes', () => {
+    expect(stepParts('Servez. Astuce : ajoutez du persil.').tip).toBe('ajoutez du persil.')
+    expect(stepParts('Servez. Conseil du chef : servez chaud.').tip).toBe('servez chaud.')
+    expect(stepParts('Servez. Bon à savoir : se congèle.').tip).toBe('se congèle.')
+  })
+
+  it('exige le deux-points : un mot en tete de phrase ne suffit pas', () => {
+    expect(stepParts('Servez. Astucieux, ce plat se réchauffe.').tip).toBeNull()
+    expect(stepParts('Servez. Conseil de saison, prenez des tomates mûres.').tip).toBeNull()
+  })
+
+  it('rend une astuce nulle quand l’etiquette est seule', () => {
+    expect(stepParts('Servez. Astuce :')).toEqual({ gestures: ['Servez.'], tip: null })
+  })
+})
+
+describe('cueSegments', () => {
+  const reperes = (texte: string) => cueSegments(texte).filter((m) => m.cue).map((m) => m.text)
+
+  it('fait ressortir durees et fourchettes', () => {
+    expect(reperes(HELLOFRESH)).toEqual(['4-5 min', '28-35 min'])
+    expect(reperes('Laissez reposer 1 h 30, puis 2 heures au frais.')).toEqual(['1 h 30', '2 heures'])
+    expect(reperes('Mixez 45 secondes puis 3 à 4 minutes.')).toEqual(['45 secondes', '3 à 4 minutes'])
+    expect(reperes(`Cuire 15${String.fromCharCode(0x2013)}20 min.`)).toEqual([`15${String.fromCharCode(0x2013)}20 min`])
+  })
+
+  it('fait ressortir temperatures et thermostat', () => {
+    expect(reperes('Préchauffez le four à 220°C (200 °C chaleur tournante).')).toEqual(['220°C', '200 °C'])
+    expect(reperes('Enfournez th. 6.')).toEqual(['th. 6'])
+  })
+
+  it('laisse en texte un nombre sans unite de temps ni de chaleur', () => {
+    // La regle de `extractDurations` : l'unite doit etre ECRITE.
+    expect(reperes('Ajoutez 10 cl de crème, 4 œufs et 1 cm de gingembre.')).toEqual([])
+    expect(reperes('Coupez 3 mini-poivrons et 2 hampes.')).toEqual([])
+  })
+
+  it('rend le texte exact une fois recolle', () => {
+    const texte = 'Préchauffez à 180 °C, puis enfournez 25-30 min.'
+    expect(cueSegments(texte).map((m) => m.text).join('')).toBe(texte)
+    expect(cueSegments('')).toEqual([])
   })
 })

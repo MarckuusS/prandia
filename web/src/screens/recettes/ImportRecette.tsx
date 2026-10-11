@@ -20,9 +20,9 @@
  * part d'elle-meme si le presse-papiers contient un lien.
  */
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
-import { formatGrams, importAmount, lienRecette, type Ingredient } from '@prandia/shared'
+import { formatGrams, importAmount, lienRecette, parseSteps, type Ingredient } from '@prandia/shared'
 
 import { NumberField, SwitchField, TextField } from '../../components/Field.js'
 import { QuantityField } from '../../components/QuantityField.js'
@@ -43,6 +43,7 @@ import {
 } from '../../lib/queries.js'
 import { lienDuPressePapiers } from '../../lib/pressePapiers.js'
 import { useRayonStyle } from '../../lib/useRayonStyle.js'
+import { EtapesRecette } from './EtapesRecette.js'
 import '../../styles/import-recette.css'
 
 export function ImportRecette() {
@@ -245,6 +246,10 @@ function Revue({ proposition, onRecommencer }: { readonly proposition: ImportPro
   const [enCours, setEnCours] = useState(false)
   const [erreur, setErreur] = useState<string | null>(null)
   const photo = usePhotoImportee(recipe.imageUrls)
+  // Le texte qui sera enregistre, et ses etapes lues comme la fiche les lira :
+  // la revue montre ce que la recette affichera une fois creee.
+  const instructions = recipe.steps.join('\n')
+  const etapes = useMemo(() => parseSteps(instructions), [instructions])
 
   const modifier = (index: number, suite: Choix) => setChoix((avant) => avant.map((c, i) => (i === index ? suite : c)))
 
@@ -270,7 +275,7 @@ function Revue({ proposition, onRecommencer }: { readonly proposition: ImportPro
       const recette = await save.mutateAsync({
         id: null,
         name: nom.trim(),
-        instructions: recipe.steps.join('\n'),
+        instructions,
         defaultPortions: Math.max(1, Math.round(portions ?? 1)),
         sourceUrl: recipe.sourceUrl,
         prepTimeMin: temps !== null && temps > 0 ? Math.round(temps) : null,
@@ -353,14 +358,10 @@ function Revue({ proposition, onRecommencer }: { readonly proposition: ImportPro
         })}
       </ul>
 
-      {recipe.steps.length > 0 && (
+      {etapes.length > 0 && (
         <div className="card">
-          <h3 className="card__title">Étapes · {recipe.steps.length}</h3>
-          <ol className="import-etapes">
-            {recipe.steps.map((etape, i) => (
-              <li key={i}>{etape}</li>
-            ))}
-          </ol>
+          <h3 className="card__title">Étapes · {etapes.filter((e) => !e.heading).length}</h3>
+          <EtapesRecette etapes={etapes} />
           <p className="field__hint">Elles se modifient ensuite dans l’éditeur, comme celles d’une recette tapée.</p>
         </div>
       )}

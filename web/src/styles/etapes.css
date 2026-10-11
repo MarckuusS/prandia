@@ -1,0 +1,116 @@
+/* ---------- Les etapes, en lecture (screens/recettes/EtapesRecette.tsx) ----------
+   La fiche d'une recette et la revue d'un import, avec le meme rendu. */
+
+.fiche-etapes {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  margin: var(--space-sm) 0 0;
+  list-style: none;
+}
+
+.fiche-etape {
+  display: flex;
+  gap: var(--space-md);
+  align-items: flex-start;
+  padding: var(--space-md) 0;
+  font-size: var(--font-size-md);
+  line-height: 1.5;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.fiche-etape:first-child {
+  padding-top: var(--space-xs);
+}
+
+.fiche-etape:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+/* Un intertitre se lit comme un titre, pas comme un geste : il ne porte pas
+   de numero et ne decale pas les etapes suivantes. */
+.fiche-etape--titre {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  border-bottom: 0;
+}
+
+/* Centree sur la premiere ligne de texte (1,5 em de haut), pas posee sur son
+   bord : a 1 px du haut, elle tombait 4 px sous le premier geste. */
+.fiche-etape__numero {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  margin-top: calc((1.5em - 26px) / 2);
+  font-size: var(--font-size-md);
+  background: var(--color-surface-hover);
+  border-radius: var(--radius-full);
+}
+
+.fiche-etape__corps {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.fiche-etape__texte {
+  margin: 0;
+}
+
+/* Un geste par ligne. La puce n'est pas decorative : sans elle, un geste qui
+   tient sur deux lignes et le suivant se lisent comme un seul paragraphe. */
+.fiche-etape__gestes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.fiche-etape__geste {
+  position: relative;
+  padding-left: var(--space-md);
+}
+
+/* Centree sur la PREMIERE ligne : a une hauteur de ligne de 1,5, son milieu
+   tombe a 0,75 em. `--color-text-placeholder` est le seul gris qui tienne
+   3:1 sur une carte dans les deux themes. */
+.fiche-etape__geste::before {
+  position: absolute;
+  top: calc(0.75em - 2.5px);
+  left: 1px;
+  width: 5px;
+  height: 5px;
+  content: '';
+  background: var(--color-text-placeholder);
+  border-radius: var(--radius-full);
+}
+
+/* Une duree ou une temperature : en gras, a l'ENCRE et non a l'olive, qui est
+   ici la couleur des liens. Une fourchette ("25-30 min") ne se coupe pas. */
+.fiche-etape__repere {
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+}
+
+.fiche-etape__astuce {
+  padding: var(--space-sm) var(--space-md);
+  margin: 0;
+  color: var(--color-text-secondary);
+  background: var(--color-surface-hover);
+  border-radius: var(--radius-md);
+}
+
+.fiche-etape__astuce-titre {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}

@@ -382,50 +382,8 @@
   border-radius: var(--radius-full);
 }
 
-/* ---------- Etapes ---------- */
-
-.fiche-etapes {
-  display: flex;
-  flex-direction: column;
-  padding: 0;
-  margin: var(--space-sm) 0 0;
-  list-style: none;
-}
-
-.fiche-etape {
-  display: flex;
-  gap: var(--space-md);
-  align-items: flex-start;
-  padding: var(--space-sm) 0;
-  font-size: var(--font-size-md);
-  line-height: 1.5;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.fiche-etape:last-child {
-  padding-bottom: 0;
-  border-bottom: 0;
-}
-
-/* Un intertitre se lit comme un titre, pas comme un geste : il ne porte pas
-   de numero et ne decale pas les etapes suivantes. */
-.fiche-etape--titre {
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-secondary);
-  border-bottom: 0;
-}
-
-.fiche-etape__numero {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 26px;
-  height: 26px;
-  margin-top: 1px;
-  font-size: var(--font-size-md);
-  background: var(--color-surface-hover);
-  border-radius: var(--radius-full);
-}
+/* Les etapes vivent dans `etapes.css`, avec leur composant : la revue d'un
+   import les affiche aussi. */
 
 /* ---------- Le pied ---------- */
 
