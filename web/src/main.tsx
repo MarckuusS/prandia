@@ -7,6 +7,7 @@ import { AuthGate } from './AuthGate.js'
 import { ApiError } from './lib/api.js'
 import { keepAppUpToDate } from './lib/appUpdate.js'
 import { preventBrowserZoom } from './lib/gestures.js'
+import { healStandaloneViewport } from './lib/viewport.js'
 // Les deux polices, SERVIES PAR NOUS et non par Google : l'application doit
 // s'ouvrir dans un magasin sans reseau, et une police distante y afficherait
 // un texte nu le temps d'un delai d'attente. Le sous-ensemble latin en
@@ -50,6 +51,11 @@ const queryClient = new QueryClient({
 // Avant le premier rendu : le pincement ne doit jamais avoir l'occasion de
 // zoomer, pas meme pendant le chargement.
 preventBrowserZoom()
+
+// iOS retrecit parfois l'application installee de la hauteur du clavier et ne
+// la lui rend pas : la barre d'onglets flottait au milieu de l'ecran au retour
+// de Safari. Voir lib/viewport.ts.
+healStandaloneViewport()
 
 // Le script de chargement genere par vite-plugin-pwa enregistre le service
 // worker et s'arrete la. Sans ce complement, une PWA installee peut continuer

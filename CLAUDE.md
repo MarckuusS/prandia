@@ -740,6 +740,17 @@ Ce qui trahissait une page web sur iPhone, et ce qui le corrige. Ce qui ne se de
   un nouveau champ qui n'est pas un `.field__input` doit en faire autant ET couper l'anneau par
   une règle à DEUX classes, car l'ordre des feuilles dans le paquet construit ne suit pas celui
   des imports (le champ de recherche du choix de repas a perdu contre `:focus-visible`).
+- **iOS retrécit l'application installée de la hauteur du clavier, et ne la lui rend pas.**
+  Constaté au retour de Safari, où une recherche avait ouvert le clavier : `innerHeight` et
+  `100dvh` restent bas, et la barre d'onglets (`position: fixed; bottom: 0`) flotte au milieu de
+  l'écran, le contenu visible dessous. Défaut connu de WebKit en mode installé ; tourner le
+  téléphone le répare. Aucune règle CSS ne l'empêche : `interactive-widget` est ignoré en mode
+  installé, et figer la coquille en `position: fixed` la cale sur la petite hauteur.
+  `lib/viewport.ts` le DÉTECTE (plus bas que la plus grande hauteur vue pour cette largeur, sans
+  saisie en cours) et force WebKit à remesurer : `.app` masquée puis réaffichée avec un calcul de
+  mise en page entre les deux, rien n'est peint, le défilement est rendu. Au retour au premier
+  plan, à la fermeture d'un clavier, au doigt et en mode installé seulement. Jamais pendant une
+  saisie : là, le clavier occupe vraiment la place.
 
 ## Notifications (web) : `shared/src/notifications.ts`, `worker/src/notifier.ts`
 
