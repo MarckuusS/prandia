@@ -789,8 +789,9 @@ planificateur ne l'atteint pas. Ce qui ne se devine pas :
   jamais tout seul, et **AVANT le site** la première fois : le site se lie à sa classe
   `Horloge`. Une modification de `notifier.ts`, de `push.ts` ou du calcul des heures demande
   les deux déploiements.
-- **Pas de déclencheur horaire (cron), et c'est forcé.** Le plan gratuit borne le COMPTE à cinq
-  crons, tous pris par d'autres projets : le premier déploiement a été refusé. L'horloge est un
+- **Pas de déclencheur horaire (cron), et ce fut forcé.** Le plan gratuit bornait le COMPTE à cinq
+  crons, tous pris par d'autres projets : le premier déploiement a été refusé. Depuis le passage
+  au plan payant (2026-10-11), la limite ne tient plus, mais l'horloge marche : on la garde. L'horloge est un
   **Durable Object** (stockage SQLite, le seul du plan gratuit) dont l'alarme sonne toutes les
   cinq minutes, sur un multiple rond (`prochainReveil`). Elle se **re-arme AVANT de travailler**
   et le travail ne lève jamais : lever ferait rejouer l'alarme par le runtime, ne pas se
@@ -1148,12 +1149,15 @@ poids ni prix. Ce qui ne se devine pas :
 - **La session vit en JSON dans `app_setting`** : aucune migration. Un chariot enregistré avant
   ce champ n'a pas `aPeser`, et `load()` le ramène à `false`.
 
-## Le quota de lectures de D1 (plan gratuit)
+## Le quota de lectures de D1
 
-**Le 2026-10-11, le compte a dépassé les 5 millions de lignes lues par jour** que le plan
-gratuit de D1 accorde au COMPTE entier : toute requête qui lit une ligne échoue alors jusqu'à
-minuit UTC (2 h à Paris l'été), l'application comprise, et `wrangler d1 migrations apply`
-aussi. Ce qui ne se devine pas :
+**Le compte est au plan payant de Workers depuis le 2026-10-11** (5 $ par mois, choix de
+l'utilisateur) : 25 milliards de lignes lues par mois, puis 0,001 $ le million. Il y est passé
+le jour même où le compte a dépassé les 5 millions de lignes lues par jour du plan gratuit. Les
+règles ci-dessous restent : un plafond plus haut ne justifie pas une requête qui lit toute la
+cuisine. Le soir du dépassement, toute requête qui lisait une ligne échouait
+jusqu'à minuit UTC (2 h à Paris l'été), l'application comprise, et `wrangler d1 migrations
+apply` aussi ; le passage au plan payant l'a débloqué en quelques minutes. Ce qui ne se devine pas :
 
 - **Le coupable se trouve en une commande** : `npx wrangler d1 insights prandia --timePeriod 1d
   --sort-by reads --json` (elle passe par l'API d'analyse, pas par D1, et marche même quota
