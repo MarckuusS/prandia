@@ -10,6 +10,7 @@ import { ingredientSchema, recipeSchema, type Ingredient, type Recipe } from './
 import {
   formatEuros,
   ingredientCost,
+  lastPaidPrice,
   mealPlanEntryCost,
   mealPlanEntryCostDetail,
   pricePerG,
@@ -185,5 +186,46 @@ describe('mealPlanEntryCostDetail', () => {
     expect(mealPlanEntryCost({ portions: 2, quantityG: null }, target)?.toFixed(2)).toBe(
       mealPlanEntryCostDetail({ portions: 2, quantityG: null }, target).cost?.toFixed(2),
     )
+  })
+})
+
+describe('lastPaidPrice', () => {
+  // Dans l'ordre de l'API : le plus recent d'abord.
+  const historique = [
+    { priceEur: '2.10', quantityG: 500, store: 'Carrefour', recordedAt: '2026-10-02' },
+    { priceEur: '1.89', quantityG: 500, store: 'Lidl', recordedAt: '2026-09-20' },
+    { priceEur: '1.79', quantityG: 500, store: 'Lidl', recordedAt: '2026-08-01' },
+  ]
+
+  it('prend le dernier prix du MEME magasin, casse et accents ignores', () => {
+    const p = lastPaidPrice(historique, { store: ' lidl ', quantityG: 500 })
+    expect(p).toMatchObject({ priceEur: '1.89', sameStore: true })
+    expect(p?.from.recordedAt).toBe('2026-09-20')
+  })
+
+  it('retombe sur le dernier prix tous magasins, en le disant', () => {
+    expect(lastPaidPrice(historique, { store: 'Intermarché', quantityG: 500 })).toMatchObject({
+      priceEur: '2.10',
+      sameStore: false,
+    })
+    expect(lastPaidPrice(historique, { store: null, quantityG: 500 })?.priceEur).toBe('2.10')
+  })
+
+  it('ramene le montant a la quantite demandee', () => {
+    expect(lastPaidPrice(historique, { store: 'Lidl', quantityG: 1000 })?.priceEur).toBe('3.78')
+    expect(lastPaidPrice(historique, { store: 'Lidl', quantityG: 250 })?.priceEur).toBe('0.95')
+  })
+
+  it('garde la quantite du releve quand aucune n’est demandee', () => {
+    expect(lastPaidPrice(historique, { store: 'Lidl', quantityG: null })?.priceEur).toBe('1.89')
+  })
+
+  it('ne suit pas l’ordre recu mais la date du releve', () => {
+    const melange = [historique[2], historique[0], historique[1]].filter((e) => e !== undefined)
+    expect(lastPaidPrice(melange, { store: 'Lidl', quantityG: 500 })?.from.recordedAt).toBe('2026-09-20')
+  })
+
+  it('rend null sans historique', () => {
+    expect(lastPaidPrice([], { store: 'Lidl', quantityG: 500 })).toBeNull()
   })
 })

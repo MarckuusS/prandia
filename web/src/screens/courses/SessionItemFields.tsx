@@ -1,10 +1,13 @@
 /**
- * Les QUATRE champs de la confirmation : nom, marque, quantite, prix.
+ * Les QUATRE champs de la confirmation : nom, marque, quantite, prix. Et une
+ * date de peremption REPLIEE.
  *
  * Quatre, et pas un de plus. Le magasin a ete demande une fois au depart, les
  * macros sont deja dans le brouillon et n'ont rien a faire devant un rayon, la
- * date est celle du jour. Chaque champ ajoute ici serait paye trente fois par
- * course.
+ * date du releve est celle du jour. Chaque champ ajoute ici serait paye trente
+ * fois par course. La date de peremption l'a ete a la demande, mais REPLIEE
+ * derriere un bouton : ne pas la toucher ne coute rien, et elle se donne
+ * aussi en rangeant, a la maison.
  *
  * L'ordre suit celui du regard sur l'emballage : ce que c'est, de qui, combien
  * il y en a, combien ca coute. Le prix vient en dernier parce que c'est le
@@ -12,8 +15,10 @@
  * ouvert, la ou il est le plus accessible.
  */
 
+import { useState } from 'react'
 import { formatEuros } from '@prandia/shared'
 
+import { DatePeremption } from '../../components/DatePeremption.js'
 import { NumberField, TextField } from '../../components/Field.js'
 import { QuantityField } from '../../components/QuantityField.js'
 import { Icon } from '../../icons/index.js'
@@ -36,8 +41,13 @@ export interface SessionItemFieldsProps {
   /** Prix constates pour ce code-barres. Absent sur un article sans code. */
   readonly observed?: ObservedPrice | undefined
   readonly observedPending?: boolean | undefined
-  /** Vrai tant que le montant affiche vient de la suggestion et non d'une saisie. */
+  /** Vrai tant que le montant affiche vient d'Open Prices et non d'une saisie. */
   readonly priceIsSuggested?: boolean | undefined
+  /**
+   * D'ou vient le montant quand c'est TON dernier prix ("Ton dernier prix chez
+   * Lidl, le 20 sept."), tant qu'on n'y a pas touche ; sinon `null`.
+   */
+  readonly ownPriceSource?: string | null | undefined
   readonly error?: string | null | undefined
   readonly disabled?: boolean | undefined
 }
@@ -49,11 +59,13 @@ export function SessionItemFields({
   observed,
   observedPending,
   priceIsSuggested,
+  ownPriceSource,
   error,
   disabled,
 }: SessionItemFieldsProps) {
   const set = <K extends keyof ItemDraft>(key: K, value: ItemDraft[K]) =>
     onChange({ ...draft, [key]: value })
+  const [dateOuverte, setDateOuverte] = useState(draft.expiryDate !== null)
 
   return (
     <>
@@ -111,6 +123,12 @@ export function SessionItemFields({
         hint="Facultatif — sans lui l'article compte dans le chariot, mais pas dans le total."
       />
 
+      {ownPriceSource !== null && ownPriceSource !== undefined && (
+        <p className="session-observed">
+          {ownPriceSource} Il est pré-rempli : corrige-le si l’étiquette dit autre chose.
+        </p>
+      )}
+
       {observedPending === true && <p className="field__hint">Recherche des prix constatés…</p>}
 
       {/* L'etendue et le nombre de releves accompagnent TOUJOURS le montant :
@@ -130,6 +148,24 @@ export function SessionItemFields({
           )}
           .{priceIsSuggested === true && ' Il est pré-rempli : corrige-le si l’étiquette dit autre chose.'}
         </p>
+      )}
+
+      {dateOuverte ? (
+        <DatePeremption
+          value={draft.expiryDate}
+          onChange={(expiryDate) => set('expiryDate', expiryDate)}
+          hint="Facultatif."
+          disabled={disabled}
+        />
+      ) : (
+        <button
+          type="button"
+          className="button button--secondary button--block"
+          onClick={() => setDateOuverte(true)}
+          disabled={disabled}
+        >
+          Ajouter la date de péremption
+        </button>
       )}
 
       {error && (

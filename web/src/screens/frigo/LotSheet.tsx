@@ -24,7 +24,8 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 import { formatEuros, formatGrams, type PantryMovementReason } from '@prandia/shared'
 
-import { DateField, TextField } from '../../components/Field.js'
+import { DatePeremption } from '../../components/DatePeremption.js'
+import { TextField } from '../../components/Field.js'
 import { QuantityField } from '../../components/QuantityField.js'
 import { ConfirmDialog, Sheet } from '../../components/Sheet.js'
 import { Icon } from '../../icons/index.js'
@@ -302,11 +303,10 @@ export function LotSheet({ lot, onClose }: LotSheetProps) {
           error={attempted && invalidQuantity ? 'Indique une quantité supérieure à zéro.' : null}
         />
 
-        <DateField
-          label="Périmé le"
+        <DatePeremption
           value={expiryDate}
           onChange={setExpiryDate}
-          hint="Vide = péremption non suivie."
+          hint="Vide, la péremption n’est pas suivie."
         />
 
         <TextField

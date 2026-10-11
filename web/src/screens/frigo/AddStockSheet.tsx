@@ -30,15 +30,17 @@
  */
 
 import { useState } from 'react'
-import type { Ingredient } from '@prandia/shared'
+import { formatEuros, lastPaidPrice, type Ingredient } from '@prandia/shared'
 
-import { DateField, TextField } from '../../components/Field.js'
+import { DatePeremption } from '../../components/DatePeremption.js'
+import { TextField } from '../../components/Field.js'
 import { IngredientPicker } from '../../components/IngredientPicker.js'
 import { QuantityField } from '../../components/QuantityField.js'
 import { Sheet } from '../../components/Sheet.js'
 import { useToast } from '../../components/Toast.js'
-import { useAddPrice, useAddStock } from '../../lib/queries.js'
-import { EMPTY_PRICE_DRAFT, PricePaidFields, readPrice, type PriceDraft } from './PricePaid.js'
+import { useAddPrice, useAddStock, usePriceHistory, useShoppingSession } from '../../lib/queries.js'
+import { readRecentStores } from '../courses/recentStores.js'
+import { EMPTY_PRICE_DRAFT, PricePaidFields, formatPriceSource, readPrice, type PriceDraft } from './PricePaid.js'
 import { ScanToStock } from './ScanToStock.js'
 
 /**
@@ -63,6 +65,9 @@ export function AddStockSheet({ onClose, initialScan }: AddStockSheetProps) {
 
   const [ingredient, setIngredient] = useState<Ingredient | null>(null)
   const [quantityG, setQuantityG] = useState<number | null>(null)
+  // L'unite de saisie, enregistree a cote des grammes : sans elle, "1 pot"
+  // se relisait "125 g" a la reouverture du lot.
+  const [unit, setUnit] = useState<string | null>(null)
   const [expiryDate, setExpiryDate] = useState<string | null>(null)
   const [notes, setNotes] = useState('')
   const [price, setPrice] = useState<PriceDraft>(EMPTY_PRICE_DRAFT)
@@ -80,6 +85,33 @@ export function AddStockSheet({ onClose, initialScan }: AddStockSheetProps) {
    */
   const addPrice = useAddPrice(ingredient?.id ?? 0)
 
+  /*
+   * TON DERNIER PRIX, propose et jamais enregistre d'office.
+   *
+   * Dans le magasin des courses en cours s'il y en a une, sinon le dernier
+   * paye ailleurs (`lastPaidPrice`). Il ne remplit le formulaire qu'au toucher
+   * du bouton qui l'annonce : ranger un produit ne doit pas relever un prix que
+   * personne n'a lu sur une etiquette.
+   */
+  const historique = usePriceHistory(ingredient?.id ?? null)
+  const session = useShoppingSession()
+  const magasinEnCours = session.data?.active === true ? (session.data.session?.store ?? null) : null
+  const suggestion =
+    ingredient === null ? null : lastPaidPrice(historique.data?.items ?? [], { store: magasinEnCours, quantityG })
+
+  const ouvrirPrix = () => {
+    setPrice(
+      suggestion === null
+        ? { ...EMPTY_PRICE_DRAFT, store: magasinEnCours ?? readRecentStores()[0] ?? '' }
+        : {
+            ...EMPTY_PRICE_DRAFT,
+            amountEur: Number(suggestion.priceEur),
+            store: magasinEnCours ?? suggestion.from.store ?? '',
+          },
+    )
+    setPriceOpen(true)
+  }
+
   /**
    * Code injecte, efface des qu'un ingredient est choisi.
    *
@@ -93,6 +125,7 @@ export function AddStockSheet({ onClose, initialScan }: AddStockSheetProps) {
   const pick = (picked: Ingredient) => {
     setIngredient(picked)
     setQuantityG(picked.pieceWeightG ?? DEFAULT_QUANTITY_G)
+    setUnit(null)
     setScanInjecte(undefined)
   }
 
@@ -125,8 +158,8 @@ export function AddStockSheet({ onClose, initialScan }: AddStockSheetProps) {
         // Chaine vide -> null : le desktop stockait tantot l'un tantot l'autre
         // selon le chemin de code, et « pas de note » devenait deux choses.
         storage: null,
-      unit: null,
-      notes: notes.trim() === '' ? null : notes.trim(),
+        unit,
+        notes: notes.trim() === '' ? null : notes.trim(),
       })
     } catch {
       // L'erreur reste exposee par `add.error`, affichee en bas de la feuille,
@@ -224,16 +257,17 @@ export function AddStockSheet({ onClose, initialScan }: AddStockSheetProps) {
         label="Quantité"
         value={quantityG}
         onChange={setQuantityG}
+        unit={unit}
+        onUnitChange={setUnit}
         pieceWeightG={ingredient?.pieceWeightG ?? null}
         required
         error={attempted && missingQuantity ? 'Indique une quantité supérieure à zéro.' : null}
       />
 
-      <DateField
-        label="Périmé le"
+      <DatePeremption
         value={expiryDate}
         onChange={setExpiryDate}
-        hint="Facultatif — laisse vide pour le sel, les épices, les conserves."
+        hint="Facultatif, à laisser vide pour le sel, les épices, les conserves."
       />
 
       {/* Le prix n'a de destination qu'une fois l'ingredient connu : c'est sur
@@ -244,8 +278,9 @@ export function AddStockSheet({ onClose, initialScan }: AddStockSheetProps) {
           <section className="price-paid">
             <h3 className="price-paid__title">Prix payé</h3>
             <p className="price-paid__lead">
-              Facultatif. Il n’est pas attaché au lot : il rejoint l’historique de prix de
-              l’ingrédient, et met à jour le coût de ta liste de courses.
+              {suggestion === null
+                ? 'Facultatif. Il n’est pas attaché au lot : il rejoint l’historique de prix de l’ingrédient, et met à jour le coût de ta liste de courses.'
+                : `${formatPriceSource(suggestion)} Corrige-le si l’étiquette dit autre chose.`}
             </p>
             <PricePaidFields
               draft={price}
@@ -260,9 +295,11 @@ export function AddStockSheet({ onClose, initialScan }: AddStockSheetProps) {
           <button
             type="button"
             className="button button--secondary button--block"
-            onClick={() => setPriceOpen(true)}
+            onClick={ouvrirPrix}
           >
-            Saisir le prix payé
+            {suggestion === null
+              ? 'Saisir le prix payé'
+              : `Prix payé : reprendre ${formatEuros(suggestion.priceEur)}`}
           </button>
         ))}
 

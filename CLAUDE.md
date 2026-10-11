@@ -894,6 +894,41 @@ Coller le lien d'une recette, relire, créer. Entrée en tête de "Nouvelle rece
 - **Essayer en local demande le catalogue CIQUAL**, que la base de développement n'a pas : le
   charger depuis `scripts/_dump/d1-seed.sql` (hors bibliothèque), puis le retirer.
 
+## Saisir ce qu'on range ou achète (web) : `components/DatePeremption.tsx`, `shared/src/peremption.ts`
+
+Après un scan, le nom et la marque arrivaient remplis, mais il fallait taper le poids, la date et
+le prix. Ce qui ne se devine pas :
+
+- **AUCUNE DATE N'EST DEVINÉE.** Une durée de conservation apprise de l'achat précédent a été
+  proposée puis écartée à la demande : pour un même produit, l'écart entre l'achat et la date varie
+  de plusieurs jours selon la rotation du rayon, et une date fausse déclenche de faux rappels.
+  Seule la date imprimée fait foi. Ce qu'on accélère, c'est sa SAISIE.
+- **Le champ date est un TEXTE, pas un `type="date"`.** Le sélecteur d'iOS impose trois roues, et
+  la lecture de texte du système ("Scanner le texte", offerte dans tout champ de texte) ne sait
+  remplir qu'un texte. Elle colle ce qu'elle voit ("A consommer jusqu'au 14/10/26 L5285 12:41") et
+  `parseExpiryText` en retrouve la date : formes numériques, mois en lettres, "141026" tapé d'un
+  trait (seulement si le texte n'est que chiffres, sinon un numéro de lot passerait), date au mois
+  pour une DDM ("03/2027" vaut fin mars), date sans année. La plus tardive gagne, la date de
+  fabrication imprimée à côté la précède toujours. Clavier texte et non numérique : rien ne garantit
+  que la lecture soit offerte sur le pavé. Pas de lecteur de texte embarqué : celui d'Apple lit mieux
+  les dates imprimées en points, et ne pèse rien.
+- **Trois semaines de jours à toucher** sous le champ : le cas courant (un produit frais) tient en
+  un geste. Le jour choisi est cerclé d'olive, sans aplat : la feuille garde le sien.
+- **Ce qui a été lu se dit en toutes lettres** ("Lu : mercredi 14 octobre 2026"), et un texte
+  illisible le dit aussi : une date mal comprise doit se voir avant d'être enregistrée.
+- **La date se donne à trois endroits** : à l'ajout au frigo, en option et REPLIÉE dans la feuille
+  d'un article du chariot (elle part avec le lot à la validation), et en rangeant, par une ligne
+  "Ajouter la date lue sur l'emballage" sous les trois places, qui ouvre une feuille réduite à la
+  date (`frigo/DateLotSheet.tsx`).
+- **Le prix proposé est TON dernier prix** (`lastPaidPrice`, `pricing.ts`), dans le magasin des
+  courses en cours d'abord, sinon le dernier payé ailleurs, ramené à la quantité. Il passe avant la
+  médiane d'Open Prices, qu'il remplace si elle est arrivée la première, jamais une saisie. Sa
+  source est toujours écrite ("Ton dernier prix chez Lidl, le 20 septembre"). Au frigo il ne remplit
+  le formulaire qu'au toucher du bouton qui l'annonce : ranger ne doit pas relever un prix lu nulle
+  part. Le magasin suit : celui des courses en cours, sinon celui du dernier prix.
+- **Le poids du paquet scanné au frigo se perdait** : `toCreatePayload` (`ScanToStock.tsx`)
+  oubliait `pieceWeightG`, et le lot partait à 100 g quand OpenFoodFacts disait 500.
+
 ## Common commands
 
 ```bash

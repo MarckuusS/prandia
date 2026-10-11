@@ -1,0 +1,101 @@
+/* ---------- La date de peremption (components/DatePeremption.tsx) ---------- */
+
+.peremption__saisie {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* La croix d'effacement vit DANS le champ : le texte lui laisse sa place. */
+.field__input.peremption__texte {
+  flex: 1;
+  padding-right: 44px;
+}
+
+.button.peremption__effacer {
+  position: absolute;
+  right: 2px;
+  width: 40px;
+  min-height: 40px;
+  padding: 0;
+  color: var(--color-text-secondary);
+}
+
+/* Trois semaines en une rangee qui defile. `none` et non `contain` : comme
+   toute zone qui defile ici, elle ne doit ni rebondir ni entrainer la page. */
+.peremption__jours {
+  display: flex;
+  gap: var(--space-xs);
+  padding: 2px 0;
+  margin-top: var(--space-sm);
+  overflow-x: auto;
+  overscroll-behavior: none;
+  scrollbar-width: none;
+}
+
+.peremption__jours::-webkit-scrollbar {
+  display: none;
+}
+
+.peremption__case {
+  display: flex;
+  flex: none;
+  gap: var(--space-xs);
+  align-items: stretch;
+}
+
+/* Le mois s'annonce devant son premier jour : "31" puis "1" sans lui se
+   liraient comme une erreur. */
+.peremption__mois {
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-xs) 0 var(--space-sm);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  border-left: 1px solid var(--color-border-hover);
+}
+
+/* Un jour de calendrier : le chiffre, celui qu'on lit sur le pot, en grand.
+   Pas d'aplat de couleur : la feuille garde le sien pour son action. */
+.peremption__jour {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  min-height: 54px;
+  padding: var(--space-xs) 0;
+  color: var(--color-text);
+  background: var(--color-surface-hover);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+}
+
+.peremption__jour:disabled {
+  opacity: 0.5;
+}
+
+.peremption__jour-haut {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.peremption__jour-numero {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1;
+}
+
+/* Choisi : un cadre olive de 2 px, dessine par une ombre interieure pour que
+   la case ne change pas de taille au toucher. */
+.peremption__jour--on {
+  background: var(--color-surface);
+  border-color: var(--color-primary);
+  box-shadow: inset 0 0 0 1px var(--color-primary);
+}
+
+.peremption__jour--on .peremption__jour-haut {
+  color: var(--color-primary-text);
+}

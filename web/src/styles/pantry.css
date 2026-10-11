@@ -608,6 +608,28 @@
   opacity: 0.5;
 }
 
+/* Une ligne de navigation sous les trois places, pas un quatrieme bouton :
+   donner une date ouvre une feuille, ranger agit tout de suite. */
+.ranger-date {
+  display: flex;
+  gap: var(--space-xs);
+  align-items: center;
+  width: 100%;
+  min-height: 40px;
+  padding: 0 var(--space-md) var(--space-sm);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-primary-text);
+  text-align: left;
+  background: none;
+  border: 0;
+}
+
+.carte-lots .ranger-date {
+  padding-right: 0;
+  padding-left: 0;
+}
+
 /* ---------- Le niveau au placard ---------- */
 
 .lot__niveau {

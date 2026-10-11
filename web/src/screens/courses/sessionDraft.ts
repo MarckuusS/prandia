@@ -47,6 +47,8 @@ export interface ItemDraft {
   readonly ingredientId: number | null
   readonly macros: ItemMacros | null
   readonly pieceWeightG: number | null
+  /** Date lue sur l'emballage, facultative ; sinon elle se donne en rangeant. */
+  readonly expiryDate: string | null
 }
 
 export const emptyDraft = (ean: string | null): ItemDraft => ({
@@ -58,6 +60,7 @@ export const emptyDraft = (ean: string | null): ItemDraft => ({
   ingredientId: null,
   macros: null,
   pieceWeightG: null,
+  expiryDate: null,
 })
 
 /** Les macros connues, sous la forme attendue par la creation differee. */
@@ -103,6 +106,7 @@ export function draftFromProduct(ean: string | null, product: Ingredient): ItemD
     // des valeurs corrigees a la main.
     macros: ingredientId === null ? macrosOf(product) : null,
     pieceWeightG: product.pieceWeightG,
+    expiryDate: null,
   }
 }
 
@@ -122,6 +126,7 @@ export function mergeProduct(draft: ItemDraft, product: Ingredient): ItemDraft {
     brand: draft.brand.trim() === '' ? found.brand : draft.brand,
     quantityG: draft.quantityG ?? found.quantityG,
     priceEur: draft.priceEur ?? found.priceEur,
+    expiryDate: draft.expiryDate,
   }
 }
 
@@ -136,6 +141,7 @@ export function draftFromItem(item: SessionItem): ItemDraft {
     ingredientId: item.ingredientId,
     macros: item.macros,
     pieceWeightG: item.pieceWeightG,
+    expiryDate: item.expiryDate,
   }
 }
 
@@ -179,6 +185,7 @@ export function readDraft(draft: ItemDraft): DraftReading {
       ingredientId: draft.ingredientId,
       macros: draft.macros,
       pieceWeightG: draft.pieceWeightG,
+      expiryDate: draft.expiryDate,
     },
   }
 }

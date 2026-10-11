@@ -16,7 +16,7 @@
  * mutation et decide quoi faire de ses echecs.
  */
 
-import { todayLocalIsoDate } from '@prandia/shared'
+import { todayLocalIsoDate, type PaidPriceSuggestion } from '@prandia/shared'
 
 import { NumberField, TextField } from '../../components/Field.js'
 import { QuantityField } from '../../components/QuantityField.js'
@@ -100,6 +100,26 @@ export function readPrice(draft: PriceDraft, fallbackQuantityG: number | null): 
       notes: null,
     },
   }
+}
+
+/**
+ * D'ou vient un prix propose, en une phrase : "Ton dernier prix chez Lidl, le
+ * 20 septembre." Un montant pre-rempli sans sa source passerait pour un prix
+ * lu. Sert au frigo comme au chariot. Le mois en toutes lettres : abrege,
+ * "oct." suivi du point final faisait deux points.
+ */
+export function formatPriceSource(suggestion: PaidPriceSuggestion): string {
+  const [annee, mois, jour] = suggestion.from.recordedAt.split('-').map(Number)
+  const date = new Date(annee ?? 1970, (mois ?? 1) - 1, jour ?? 1).toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'long',
+    ...(annee === new Date().getFullYear() ? {} : { year: 'numeric' }),
+  })
+  const magasin = suggestion.from.store
+  if (suggestion.sameStore && magasin !== null) return `Ton dernier prix chez ${magasin}, le ${date}.`
+  return magasin === null
+    ? `Ton dernier prix payé, le ${date}.`
+    : `Ton dernier prix payé, chez ${magasin} le ${date}.`
 }
 
 // ---------------------------------------------------------------------------

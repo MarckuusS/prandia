@@ -47,6 +47,7 @@ import { useRayonStyle } from '../lib/useRayonStyle.js'
 import { useMovements, usePantry, useSetStorage } from '../lib/queries.js'
 import { useScanParam, type ScanRequest } from '../lib/useScanParam.js'
 import { AddStockSheet } from './frigo/AddStockSheet.js'
+import { DateLotSheet } from './frigo/DateLotSheet.js'
 import { LotSheet } from './frigo/LotSheet.js'
 import {
   ESPACE_PARAM,
@@ -187,6 +188,9 @@ export function PantryScreen() {
   // et se ferme d'elle-meme quand le lot disparait. On cherche dans `lots` et
   // non dans `visible`, sans quoi filtrer pendant l'edition la refermerait.
   const editing = editingId === null ? null : (lots.find((lot) => lot.id === editingId) ?? null)
+  // Le lot dont on donne la date depuis "A ranger", relu de la meme facon.
+  const [datantId, setDatantId] = useState<number | null>(null)
+  const datant = datantId === null ? null : (lots.find((lot) => lot.id === datantId) ?? null)
 
   // L'alerte porte sur le FRIGO seul : c'est le seul espace ou une date presse.
   const pressent = useMemo(
@@ -310,6 +314,7 @@ export function PantryScreen() {
           espace={espace}
           today={today}
           onOpen={setEditingId}
+          onDate={setDatantId}
         />
       ))}
 
@@ -334,6 +339,7 @@ export function PantryScreen() {
         />
       )}
       {editing && <LotSheet key={editing.id} lot={editing} onClose={() => setEditingId(null)} />}
+      {datant && <DateLotSheet key={datant.id} lot={datant} onClose={() => setDatantId(null)} />}
     </section>
   )
 }
@@ -514,11 +520,13 @@ function PantrySection({
   espace,
   today,
   onOpen,
+  onDate,
 }: {
   section: LotSection
   espace: EspaceTab
   today: Date
   onOpen: (id: number) => void
+  onDate: (id: number) => void
 }) {
   return (
     <div className="pantry-section">
@@ -538,7 +546,7 @@ function PantrySection({
           sans rapport les uns avec les autres. */}
       <ul className="carte-lots">
         {section.lots.map((lot) => (
-          <LotRow key={lot.id} lot={lot} espace={espace} today={today} onOpen={onOpen} />
+          <LotRow key={lot.id} lot={lot} espace={espace} today={today} onOpen={onOpen} onDate={onDate} />
         ))}
       </ul>
     </div>
@@ -558,11 +566,13 @@ function LotRow({
   espace,
   today,
   onOpen,
+  onDate,
 }: {
   lot: Lot
   espace: EspaceTab
   today: Date
   onOpen: (id: number) => void
+  onDate: (id: number) => void
 }) {
   const styleOf = useRayonStyle()
   const seuil = lot.ingredient?.restockThresholdG ?? null
@@ -653,6 +663,16 @@ function LotRow({
           suite. Passer par la fiche pour chacun rendrait la file decourageante,
           et une file qu'on ne vide pas ne sert a rien. */}
       {espace === null && <BoutonsRangement lotId={lot.id} />}
+
+      {/* La date, au meme endroit et au meme moment : c'est en rangeant qu'on a
+          l'emballage en main. Seulement tant qu'il n'en a pas ; ensuite le
+          badge d'echeance la montre, et la fiche du lot la corrige. */}
+      {espace === null && lot.stock.expiryDate === null && (
+        <button type="button" className="ranger-date" onClick={() => onDate(lot.id)}>
+          <Icon name="ui-calendar" size={16} className="icon--inline" />
+          Ajouter la date lue sur l’emballage
+        </button>
+      )}
     </li>
   )
 }

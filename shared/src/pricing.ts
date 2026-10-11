@@ -18,6 +18,7 @@
 
 import Decimal from 'decimal.js'
 import type { Ingredient, Recipe, RecipeLine } from './models.js'
+import { normalizeName } from './text.js'
 
 const CENTS = 2
 const HALF_UP = Decimal.ROUND_HALF_UP
@@ -172,4 +173,49 @@ export function mealPlanEntryCost(
   target: MealPlanTarget,
 ): Decimal | null {
   return mealPlanEntryCostDetail(entry, target).cost
+}
+
+/** Un releve de l'historique, tel que l'API le rend (le plus recent d'abord). */
+export interface PaidPriceEntry {
+  readonly priceEur: string
+  readonly quantityG: number
+  readonly store: string | null
+  readonly recordedAt: string
+}
+
+export interface PaidPriceSuggestion {
+  /** Montant ramene a la quantite demandee, au centime. */
+  readonly priceEur: string
+  /** Le releve d'ou il vient, pour le dire a l'ecran. */
+  readonly from: PaidPriceEntry
+  /** Vrai quand le releve vient du MEME magasin. */
+  readonly sameStore: boolean
+}
+
+/**
+ * Le prix a proposer pour un achat : TON dernier prix paye, pas une moyenne.
+ *
+ * Dans le meme magasin d'abord, parce qu'un meme produit change de prix d'une
+ * enseigne a l'autre bien plus que d'une semaine a l'autre ; a defaut, le
+ * dernier releve tous magasins confondus. Le montant est ramene a la quantite
+ * demandee : 1,89 EUR les 500 g proposent 3,78 EUR pour deux paquets.
+ *
+ * Une PROPOSITION, toujours dite comme telle a l'ecran avec sa source : le
+ * prix d'une etiquette change, et c'est elle qui fait foi.
+ */
+export function lastPaidPrice(
+  history: readonly PaidPriceEntry[],
+  wanted: { readonly store: string | null; readonly quantityG: number | null },
+): PaidPriceSuggestion | null {
+  const magasin = normalizeName(wanted.store)
+  // Tri stable : a date egale, l'ordre de l'API (le dernier saisi d'abord) tient.
+  const parDate = [...history].sort((a, b) => (a.recordedAt < b.recordedAt ? 1 : a.recordedAt > b.recordedAt ? -1 : 0))
+  const ici = magasin === '' ? undefined : parDate.find((e) => normalizeName(e.store) === magasin)
+  const from = ici ?? parDate[0]
+  if (from === undefined || !(from.quantityG > 0)) return null
+
+  const quantite = wanted.quantityG !== null && wanted.quantityG > 0 ? wanted.quantityG : from.quantityG
+  const montant = toCents(new Decimal(from.priceEur).times(quantite).dividedBy(from.quantityG))
+  if (montant.lte(0)) return null
+  return { priceEur: formatAmount(montant), from, sameStore: ici !== undefined }
 }

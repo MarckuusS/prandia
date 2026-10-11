@@ -196,6 +196,10 @@ const toCreatePayload = (candidate: Ingredient): Partial<Ingredient> & { name: s
   saturatedFats: candidate.saturatedFats,
   fiber: candidate.fiber,
   salt: candidate.salt,
+  // La contenance du paquet : sans elle, un produit scanne au frigo arrivait a
+  // 100 g quand OpenFoodFacts disait 500 g, et la fiche perdait sa piece.
+  pieceWeightG: candidate.pieceWeightG,
+  nutriscoreGrade: candidate.nutriscoreGrade,
 })
 
 function ScannedProduct({

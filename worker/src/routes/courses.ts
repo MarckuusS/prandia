@@ -39,7 +39,7 @@
  * n'ont ou aller.
  */
 
-import { sessionItemWriteSchema, sessionStartSchema, type ShoppingSession } from '@prandia/shared'
+import { parisClock, sessionItemWriteSchema, sessionStartSchema, type ShoppingSession } from '@prandia/shared'
 
 import { logActivity } from '../activity.js'
 import { HttpError, json, notFound, parseOrThrow, readJson, route } from '../http.js'
@@ -201,7 +201,9 @@ route('POST', '/api/courses/commit', async ({ repos, env, user }) => {
     throw new HttpError(422, 'empty_session', 'Ce chariot est vide : il n’y a rien à enregistrer.')
   }
 
-  const today = new Date().toISOString().slice(0, 10)
+  // Le jour A PARIS : `toISOString()` donnait la veille aux courses validees
+  // entre minuit et deux heures, l'ete.
+  const today = parisClock(new Date()).day
   let created = 0
   // Les lots crees, pour que le bilan propose de les ranger tout de suite.
   const stockedIds: number[] = []
@@ -245,18 +247,18 @@ route('POST', '/api/courses/commit', async ({ repos, env, user }) => {
     ingredientIds.push(ingredientId)
 
     /*
-     * 2. Le lot, SANS LIEU ET SANS DATE, et les deux sont volontaires.
+     * 2. Le lot, SANS LIEU, et avec la date SEULEMENT si on l'a lue.
      *
      * L'application ne sait pas ou l'on rangera ce paquet, et elle ne le
      * devinera pas : il attend dans l'onglet "A ranger", ou l'on lui donne sa
-     * place. Quant a la date, personne ne publie de duree de conservation par
-     * produit : la deviner serait l'inventer, et elle serait crue. Le rangement
-     * est le moment naturel de lire l'etiquette, une fois, et d'avoir juste.
+     * place. La date vient de l'emballage, saisie en magasin ou plus tard en
+     * rangeant. Jamais devinee : personne ne publie de duree de conservation
+     * par produit, et une date inventee serait crue.
      */
     const lotId = await repos.pantry.add({
       ingredientId,
       quantityG: item.quantityG,
-      expiryDate: null,
+      expiryDate: item.expiryDate,
       storage: null,
       unit: null,
       notes: `Courses du ${today} chez ${session.store}`,

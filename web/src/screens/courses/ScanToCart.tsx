@@ -28,7 +28,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { Ingredient } from '@prandia/shared'
+import { lastPaidPrice, type Ingredient } from '@prandia/shared'
 
 import { BarcodeScanner } from '../../components/BarcodeScanner.js'
 import { Icon } from '../../icons/index.js'
@@ -41,7 +41,10 @@ import {
   useBarcode,
   useIngredients,
   useObservedPrice,
+  usePriceHistory,
+  useShoppingSession,
 } from '../../lib/queries.js'
+import { formatPriceSource } from '../frigo/PricePaid.js'
 import { SessionItemFields } from './SessionItemFields.js'
 import {
   draftFromProduct,
@@ -230,7 +233,10 @@ function ScannedItemSheet({
    * remplirait — visible a l'oeil, et suffisant pour qu'on commence a taper
    * par-dessus. Les sentinelles garantissent une seule application.
    */
-  const product = barcode.data
+  // La bibliotheque peut arriver APRES l'ouverture (scan recu au demarrage de
+  // l'application) : la recherche en ligne s'arrete alors, et sans ce repli la
+  // feuille restait vide sur un produit pourtant connu.
+  const product = barcode.data ?? known
   if (product !== undefined && !productApplied) {
     setProductApplied(true)
     setDraft((previous) => mergeProduct(previous, product))
@@ -250,6 +256,25 @@ function ScannedItemSheet({
       pieceWeightG: previous.pieceWeightG ?? suggestion.quantityG ?? null,
     }))
   }
+
+  /*
+   * TON DERNIER PRIX passe AVANT la mediane d'Open Prices : dans le meme
+   * magasin d'abord, sinon le dernier paye ailleurs (`lastPaidPrice`). Il
+   * remplace la mediane si elle est arrivee la premiere, jamais une saisie.
+   * Un produit jamais achete n'a pas d'historique : la mediane reste.
+   */
+  const historique = usePriceHistory(draft.ingredientId)
+  const magasin = useShoppingSession().data?.session?.store ?? null
+  const dernier =
+    historique.data === undefined
+      ? null
+      : lastPaidPrice(historique.data.items, { store: magasin, quantityG: draft.quantityG })
+  const [ownApplied, setOwnApplied] = useState(false)
+  if (dernier !== null && !ownApplied && !priceTouched) {
+    setOwnApplied(true)
+    setDraft((previous) => ({ ...previous, priceEur: Number(dernier.priceEur) }))
+  }
+  const ownPriceSource = ownApplied && !priceTouched && dernier !== null ? formatPriceSource(dernier) : null
 
   const change = (next: ItemDraft) => {
     if (next.priceEur !== draft.priceEur) setPriceTouched(true)
@@ -325,7 +350,8 @@ function ScannedItemSheet({
         onList={onList}
         observed={observed.data}
         observedPending={observed.isFetching}
-        priceIsSuggested={priceApplied && !priceTouched && draft.priceEur !== null}
+        priceIsSuggested={priceApplied && !ownApplied && !priceTouched && draft.priceEur !== null}
+        ownPriceSource={ownPriceSource}
         error={error ?? add.error?.message}
         disabled={add.isPending}
       />

@@ -599,6 +599,12 @@ export const sessionItemSchema = z.object({
   /** Macros relevees sur OpenFoodFacts, gardees pour la creation differee. */
   macros: nutritionTotalSchema.partial().nullable().default(null),
   pieceWeightG: z.number().positive().nullable().default(null),
+  /**
+   * Date lue sur l'emballage, FACULTATIVE : on la saisit en magasin si on a
+   * le paquet sous les yeux, sinon en rangeant. Le defaut `null` relit aussi
+   * les chariots enregistres avant qu'elle existe.
+   */
+  expiryDate: dayDate.nullable().default(null),
   scannedAt: utcTimestamp.nullable().default(null),
 })
 export type SessionItem = z.infer<typeof sessionItemSchema>
