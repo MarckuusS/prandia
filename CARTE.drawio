@@ -34,7 +34,7 @@
         <mxCell id="invit" value="&lt;b&gt;Invitation&lt;/b&gt;&lt;br&gt;le lien reçu fait choisir le mot de passe, la session s’ouvre" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fontColor=#2B1D24;arcSize=10;spacing=6;fillColor=#E3ECE5;strokeColor=#5B8266;strokeWidth=1.5;" vertex="1" parent="1">
           <mxGeometry x="352" y="195" width="250" height="84" as="geometry" />
         </mxCell>
-        <mxCell id="connexion" value="&lt;b&gt;Connexion&lt;/b&gt;&lt;br&gt;une cuisine par compte ; profil, pesées et rappels restent personnels" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fontColor=#2B1D24;arcSize=10;spacing=6;fillColor=#E3ECE5;strokeColor=#5B8266;strokeWidth=1.5;" vertex="1" parent="1">
+        <mxCell id="connexion" value="&lt;b&gt;Connexion&lt;/b&gt;&lt;br&gt;une cuisine par compte ; profil, pesées et rappels restent personnels ; écran à rendre plus accueillant" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fontColor=#2B1D24;arcSize=10;spacing=6;fillColor=#F7E9D2;strokeColor=#C8892A;strokeWidth=1.5;" vertex="1" parent="1">
           <mxGeometry x="634" y="195" width="250" height="84" as="geometry" />
         </mxCell>
         <mxCell id="pwa" value="&lt;b&gt;Installer sur l'iPhone&lt;/b&gt;&lt;br&gt;écran d'accueil, barre d'état, sans rebond ; marche aussi dans le navigateur" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fontColor=#2B1D24;arcSize=10;spacing=6;fillColor=#E3ECE5;strokeColor=#5B8266;strokeWidth=1.5;" vertex="1" parent="1">
