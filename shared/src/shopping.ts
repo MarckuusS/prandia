@@ -154,12 +154,16 @@ export function groupByCategory(items: readonly ShoppingItem[]): ShoppingSection
  * Quantite lisible en rayon : « 1,5 kg », « 250 g », et le nombre de pieces
  * quand il a un sens (« ≈ 6 œufs » est plus actionnable que « 360 g »).
  */
-export function formatShoppingQuantity(item: Pick<ShoppingItem, 'quantityG' | 'pieceCount'>): string {
+export function formatShoppingQuantity(
+  item: Pick<ShoppingItem, 'quantityG' | 'pieceCount'>,
+  /** "part" pour un plat cuisine (preparation.ts), dont la piece est une part. */
+  nomPiece = 'pièce',
+): string {
   const base = formatGrams(item.quantityG)
   if (item.pieceCount === null) return base
   const rounded = Math.round(item.pieceCount * 10) / 10
   const plural = rounded > 1 ? 's' : ''
-  return `${base} · ≈ ${rounded.toLocaleString('fr-FR')} pièce${plural}`
+  return `${base} · ≈ ${rounded.toLocaleString('fr-FR')} ${nomPiece}${plural}`
 }
 
 /**

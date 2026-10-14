@@ -53,16 +53,17 @@ import {
 import { MacrosRing } from '../../components/MacrosDonut.js'
 import { TableauNutriments } from '../../components/TableauNutriments.js'
 import { ErrorState, LoadingRows } from '../../components/States.js'
+import { useToast } from '../../components/Toast.js'
 import { Icon } from '../../icons/index.js'
 import { RayonIcon } from '../../icons/RayonIcon.js'
 import { useRayonStyle } from '../../lib/useRayonStyle.js'
 import {
-  useAddCooking,
   useCalendar,
   useCookingLog,
   usePantry,
   useRecipe,
 } from '../../lib/queries.js'
+import { CuisinerSheet, messageCuisson } from '../cuisine/CuisinerSheet.js'
 import { toDraft } from './draft.js'
 import { EtapesRecette } from './EtapesRecette.js'
 import { useDerived } from './RecipeDerived.js'
@@ -150,7 +151,8 @@ function Fiche({ recipe }: { readonly recipe: Recipe }) {
 
   const journal = useCookingLog(recipe.id)
   const cuissons = journal.data?.items.length ?? 0
-  const noter = useAddCooking(recipe.id ?? 0)
+  const [cuisine, setCuisine] = useState(false)
+  const toast = useToast()
 
   // Le frigo et la semaine partagent leur cache avec le Frigo et le Planning :
   // venant de l'un de ces ecrans, ces deux lectures ne coutent rien.
@@ -413,15 +415,16 @@ function Fiche({ recipe }: { readonly recipe: Recipe }) {
               : `${manque.missing.length} ${manque.missing.length > 1 ? 'ingrédients manquants' : 'ingrédient manquant'} d’après ton frigo`}
         </p>
         <div className="pied-recette__actions">
+          {/* "J'ai cuisine ca" notait seulement la date. "Je la cuisine" ouvre la
+              cuisson : ce qu'on a vraiment mis, le plat au frigo, ce qui en
+              sort ; la date part au journal de la meme facon. */}
           <button
             type="button"
             className="button button--secondary"
-            disabled={noter.isPending || recipe.id === null}
-            onClick={() =>
-              noter.mutate({ cookedAt: new Date().toISOString().slice(0, 10), rating: null, notes: null })
-            }
+            disabled={recipe.id === null}
+            onClick={() => setCuisine(true)}
           >
-            <Icon name="ui-check" size={16} className="icon--inline" /> J’ai cuisiné ça
+            <Icon name="ui-utensils" size={16} className="icon--inline" /> Je la cuisine
           </button>
           <button
             type="button"
@@ -432,6 +435,17 @@ function Fiche({ recipe }: { readonly recipe: Recipe }) {
           </button>
         </div>
       </div>
+
+      {cuisine && recipe.id !== null && (
+        <CuisinerSheet
+          recipeId={recipe.id}
+          onClose={() => setCuisine(false)}
+          onCuisine={(plat, nom) => {
+            setCuisine(false)
+            toast.show({ message: messageCuisson(nom, plat.sorties.length) })
+          }}
+        />
+      )}
     </section>
   )
 }

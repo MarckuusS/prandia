@@ -93,6 +93,8 @@ export interface QuantityFieldProps {
   readonly onChange: (grams: number | null) => void
   /** Poids d'une piece. `null` ou 0 : aucune entree « pièce » dans le menu. */
   readonly pieceWeightG?: number | null | undefined
+  /** Le mot de la piece dans le menu : "part" pour un plat cuisine. */
+  readonly nomPiece?: string | undefined
   /**
    * Rendement a la cuisson, en grammes cuits pour 100 g crus. `null` : aucune
    * entree "g cuits". Toute surface qui saisit un ingredient pouvant se peser
@@ -124,6 +126,7 @@ export function QuantityField({
   value,
   onChange,
   pieceWeightG,
+  nomPiece = 'pièce',
   cookedWeightPer100gRaw,
   spoonWeightG,
   unit,
@@ -183,9 +186,9 @@ export function QuantityField({
         : [{ code: u.code, label: labelFor(u.code, null, spoonWeightG) }],
     )
     return positif(pieceWeightG)
-      ? [{ code: PIECE_UNIT_CODE, label: labelFor(PIECE_UNIT_CODE, pieceWeightG) }, ...base]
+      ? [{ code: PIECE_UNIT_CODE, label: labelFor(PIECE_UNIT_CODE, pieceWeightG, null, nomPiece) }, ...base]
       : base
-  }, [pieceWeightG, cookedWeightPer100gRaw, spoonWeightG])
+  }, [pieceWeightG, cookedWeightPer100gRaw, spoonWeightG, nomPiece])
 
   const changeUnit = (next: string) => {
     setUnitCode(next)

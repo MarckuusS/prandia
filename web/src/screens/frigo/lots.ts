@@ -21,6 +21,7 @@ import {
   UNCATEGORIZED_LABEL,
   daysUntil,
   formatGrams,
+  estUnPlat,
   formatShoppingQuantity,
   normalizeName,
   urgencyBucket,
@@ -271,10 +272,14 @@ export function groupLots(lots: readonly Lot[], group: GroupValue): LotSection[]
  * diverger des trois autres.
  */
 export function formatLotQuantity(lot: Lot): string {
-  return formatShoppingQuantity({
-    quantityG: lot.stock.quantityG,
-    pieceCount: lot.pieceWeightG ? lot.stock.quantityG / lot.pieceWeightG : null,
-  })
+  return formatShoppingQuantity(
+    {
+      quantityG: lot.stock.quantityG,
+      pieceCount: lot.pieceWeightG ? lot.stock.quantityG / lot.pieceWeightG : null,
+    },
+    // Le reste d'un plat cuisine se compte en parts.
+    lot.ingredient !== null && estUnPlat(lot.ingredient) ? 'part' : 'pièce',
+  )
 }
 
 /** Masse cumulee d'un ingredient, pour les lignes qui ont des lots freres. */

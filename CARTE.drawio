@@ -368,10 +368,10 @@
         <mxCell id="parts" value="&lt;b&gt;Manger une part&lt;/b&gt;&lt;br&gt;le planning compte ce que je mange : des parts ou des grammes d’un plat cuisiné" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fontColor=#2B1D24;arcSize=10;spacing=6;fillColor=#F3DEE2;strokeColor=#7A2E3A;strokeWidth=2;" vertex="1" parent="1">
           <mxGeometry x="634" y="1209" width="250" height="84" as="geometry" />
         </mxCell>
-        <mxCell id="cuisiner" value="&lt;b&gt;Je la cuisine&lt;/b&gt;&lt;br&gt;ingrédients et quantités réels, poids du plat estimé ou pesé, nombre de parts ; la recette ne bouge pas" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fontColor=#2B1D24;arcSize=10;spacing=6;fillColor=#F3DEE2;strokeColor=#7A2E3A;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="cuisiner" value="&lt;b&gt;Je la cuisine&lt;/b&gt;&lt;br&gt;ingrédients et quantités réels, poids du plat estimé ou pesé, nombre de parts ; la recette ne bouge pas" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fontColor=#2B1D24;arcSize=10;spacing=6;fillColor=#F7E9D2;strokeColor=#C8892A;strokeWidth=1.5;" vertex="1" parent="1">
           <mxGeometry x="352" y="1885" width="250" height="84" as="geometry" />
         </mxCell>
-        <mxCell id="platFrigo" value="&lt;b&gt;Le plat au frigo&lt;/b&gt;&lt;br&gt;apports figés pour 100 g, ingrédients sortis du frigo ; la part d’un autre sort du plat" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fontColor=#2B1D24;arcSize=10;spacing=6;fillColor=#F3DEE2;strokeColor=#7A2E3A;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="platFrigo" value="&lt;b&gt;Le plat au frigo&lt;/b&gt;&lt;br&gt;apports figés pour 100 g, ingrédients sortis du frigo ; la part d’un autre sort du plat" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fontColor=#2B1D24;arcSize=10;spacing=6;fillColor=#F7E9D2;strokeColor=#C8892A;strokeWidth=1.5;" vertex="1" parent="1">
           <mxGeometry x="634" y="1885" width="250" height="84" as="geometry" />
         </mxCell>
         <mxCell id="savarinCuisine" value="&lt;b&gt;Savarin à la cuisine&lt;/b&gt;&lt;br&gt;un remplaçant pris dans le frigo, quantité convertie ; &quot;j’ai mis la sauce tomate&quot;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fontColor=#2B1D24;arcSize=10;spacing=6;fillColor=#F3DEE2;strokeColor=#7A2E3A;strokeWidth=2;" vertex="1" parent="1">

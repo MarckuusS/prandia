@@ -43,6 +43,8 @@ export type ActivityEntity =
    * « a ajouté X » noieraient le reste du journal pour une seule sortie.
    */
   | 'shopping_session'
+  /** Un plat cuisine (shared/src/preparation.ts) : un seul geste, journalise comme un tout. */
+  | 'preparation'
 
 export interface ActivityEntry {
   readonly id: number

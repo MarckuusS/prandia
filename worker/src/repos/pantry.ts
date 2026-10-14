@@ -40,6 +40,20 @@ export class PantryRepo {
     return row ? toPantryStock(row) : null
   }
 
+  /** Les lots de quelques produits : ce qui peut sortir du frigo pour cuisiner. */
+  async lotsOf(ingredientIds: readonly number[]): Promise<PantryStock[]> {
+    const ids = [...new Set(ingredientIds)]
+    if (ids.length === 0) return []
+    const { results } = await this.db
+      .prepare(
+        `SELECT ${STOCK_COLUMNS} FROM pantry_stock
+          WHERE household_id = ? AND ingredient_id IN (${ids.map(() => '?').join(', ')})`,
+      )
+      .bind(this.householdId, ...ids)
+      .all<PantryStockRow>()
+    return results.map(toPantryStock)
+  }
+
   /**
    * Totaux par ingredient, tous lots confondus. Alimente le pre-cochage
    * « deja au frigo ».

@@ -17,6 +17,8 @@ import {
   addNutrition,
   cookedGramsPerPortion,
   cookedWeightG,
+  estUnPlat,
+  PIECE_UNIT_CODE,
   formatGrams,
   mealEntryNutrition,
   mealPlanEntryCost,
@@ -129,6 +131,13 @@ export function entryAmountLabel(entry: MealPlanEntry, data?: CalendarResponse):
   const ingredient = entry.ingredientId === null ? undefined : data?.ingredients[String(entry.ingredientId)]
   if (entry.unit === COOKED_UNIT_CODE && ingredient?.cookedWeightPer100gRaw) {
     return `${formatGrams(cookedWeightG(ingredient, entry.quantityG ?? 0))} cuits`
+  }
+  // Une part d'un plat cuisine se relit en parts : "1 part (350 g)".
+  if (entry.unit === PIECE_UNIT_CODE && ingredient !== undefined && estUnPlat(ingredient) && ingredient.pieceWeightG) {
+    const grammes = entry.quantityG ?? 0
+    const parts = grammes / ingredient.pieceWeightG
+    const valeur = parts.toLocaleString('fr-FR', { maximumFractionDigits: 2 })
+    return `${valeur} part${parts > 1 ? 's' : ''} (${formatGrams(Math.round(grammes))})`
   }
   return formatGrams(entry.quantityG ?? 0)
 }

@@ -83,6 +83,11 @@ export interface DatePeremptionProps {
   /** Phrase d'aide propre a l'ecran, avant celle qui explique la lecture. */
   readonly hint?: string | undefined
   readonly disabled?: boolean | undefined
+  /**
+   * `false` : ni Savarin ni la lecture de l'iPhone. La date d'un plat cuisine
+   * maison ne s'imprime sur aucun emballage.
+   */
+  readonly lecture?: boolean | undefined
 }
 
 export function DatePeremption({
@@ -91,6 +96,7 @@ export function DatePeremption({
   label = 'Périmé le',
   hint,
   disabled,
+  lecture: avecLecture = true,
 }: DatePeremptionProps) {
   const id = useId()
   const aujourdhui = todayLocalIsoDate()
@@ -152,11 +158,11 @@ export function DatePeremption({
     value === null
       ? null
       : precision === 'mois'
-        ? `Lu : jusqu’à fin ${MOIS_EN_LETTRES.format(enDate(value))}`
-        : `Lu : ${EN_TOUTES_LETTRES.format(enDate(value))}`
+        ? `${avecLecture ? 'Lu : ' : 'Soit '}jusqu’à fin ${MOIS_EN_LETTRES.format(enDate(value))}`
+        : `${avecLecture ? 'Lu : ' : 'Soit '}${EN_TOUTES_LETTRES.format(enDate(value))}`
 
   return (
-    <div className={`field peremption${nonLu ? ' field--invalid' : ''}`}>
+    <div className={`field peremption${avecLecture ? '' : ' peremption--sans-lecture'}${nonLu ? ' field--invalid' : ''}`}>
       <label className="field__label" htmlFor={id}>
         {label}
       </label>
@@ -198,15 +204,17 @@ export function DatePeremption({
         {/* Savarin, DANS le champ comme partout : le texte lu arrive dans le
             champ et suit le meme chemin qu'une saisie ("Lu : ..." ou l'annee
             douteuse). */}
-        <span className="peremption__lire">
-          <BoutonLire
-            quoi="date"
-            onLu={(lu) => {
-              if (lu.kind === 'date' && lu.texte !== null) lire(lu.texte)
-            }}
-            disabled={disabled}
-          />
-        </span>
+        {avecLecture && (
+          <span className="peremption__lire">
+            <BoutonLire
+              quoi="date"
+              onLu={(lu) => {
+                if (lu.kind === 'date' && lu.texte !== null) lire(lu.texte)
+              }}
+              disabled={disabled}
+            />
+          </span>
+        )}
         </div>
       </div>
 
@@ -220,7 +228,7 @@ export function DatePeremption({
             ? `L’année ${anneeDouteuse} paraît mal lue : corrige-la dans le champ.`
             : 'Date non reconnue. Écris-la comme sur l’emballage, par exemple 14/10/26.'
           : (lecture ??
-            `${hint === undefined ? '' : `${hint} `}Touche le jour, tape la date, ou fais-la lire par Savarin.`)}
+            `${hint === undefined ? '' : `${hint} `}${avecLecture ? 'Touche le jour, tape la date, ou fais-la lire par Savarin.' : 'Touche le jour, ou tape la date.'}`)}
       </p>
 
       {/* LE CHEMIN EXACT, parce qu'iOS le cache. Depuis iOS 17, "Scanner le
@@ -228,6 +236,7 @@ export function DatePeremption({
           "Remplissage automatique", et rien ne l'annonce : "touche le champ,
           puis Scanner le texte" ouvrait le clavier, et l'on s'arretait la
           (constate sur iPhone le 2026-10-11). Replie : on le lit une fois. */}
+      {avecLecture && (
       <details className="peremption__aide">
         <summary>Ou la faire lire par l’iPhone, sans réseau</summary>
         <ol>
@@ -241,6 +250,7 @@ export function DatePeremption({
           Si l’option manque : Réglages, Général, Langue et région, active Texte en direct.
         </p>
       </details>
+      )}
 
       <div className="peremption__jours" role="group" aria-label="Les trois semaines à venir">
         {jours.map((j) => (

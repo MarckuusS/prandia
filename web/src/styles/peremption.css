@@ -37,6 +37,15 @@
   color: var(--color-text-secondary);
 }
 
+/* Sans lecture (la date d'un plat maison) : la croix prend le bord. */
+.peremption--sans-lecture .field__input.peremption__texte {
+  padding-right: 44px;
+}
+
+.peremption--sans-lecture .button.peremption__effacer {
+  right: 4px;
+}
+
 /* Le chemin vers la lecture de texte d'iOS, replie. */
 .peremption__aide {
   margin-top: var(--space-xs);

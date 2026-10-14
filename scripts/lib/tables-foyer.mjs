@@ -17,6 +17,9 @@ export const TABLES_DU_FOYER = [
   // pantry_stock, qui viennent plus bas.
   'recipe_cooking_log',
   'meal_plan_entry',
+  // Un plat pointe vers sa fiche (ingredient) et sa recette : avant les deux.
+  // Ses lignes (`preparation_line`) partent avec lui, en cascade.
+  'preparation',
   'meal_plan_template',
   'weekly_cost_snapshot',
   'pantry_movement',

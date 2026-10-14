@@ -144,9 +144,18 @@ export function fromGrams(
   return grams / grammesPar(unit, spoonWeightG)
 }
 
-export function labelFor(unitCode: string, pieceWeightG?: number | null, spoonWeightG?: number | null): string {
+/**
+ * `nomPiece` : le mot de la piece. "part" pour un plat cuisine
+ * (shared/src/preparation.ts), dont la piece EST une part.
+ */
+export function labelFor(
+  unitCode: string,
+  pieceWeightG?: number | null,
+  spoonWeightG?: number | null,
+  nomPiece = 'pièce',
+): string {
   if (unitCode === PIECE_UNIT_CODE) {
-    return pieceWeightG ? `pièce (${formatGrams(pieceWeightG)})` : 'pièce'
+    return pieceWeightG ? `${nomPiece} (${formatGrams(pieceWeightG)})` : nomPiece
   }
   if (unitCode === COOKED_UNIT_CODE) return 'g cuits'
   const unit = UNIT_BY_CODE.get(unitCode)

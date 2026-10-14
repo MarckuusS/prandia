@@ -22,6 +22,7 @@ import {
 import {
   currentIsoWeek,
   type ArticleLu,
+  type PreparationWrite,
   type Ingredient,
   type MealPlanEntry,
   type NutritionTotal,
@@ -743,6 +744,33 @@ export interface CookingEntry {
   readonly rating: number | null
   readonly notes: string | null
   readonly createdAt: string
+}
+
+/** Ce que rend la cuisson d'un plat : de quoi dire ce qui est sorti du frigo. */
+export interface PlatCuisine {
+  readonly preparationId: number
+  readonly ingredientId: number
+  readonly sorties: ReadonlyArray<{ readonly name: string; readonly quantityG: number }>
+}
+
+/**
+ * Cuisiner un plat (shared/src/preparation.ts). Une ecriture qui touche le
+ * planning (le repas devient une part), le frigo (ce qui sort, le plat qui
+ * entre), les fiches (celle du plat) et le journal de la recette : tout est
+ * invalide.
+ */
+export function useCuisiner() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (plat: PreparationWrite) => post<PlatCuisine>('/api/preparations', plat),
+    onSuccess: (_, plat) => {
+      void client.invalidateQueries({ queryKey: ['calendar'] })
+      void client.invalidateQueries({ queryKey: keys.pantry })
+      void client.invalidateQueries({ queryKey: ['ingredients'] })
+      if (plat.recipeId !== null) void client.invalidateQueries({ queryKey: keys.cooking(plat.recipeId) })
+      invalidateDerived(client)
+    },
+  })
 }
 
 export function useCookingLog(recipeId: number | null) {

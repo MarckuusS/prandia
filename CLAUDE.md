@@ -1125,6 +1125,49 @@ photos au plus, puis "Envoyer". Ce qui ne se devine pas :
 - **Rien n'est conservé au rechargement** : une lecture interrompue est perdue, l'article reste
   tel qu'il a été ajouté. Les boutons des champs restent, pour corriger une valeur.
 
+## Cuisiner un plat : `shared/src/preparation.ts`, `POST /api/preparations`, `screens/cuisine/CuisinerSheet.tsx`
+
+Décidé le 2026-10-14 : une recette se suit rarement à la lettre (une autre marque, de la sauce
+tomate faute de pelées), et un plat se cuisine pour deux et pour plusieurs jours. Un repas du
+planning ne gardait que "recette X, N portions", ses apports recalculés sur la recette ACTUELLE :
+la retoucher réécrivait les semaines passées. "Je la cuisine" (sur un repas-recette du
+planning, ou sur la fiche d'une recette, à la place de l'ancien "J'ai cuisiné ça") enregistre
+ce qu'on a VRAIMENT fait. Ce qui ne se devine pas :
+
+- **Le plat est une FICHE comme une autre** (`ingredient`, source `manual`, hors bibliothèque),
+  avec ses apports pour 100 g calculés UNE FOIS, à la cuisson, par le SERVEUR sur les fiches de
+  la cuisine. On en mange ensuite des grammes ou des parts comme d'un yaourt : le planning, le
+  frigo, les apports et les rappels de péremption marchent sans rien de neuf. La recette n'est
+  jamais touchée.
+- **Un plat se reconnaît à `sourceRef = 'plat:<id>'`** (`estUnPlat`) : la contrainte CHECK sur
+  `source` aurait demandé de reconstruire la table `ingredient`, FTS et déclencheurs compris.
+  Ses deux tables (`preparation`, `preparation_line`, migration 0022) gardent la recette
+  d'origine, le jour, le poids cuit, les parts et ce qu'on y a mis (le NOM recopié : une fiche
+  peut partir).
+- **Une part est la "pièce" du plat** (`pieceWeightG` = poids / parts) : "1 part (275 g)" au
+  planning (`entryAmountLabel`), dans le menu d'unités (`nomPiece` de `QuantityField` et de
+  `labelFor`), et "≈ 5 parts" au frigo (`formatShoppingQuantity`).
+- **Les parts DIMENSIONNENT la recette** : cuisiner pour 6 au lieu de 4 multiplie chaque ligne,
+  comme de tête. Remplacer une ligne reprend `replaceIngredient` de l'éditeur (trois cuillères
+  restent trois cuillères).
+- **Le poids cuit est ESTIMÉ** (rendement de chaque ligne) tant qu'on ne pèse pas : l'eau qui
+  s'évapore n'est dans aucune fiche, et le chili d'essai pesait 1,65 kg pour 2,68 estimés.
+- **Ce qui a servi sort du frigo**, les lots qui périment le plus tôt d'abord, jamais plus que
+  ce qu'ils contiennent (`sortiesDuFrigo`, un lot réduit à moins d'un gramme est fini), avec un
+  mouvement "consommé". Ce qui n'est pas au frigo (sel, huile) ne bloque rien.
+- **Le repas qui a lancé la cuisson devient une part du plat** (recette retirée, fiche du plat
+  et grammes posés : le CHECK XOR de la table tient), et le reste du plat entre au frigo avec
+  une date "à finir avant", 3 jours proposés (`PLAT_A_FINIR_JOURS`). Ce n'est pas une date
+  devinée sur un produit acheté : c'est une proposition qu'on change d'un toucher, et la feuille
+  de date s'affiche sans lecture par Savarin (`lecture={false}`).
+- **Tout part en UN `batch` D1**, donc en une transaction : plat, lignes, référence de la fiche,
+  lot, sorties, part, journal de la recette. Seule la fiche est créée avant (il faut son
+  identifiant) et retirée si le lot échoue.
+- **Reste à faire** (validé, carte bande 4) : choisir un plat du frigo en ajoutant un repas,
+  prendre la part sur le plat au planning, le planning personnel (plus de division par les
+  mangeurs ; toutes les cuisines sont à 1) et, pour la liste de courses, distinguer ce qu'on
+  cuisine de ce qu'on mange. Puis Savarin à la cuisine.
+
 ## Compléter une fiche par l'IA : `shared/src/completion.ts`, `worker/src/completion.ts`
 
 Rayon, poids cuit (rapport cru/cuit) et mois de saison : trois champs qu'on ne remplit presque

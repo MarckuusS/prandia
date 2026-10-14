@@ -15,6 +15,7 @@
 import { useState } from 'react'
 import {
   DAY_LABELS,
+  estUnPlat,
   MEAL_SLOTS,
   MEAL_SLOT_LABELS,
   type MealSlot,
@@ -27,6 +28,7 @@ import { TableauNutriments } from '../../components/TableauNutriments.js'
 import { Icon, RayonIcon } from '../../icons/index.js'
 import { QuantityField } from '../../components/QuantityField.js'
 import { Sheet } from '../../components/Sheet.js'
+import { useToast } from '../../components/Toast.js'
 import { useMoveEntry, useUpdateEntryAmount, type CalendarResponse } from '../../lib/queries.js'
 import { useRayonStyle } from '../../lib/useRayonStyle.js'
 import {
@@ -37,6 +39,7 @@ import {
   type SavedEntry,
 } from './totals.js'
 import { PortionsOuGrammes } from './PortionsOuGrammes.js'
+import { CuisinerSheet, messageCuisson } from '../cuisine/CuisinerSheet.js'
 import '../../styles/week.css'
 
 const DAY_OPTIONS = DAY_LABELS.map((label, index) => ({ value: String(index), label }))
@@ -62,6 +65,10 @@ export function EntrySheet({ isoWeek, entry, data, onClose, onDelete }: EntryShe
   const [quantityG, setQuantityG] = useState<number | null>(entry.quantityG)
   /** Unite d'affichage, relue de l'entree et renvoyee avec la quantite. */
   const [unit, setUnit] = useState<string | null>(entry.unit)
+
+  /** "Je la cuisine" : la recette telle qu'on la fait, et ce repas en devient une part. */
+  const [cuisine, setCuisine] = useState(false)
+  const toast = useToast()
 
   const move = useMoveEntry(isoWeek)
   const amount = useUpdateEntryAmount(isoWeek)
@@ -149,6 +156,21 @@ export function EntrySheet({ isoWeek, entry, data, onClose, onDelete }: EntryShe
           />
         )}
 
+        {/* CUISINER, en tete d'un repas-recette : on ajuste ce qu'on a vraiment
+            mis, le plat entre au frigo et ce repas en devient une part
+            (screens/cuisine/CuisinerSheet.tsx). Un bouton borde, pas un aplat :
+            la feuille garde le sien pour Enregistrer. */}
+        {target?.kind === 'recipe' && target.recipe.id !== null && (
+          <button
+            type="button"
+            className="button button--secondary button--block"
+            onClick={() => setCuisine(true)}
+            disabled={busy}
+          >
+            <Icon name="ui-utensils" size={16} className="icon--inline" /> Je la cuisine
+          </button>
+        )}
+
         {isRecipe ? (
           <PortionsOuGrammes
             recipe={target?.kind === 'recipe' ? target.recipe : undefined}
@@ -166,6 +188,7 @@ export function EntrySheet({ isoWeek, entry, data, onClose, onDelete }: EntryShe
             value={quantityG}
             onChange={setQuantityG}
             pieceWeightG={pieceWeightG}
+            nomPiece={target?.kind === 'ingredient' && estUnPlat(target.ingredient) ? 'part' : undefined}
             cookedWeightPer100gRaw={rendement}
             spoonWeightG={cuillere}
             unit={unit}
@@ -233,6 +256,19 @@ export function EntrySheet({ isoWeek, entry, data, onClose, onDelete }: EntryShe
       >
         <Icon name="ui-trash" size={16} className="icon--inline" /> Retirer de la semaine
       </button>
+
+      {cuisine && target?.kind === 'recipe' && target.recipe.id !== null && (
+        <CuisinerSheet
+          recipeId={target.recipe.id}
+          entry={{ id: entry.id, portions: entry.portions }}
+          onClose={() => setCuisine(false)}
+          onCuisine={(plat, nom) => {
+            setCuisine(false)
+            toast.show({ message: messageCuisson(nom, plat.sorties.length) })
+            onClose()
+          }}
+        />
+      )}
     </Sheet>
   )
 }
