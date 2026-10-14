@@ -1070,7 +1070,11 @@ bloc. Ce qui ne se devine pas :
   `interpretScan` vérifie tout : prix entre un centime et 500 €, unité de 1 g à 20 kg, au plus
   100 unités. Hors bornes, le champ revient VIDE plutôt que faux.
 - **La date revient en TEXTE**, tel qu'imprimé, et passe par `parseExpiryText` comme une saisie :
-  un seul chemin de lecture, et l'année douteuse est signalée de la même façon.
+  un seul chemin de lecture, et l'année douteuse est signalée de la même façon. À défaut,
+  `parseDateLue` prend pour séparateur tout ce qui sépare deux nombres ("17 10", "17,10") :
+  Savarin ne rend que la date, une saisie au clavier ne passe pas par là. Le champ réécrit
+  alors la lecture dans la forme de l'application ("17.10" devient "17/10/26", vu en magasin
+  le 2026-10-13) ; pendant une frappe, jamais. La consigne interdit d'ajouter une année absente.
 - **Rien n'est écrit en base par la lecture** : la valeur va dans le champ, et ne part qu'avec le
   bouton de la feuille. La photo n'est conservée nulle part.
 - **La clé est un secret Pages (`ANTHROPIC_API_KEY`)**, jamais dans le dépôt ; absente, la route

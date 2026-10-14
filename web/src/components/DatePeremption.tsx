@@ -27,7 +27,9 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import {
   addDaysIso,
   formatExpiryInput,
+  formatExpiryReading,
   implausibleExpiryYear,
+  parseDateLue,
   parseExpiryText,
   todayLocalIsoDate,
 } from '@prandia/shared'
@@ -122,6 +124,22 @@ export function DatePeremption({
     emettre(lu?.date ?? null)
   }
 
+  /*
+   * Ce que Savarin a lu arrive d'un bloc : le champ le reecrit dans la forme
+   * de l'application ("17.10" devient "17/10/26", constate en magasin le
+   * 2026-10-13), ce qu'on ne fait pas pendant une frappe.
+   */
+  const lire = (brut: string) => {
+    const lu = parseDateLue(brut, aujourdhui)
+    if (lu === null) {
+      saisir(brut)
+      return
+    }
+    setTexte(formatExpiryReading(lu))
+    setPrecision(lu.precision)
+    emettre(lu.date)
+  }
+
   const toucher = (iso: string) => {
     setTexte(formatExpiryInput(iso))
     setPrecision('jour')
@@ -184,7 +202,7 @@ export function DatePeremption({
           <BoutonLire
             quoi="date"
             onLu={(lu) => {
-              if (lu.kind === 'date' && lu.texte !== null) saisir(lu.texte)
+              if (lu.kind === 'date' && lu.texte !== null) lire(lu.texte)
             }}
             disabled={disabled}
           />

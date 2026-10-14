@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
-import { addDaysIso, formatExpiryInput, implausibleExpiryYear, parseExpiryText } from './peremption.js'
+import {
+  addDaysIso,
+  formatExpiryInput,
+  formatExpiryReading,
+  implausibleExpiryYear,
+  parseDateLue,
+  parseExpiryText,
+} from './peremption.js'
 
 /** Un dimanche d'octobre : assez loin de janvier pour que l'annee se devine. */
 const AUJOURDHUI = '2026-10-11'
@@ -108,5 +115,42 @@ describe('addDaysIso et formatExpiryInput', () => {
   it('relit exactement ce qu’elle ecrit', () => {
     const date = '2027-03-05'
     expect(lire(formatExpiryInput(date))?.date).toBe(date)
+  })
+})
+
+describe('parseDateLue, ce que Savarin a lu', () => {
+  const lue = (texte: string) => parseDateLue(texte, '2026-10-13')
+
+  it('date un "17.10" de cette annee, comme le pot de fromage blanc du 2026-10-13', () => {
+    expect(lue('17.10')).toEqual({ date: '2026-10-17', precision: 'jour' })
+  })
+
+  it('prend pour separateur ce qui separe deux nombres, Savarin ne rendant que la date', () => {
+    for (const texte of ['17 10', '17,10', '17·10', '17:10', "17'10", '17 . 10']) {
+      expect(lue(texte)?.date).toBe('2026-10-17')
+    }
+    expect(lue('17,10,26')?.date).toBe('2026-10-17')
+  })
+
+  it('laisse une date bien formee suivre le chemin d’une saisie', () => {
+    expect(lue('30.06.2028')).toEqual(parseExpiryText('30.06.2028', '2026-10-13'))
+    expect(lue('03/2027')).toEqual({ date: '2027-03-31', precision: 'mois' })
+  })
+
+  it('ne fabrique pas de date avec du texte ou un nombre seul', () => {
+    expect(lue('L2861')).toBeNull()
+    expect(lue('1710')).toBeNull()
+    expect(lue('17,10,26,41')).toBeNull()
+    expect(lue('lot 17 10')).toBeNull()
+  })
+
+  it('reecrit la lecture dans la forme de l’application', () => {
+    expect(formatExpiryReading({ date: '2026-10-17', precision: 'jour' })).toBe('17/10/26')
+    expect(formatExpiryReading({ date: '2027-03-31', precision: 'mois' })).toBe('03/2027')
+    // Ce qui est reecrit se relit pareil.
+    expect(lue(formatExpiryReading({ date: '2027-03-31', precision: 'mois' }))).toEqual({
+      date: '2027-03-31',
+      precision: 'mois',
+    })
   })
 })

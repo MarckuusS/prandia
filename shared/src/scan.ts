@@ -43,7 +43,7 @@ const nombreOuNul = { type: ['number', 'null'] }
 export const SCAN_QUESTIONS: Readonly<Record<ScanKind, { readonly question: string; readonly tool: ScanTool }>> = {
   date: {
     question:
-      "Photo d'un emballage alimentaire. Recopie la date de peremption imprimee : la DLC (a consommer jusqu'au) ou la DDM (a consommer de preference avant). Recopie-la exactement comme imprimee, chiffres et separateurs compris (30.06.2028, 14/10/26, 03/2027, 14 OCT 2026), sans numero de lot ni heure. S'il y a plusieurs dates, prends celle de peremption. Si aucune n'est lisible, texte vaut null.",
+      "Photo d'un emballage alimentaire. Recopie la date de peremption imprimee : la DLC (a consommer jusqu'au) ou la DDM (a consommer de preference avant). Recopie-la exactement comme imprimee, chiffres et separateurs compris (30.06.2028, 14/10/26, 03/2027, 14 OCT 2026), sans numero de lot ni heure, et sans ajouter d'annee si aucune n'est imprimee (17.10 reste 17.10). S'il y a plusieurs dates, prends celle de peremption. Si aucune n'est lisible, texte vaut null.",
     tool: {
       name: 'date_lue',
       description: 'Rend la date de peremption telle qu’imprimee.',

@@ -161,6 +161,31 @@ export function parseExpiryText(texte: string, aujourdhui: string): ExpiryReadin
 }
 
 /**
+ * La date d'une LECTURE de Savarin, ou `null`.
+ *
+ * Savarin ne rend que la date, sans lot ni heure : un separateur inattendu
+ * entre deux nombres (virgule, point median, deux-points, espace) en est donc
+ * un. Une saisie au clavier ne passe pas par ici, "17 10" y reste ambigu. Le
+ * premier essai est la lecture ordinaire, pour qu'une date bien formee suive
+ * exactement le chemin d'une saisie.
+ */
+export function parseDateLue(texte: string, aujourdhui: string): ExpiryReading | null {
+  const directe = parseExpiryText(texte, aujourdhui)
+  if (directe !== null) return directe
+  const nombres = texte.trim().split(/[^0-9a-zA-Z]+/).filter((g) => g !== '')
+  if (nombres.length < 2 || nombres.length > 3 || !nombres.every((g) => /^\d{1,4}$/.test(g))) return null
+  return parseExpiryText(nombres.join('/'), aujourdhui)
+}
+
+/**
+ * La forme qu'on lit et qu'on tape : "17/10/26", ou "03/2027" pour une date
+ * au mois (son dernier jour, "31/03/27", se relirait comme une DLC).
+ */
+export function formatExpiryReading(lu: ExpiryReading): string {
+  return lu.precision === 'mois' ? `${lu.date.slice(5, 7)}/${lu.date.slice(0, 4)}` : formatExpiryInput(lu.date)
+}
+
+/**
  * L'annee d'une date BIEN FORMEE mais hors de portee, ou `null`.
  *
  * "30.06.2081" lu sur une boite de thon (constate le 2026-10-11) : le jour et

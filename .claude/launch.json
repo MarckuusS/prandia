@@ -21,6 +21,13 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["wrangler", "pages", "dev", "--port", "8787"],
       "port": 8787
+    },
+    {
+      "// pages-local": "Comme 'pages', sur la base de developpement de mobile.bat (%LOCALAPPDATA%, hors du depot). Windows : cmd developpe la variable.",
+      "name": "pages-local",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "npx wrangler pages dev web/dist --port 8788 --persist-to %LOCALAPPDATA%\\Prandia\\dev-state"],
+      "port": 8788
     }
   ]
 }
