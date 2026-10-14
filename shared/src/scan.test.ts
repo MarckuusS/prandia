@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
-import { SCAN_QUESTIONS, interpretScan, isEmptyScan, isScanKind } from './scan.js'
+import {
+  ARTICLE_TOOL,
+  SCAN_QUESTIONS,
+  interpretArticle,
+  interpretScan,
+  isEmptyArticle,
+  isEmptyScan,
+  isScanKind,
+} from './scan.js'
 
 describe('interpretScan, date', () => {
   it('rend la date telle que lue, sans la transformer', () => {
@@ -167,5 +175,50 @@ describe('les questions', () => {
     // "pesee" est devenue la lecture du poids, "produit" un champ a la fois.
     expect(['pesee', 'produit', 'poids'].some(isScanKind)).toBe(false)
     expect(isScanKind(null)).toBe(false)
+  })
+})
+
+describe('interpretArticle, plusieurs photos d’un meme article', () => {
+  it('rend prix, lot, date, nom et marque lus sur des photos differentes', () => {
+    expect(
+      interpretArticle({
+        prix: 2.19,
+        nombre: 4,
+        contenance: 125,
+        unite: 'g',
+        pese: false,
+        date: '17.10',
+        nom: 'Fromage blanc nature',
+        marque: 'Danone',
+      }),
+    ).toEqual({
+      prixEur: 2.19,
+      nombre: 4,
+      contenanceG: 125,
+      pese: false,
+      dateTexte: '17.10',
+      nom: 'Fromage blanc nature',
+      marque: 'Danone',
+    })
+  })
+
+  it('lit une etiquette de balance comme un poids pese', () => {
+    const lu = interpretArticle({ prix: '3,47', nombre: 1, contenance: 0.734, unite: 'kg', pese: true, date: null, nom: null, marque: null })
+    expect(lu).toMatchObject({ prixEur: 3.47, contenanceG: 734, pese: true })
+  })
+
+  it('applique les bornes d’un champ seul, et ne croit pas "pese" sans poids', () => {
+    const lu = interpretArticle({ prix: 1200, nombre: 1, contenance: 30, unite: 'kg', pese: true, date: '', nom: '  ', marque: 42 })
+    expect(lu).toEqual({ prixEur: null, nombre: null, contenanceG: null, pese: false, dateTexte: null, nom: null, marque: null })
+    expect(isEmptyArticle(lu)).toBe(true)
+  })
+
+  it('tient une reponse vide ou absente', () => {
+    expect(isEmptyArticle(interpretArticle(undefined))).toBe(true)
+    expect(isEmptyArticle(interpretArticle({ date: '03/2027' }))).toBe(false)
+  })
+
+  it('exige chacun de ses champs dans son outil', () => {
+    expect(ARTICLE_TOOL.input_schema['required']).toEqual(Object.keys(ARTICLE_TOOL.input_schema['properties'] as object))
   })
 })

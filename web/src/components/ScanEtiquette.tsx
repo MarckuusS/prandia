@@ -23,14 +23,19 @@
  * (routes/scan.ts) et la valeur revient dans le champ : rien n'est enregistre
  * sans le bouton de la feuille, comme une saisie.
  *
+ * EN RAFALE, AU CHARIOT (2026-10-14) : `BoutonRafale` prend jusqu'a trois
+ * photos d'un article a la suite, lues d'un coup et en arriere-plan
+ * (screens/courses/lecturesArticle.ts). Le viseur ne fige que le temps d'un
+ * eclair, et repart pour la photo suivante.
+ *
  * POURQUOI PAS `<input capture>`. L'appareil photo du systeme prend tout
  * l'ecran, demande "Utiliser la photo", et rend une image de douze
  * megapixels ou l'etiquette n'occupe qu'un coin. Ici on vise, et on envoie ce
  * qu'on a vise.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { isEmptyScan, type ScanKind, type ScanResult } from '@prandia/shared'
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
+import { ARTICLE_PHOTOS_MAX, isEmptyScan, type ScanKind, type ScanResult } from '@prandia/shared'
 
 import { Icon } from '../icons/index.js'
 import { camera } from '../lib/camera.js'
@@ -135,42 +140,33 @@ async function decouper(
   )
 }
 
-/**
- * `fige` : la video est arretee sur l'image envoyee, pendant la lecture puis
- * quand elle n'a rien donne (on voit pourquoi : flou, reflet, mauvais cadrage).
- */
-type Etat = 'demarrage' | 'pret' | 'lecture' | 'fige' | 'refus' | 'erreur'
+type EtatCamera = 'demarrage' | 'pret' | 'refus' | 'erreur'
 
-function Viseur({
-  quoi,
-  onLu,
-  onClose,
-}: {
-  readonly quoi: ScanKind
-  readonly onLu: (resultat: ScanResult) => void
-  readonly onClose: () => void
-}) {
-  const videoRef = useRef<HTMLVideoElement | null>(null)
-  const sceneRef = useRef<HTMLDivElement | null>(null)
-  const cadreRef = useRef<HTMLDivElement | null>(null)
+/**
+ * La camera partagee (`camera.ts`) branchee sur une video, le temps que le
+ * viseur est ouvert : empruntee a l'ouverture, rendue a la fermeture.
+ */
+function useCameraDuViseur(videoRef: RefObject<HTMLVideoElement | null>): {
+  readonly camera: EtatCamera
+  readonly messageCamera: string | null
+} {
   const fluxRef = useRef<MediaStream | null>(null)
-  const [etat, setEtat] = useState<Etat>('demarrage')
-  const [message, setMessage] = useState<string | null>(null)
-  const libelles = LIBELLES[quoi]
+  const [etat, setEtat] = useState<EtatCamera>('demarrage')
+  const [messageCamera, setMessageCamera] = useState<string | null>(null)
 
   const rendreCamera = useCallback(() => {
     const flux = fluxRef.current
     fluxRef.current = null
     if (videoRef.current) videoRef.current.srcObject = null
     if (flux) camera().release(flux)
-  }, [])
+  }, [videoRef])
 
   useEffect(() => {
     let annule = false
     void (async () => {
       if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
         setEtat('erreur')
-        setMessage('Ce navigateur ne donne pas accès à la caméra.')
+        setMessageCamera('Ce navigateur ne donne pas accès à la caméra.')
         return
       }
       let flux: MediaStream
@@ -201,7 +197,63 @@ function Viseur({
       annule = true
       rendreCamera()
     }
-  }, [rendreCamera])
+  }, [rendreCamera, videoRef])
+
+  return { camera: etat, messageCamera }
+}
+
+/** Refus ou panne de la camera : ce qu'on en dit, a la place de la scene. */
+function CameraIndisponible({ refus, message }: { readonly refus: boolean; readonly message: string | null }) {
+  return (
+    <div className="scanner scan-etiquette">
+      <div className="scanner__stage scanner__stage--message">
+        <p className="status status--error" role="alert">
+          {refus ? 'Accès à la caméra refusé.' : (message ?? 'La caméra n’a pas pu démarrer.')}
+        </p>
+        {refus && (
+          <p className="card__lead">
+            Autorise l’appareil photo pour ce site dans les réglages du téléphone, puis rouvre cet écran.
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/** Le cadre de lecture : seul ce rectangle part au serveur, marge comprise. */
+function Cadre({ forme, cadreRef }: { readonly forme: string; readonly cadreRef: RefObject<HTMLDivElement | null> }) {
+  return (
+    <div ref={cadreRef} className={`viseur viseur--${forme}`} aria-hidden="true">
+      <span className="viseur__coin viseur__coin--hg" />
+      <span className="viseur__coin viseur__coin--hd" />
+      <span className="viseur__coin viseur__coin--bg" />
+      <span className="viseur__coin viseur__coin--bd" />
+    </div>
+  )
+}
+
+/**
+ * `fige` : la video est arretee sur l'image envoyee, pendant la lecture puis
+ * quand elle n'a rien donne (on voit pourquoi : flou, reflet, mauvais cadrage).
+ */
+type EtatLecture = 'attente' | 'lecture' | 'fige'
+
+function Viseur({
+  quoi,
+  onLu,
+  onClose,
+}: {
+  readonly quoi: ScanKind
+  readonly onLu: (resultat: ScanResult) => void
+  readonly onClose: () => void
+}) {
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+  const sceneRef = useRef<HTMLDivElement | null>(null)
+  const cadreRef = useRef<HTMLDivElement | null>(null)
+  const { camera: etatCamera, messageCamera } = useCameraDuViseur(videoRef)
+  const [lecture, setLecture] = useState<EtatLecture>('attente')
+  const [message, setMessage] = useState<string | null>(null)
+  const libelles = LIBELLES[quoi]
 
   const declencher = async () => {
     const video = videoRef.current
@@ -210,14 +262,14 @@ function Viseur({
     if (video === null || scene === null || cadre === null || video.videoWidth === 0) return
     // FIGER D'ABORD : l'image arretee a l'ecran est celle qui part.
     video.pause()
-    setEtat('lecture')
+    setLecture('lecture')
     setMessage(null)
     try {
       const image = await decouper(video, scene, cadre, COTE_MAX[quoi])
       const resultat = await scanEtiquette(quoi, image)
       if (isEmptyScan(resultat)) {
         setMessage(libelles.vide)
-        setEtat('fige')
+        setLecture('fige')
         return
       }
       navigator.vibrate?.(40)
@@ -225,58 +277,40 @@ function Viseur({
       onClose()
     } catch (erreur) {
       setMessage(erreur instanceof Error ? erreur.message : 'La lecture a échoué. Reprends la photo.')
-      setEtat('fige')
+      setLecture('fige')
     }
   }
 
   const reprendre = () => {
     setMessage(null)
-    setEtat('pret')
+    setLecture('attente')
     void videoRef.current?.play().catch(() => undefined)
   }
 
-  if (etat === 'refus' || etat === 'erreur') {
-    return (
-      <div className="scanner scan-etiquette">
-        <div className="scanner__stage scanner__stage--message">
-          <p className="status status--error" role="alert">
-            {etat === 'refus' ? 'Accès à la caméra refusé.' : (message ?? 'La caméra n’a pas pu démarrer.')}
-          </p>
-          {etat === 'refus' && (
-            <p className="card__lead">
-              Autorise l’appareil photo pour ce site dans les réglages du téléphone, puis rouvre cet écran.
-            </p>
-          )}
-        </div>
-      </div>
-    )
+  if (etatCamera === 'refus' || etatCamera === 'erreur') {
+    return <CameraIndisponible refus={etatCamera === 'refus'} message={messageCamera} />
   }
 
-  const fige = etat === 'lecture' || etat === 'fige'
+  const fige = lecture !== 'attente'
   return (
     <div className={`scanner scan-etiquette scan-etiquette--${quoi}`}>
       <div className={`scanner__stage${fige ? ' scanner__stage--fige' : ''}`} ref={sceneRef}>
         <video ref={videoRef} className="scanner__video" muted playsInline />
-        <div ref={cadreRef} className={`viseur viseur--${quoi}`} aria-hidden="true">
-          <span className="viseur__coin viseur__coin--hg" />
-          <span className="viseur__coin viseur__coin--hd" />
-          <span className="viseur__coin viseur__coin--bg" />
-          <span className="viseur__coin viseur__coin--bd" />
-        </div>
+        <Cadre forme={quoi} cadreRef={cadreRef} />
         {!fige && <p className="viseur__astuce">{libelles.consigne}</p>}
-        {etat === 'demarrage' && <p className="scanner__overlay">Ouverture de la caméra…</p>}
-        {etat === 'lecture' && (
+        {etatCamera === 'demarrage' && <p className="scanner__overlay">Ouverture de la caméra…</p>}
+        {lecture === 'lecture' && (
           <p className="scan-etiquette__lecture" role="status">
             <Savarin size={22} occupe />
             {libelles.lecture}
           </p>
         )}
-        {(etat === 'pret' || etat === 'demarrage') && (
+        {!fige && (
           <button
             type="button"
             className="scan-etiquette__declencheur"
             onClick={() => void declencher()}
-            disabled={etat !== 'pret'}
+            disabled={etatCamera !== 'pret'}
             aria-label={`Prendre la photo : ${libelles.titre.toLowerCase()}`}
           >
             <span className="scan-etiquette__declencheur-centre" />
@@ -284,7 +318,7 @@ function Viseur({
         )}
       </div>
 
-      {etat === 'fige' && (
+      {lecture === 'fige' && (
         <>
           {message !== null && (
             <p className="field__error" role="alert">
@@ -297,6 +331,177 @@ function Viseur({
         </>
       )}
     </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// En rafale : plusieurs photos d'un article, lues en arriere-plan
+// ---------------------------------------------------------------------------
+
+/** Une photo qui vise une etiquette entiere ou un emballage : la definition d'une date. */
+const COTE_RAFALE = 1024
+
+/** Le temps de l'eclair : la photo est prise, la video repart. */
+const ECLAIR_MS = 260
+
+/**
+ * Trois photos d'un MEME article a la suite (le prix, le poids, la date),
+ * puis "Envoyer" : Savarin lit pendant qu'on va chercher l'article suivant
+ * (screens/courses/lecturesArticle.ts). Le viseur ne fige que le temps d'un
+ * eclair et repart pour la photo suivante ; la troisieme envoie d'elle-meme.
+ * Une photo ratee se retire de sa vignette.
+ */
+function ViseurRafale({
+  onEnvoyer,
+  onClose,
+}: {
+  readonly onEnvoyer: (photos: readonly Blob[]) => void
+  readonly onClose: () => void
+}) {
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+  const sceneRef = useRef<HTMLDivElement | null>(null)
+  const cadreRef = useRef<HTMLDivElement | null>(null)
+  const { camera: etatCamera, messageCamera } = useCameraDuViseur(videoRef)
+  const [photos, setPhotos] = useState<ReadonlyArray<{ readonly blob: Blob; readonly url: string }>>([])
+  const [eclair, setEclair] = useState(false)
+  const [erreur, setErreur] = useState<string | null>(null)
+
+  // Les vignettes sont des URL d'objets : rendues au navigateur a la fermeture.
+  const urls = useRef<string[]>([])
+  useEffect(() => () => urls.current.forEach((url) => URL.revokeObjectURL(url)), [])
+
+  const envoyer = (blobs: readonly Blob[]) => {
+    if (blobs.length === 0) return
+    onEnvoyer(blobs)
+    onClose()
+  }
+
+  const declencher = async () => {
+    const video = videoRef.current
+    const scene = sceneRef.current
+    const cadre = cadreRef.current
+    if (video === null || scene === null || cadre === null || video.videoWidth === 0 || eclair) return
+    video.pause()
+    setEclair(true)
+    setErreur(null)
+    let blob: Blob
+    try {
+      blob = await decouper(video, scene, cadre, COTE_RAFALE)
+    } catch (e) {
+      setErreur(e instanceof Error ? e.message : 'Capture impossible.')
+      setEclair(false)
+      void video.play().catch(() => undefined)
+      return
+    }
+    navigator.vibrate?.(20)
+    const url = URL.createObjectURL(blob)
+    urls.current.push(url)
+    const suite = [...photos, { blob, url }]
+    setPhotos(suite)
+    if (suite.length >= ARTICLE_PHOTOS_MAX) {
+      envoyer(suite.map((p) => p.blob))
+      return
+    }
+    window.setTimeout(() => {
+      setEclair(false)
+      void videoRef.current?.play().catch(() => undefined)
+    }, ECLAIR_MS)
+  }
+
+  if (etatCamera === 'refus' || etatCamera === 'erreur') {
+    return <CameraIndisponible refus={etatCamera === 'refus'} message={messageCamera} />
+  }
+
+  return (
+    <div className="scanner scan-etiquette scan-etiquette--article">
+      <div className={`scanner__stage${eclair ? ' scanner__stage--fige' : ''}`} ref={sceneRef}>
+        <video ref={videoRef} className="scanner__video" muted playsInline />
+        <Cadre forme="article" cadreRef={cadreRef} />
+        <p className="viseur__astuce">
+          {photos.length === 0
+            ? 'Le prix, le poids, la date : une photo chacun'
+            : `Photo ${photos.length + 1} sur ${ARTICLE_PHOTOS_MAX}, ou envoie`}
+        </p>
+        {etatCamera === 'demarrage' && <p className="scanner__overlay">Ouverture de la caméra…</p>}
+        <button
+          type="button"
+          className="scan-etiquette__declencheur"
+          onClick={() => void declencher()}
+          disabled={etatCamera !== 'pret' || eclair}
+          aria-label={`Prendre la photo ${photos.length + 1} sur ${ARTICLE_PHOTOS_MAX}`}
+        >
+          <span className="scan-etiquette__declencheur-centre" />
+        </button>
+      </div>
+
+      {erreur !== null && (
+        <p className="field__error" role="alert">
+          {erreur}
+        </p>
+      )}
+
+      {photos.length > 0 && (
+        <ul className="rafale__vignettes" aria-label="Photos prises">
+          {photos.map((photo, i) => (
+            <li key={photo.url} className="rafale__vignette">
+              <img src={photo.url} alt={`Photo ${i + 1}`} />
+              <button
+                type="button"
+                className="rafale__retirer"
+                onClick={() => setPhotos(photos.filter((p) => p !== photo))}
+                aria-label={`Retirer la photo ${i + 1}`}
+              >
+                <Icon name="ui-close" size={14} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <button
+        type="button"
+        className="button button--primary button--block"
+        onClick={() => envoyer(photos.map((p) => p.blob))}
+        disabled={photos.length === 0}
+      >
+        {photos.length === 0
+          ? 'Envoyer à Savarin'
+          : `Envoyer ${photos.length === 1 ? 'la photo' : `les ${photos.length} photos`} à Savarin`}
+      </button>
+    </div>
+  )
+}
+
+export interface BoutonRafaleProps {
+  readonly onEnvoyer: (photos: readonly Blob[]) => void
+  /** Savarin reflechit : une lecture de cet article est en cours. */
+  readonly occupe?: boolean | undefined
+  readonly disabled?: boolean | undefined
+}
+
+/**
+ * La tete de Savarin, en bas a gauche de la feuille, en face de son action
+ * principale, comme le bouton IA de la fiche d'un ingredient. Elle ouvre la
+ * rafale ; les boutons des champs restent, pour corriger une valeur.
+ */
+export function BoutonRafale({ onEnvoyer, occupe = false, disabled }: BoutonRafaleProps) {
+  const [ouvert, setOuvert] = useState(false)
+  return (
+    <>
+      <button
+        type="button"
+        className="rafale-savarin"
+        onClick={() => setOuvert(true)}
+        disabled={disabled}
+        aria-label="Photographier l’article pour Savarin"
+        aria-busy={occupe}
+      >
+        <Savarin size={30} occupe={occupe} />
+      </button>
+      <Sheet open={ouvert} onClose={() => setOuvert(false)} title="Photos pour Savarin">
+        {ouvert && <ViseurRafale onEnvoyer={onEnvoyer} onClose={() => setOuvert(false)} />}
+      </Sheet>
+    </>
   )
 }
 

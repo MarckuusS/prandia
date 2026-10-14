@@ -607,3 +607,69 @@
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
 }
+
+/* ---------- Savarin en face d'une ligne (lecture en arriere-plan) ----------
+   Le rond de l'IA, avant le prix : il reflechit pendant la lecture, reste
+   une fois l'article rempli jusqu'a ce qu'on rouvre la ligne, et porte un
+   "!" quand la lecture a rate. */
+.session-line__savarin {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  color: var(--color-ia-ink);
+  background: var(--color-ia-surface);
+  border: 1.5px solid var(--color-ia-border);
+  border-radius: 50%;
+}
+
+.session-line__savarin--echec {
+  border-color: var(--color-error);
+}
+
+.session-line__savarin-signal {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  display: grid;
+  place-items: center;
+  min-width: 16px;
+  height: 16px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-surface);
+  background: var(--color-error);
+  border: 1.5px solid var(--color-surface);
+  border-radius: 8px;
+}
+
+/* En tete de la feuille d'un article : ou en est la lecture de ses photos. */
+.lecture-savarin {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  align-items: center;
+  margin: 0 0 var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  color: var(--color-ia-ink);
+  background: var(--color-ia-surface);
+  border: 1px solid var(--color-ia-border);
+  border-radius: var(--radius-lg);
+}
+
+.lecture-savarin--echec {
+  color: var(--color-text);
+  border-color: var(--color-error);
+}
+
+.lecture-savarin__texte {
+  flex: 1;
+  margin: 0;
+}
+
+.lecture-savarin__relancer {
+  margin-top: 0;
+}

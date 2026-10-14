@@ -21,6 +21,7 @@ import {
 } from '@tanstack/react-query'
 import {
   currentIsoWeek,
+  type ArticleLu,
   type Ingredient,
   type MealPlanEntry,
   type NutritionTotal,
@@ -44,6 +45,7 @@ import {
 } from '@prandia/shared'
 
 import { ApiError, apiFetch } from './api.js'
+import { queryClient } from './clientRequetes.js'
 
 // ---------------------------------------------------------------------------
 // Cles et invalidation
@@ -641,6 +643,18 @@ export const scanEtiquette = (quoi: ScanKind, image: Blob): Promise<ScanResult> 
     method: 'POST',
     headers: { 'content-type': image.type || 'image/jpeg' },
     body: image,
+  })
+
+/**
+ * Plusieurs photos d'un meme article, lues d'un coup. Mises bout a bout dans
+ * un seul corps, leurs tailles dans `x-photos` (worker/src/imageRecue.ts) :
+ * pas de multipart, que le serveur ne saurait pas borner.
+ */
+export const lireArticle = (photos: readonly Blob[]): Promise<ArticleLu> =>
+  apiFetch<ArticleLu>('/api/scan/article', {
+    method: 'POST',
+    headers: { 'content-type': 'application/octet-stream', 'x-photos': photos.map((p) => p.size).join(',') },
+    body: new Blob([...photos]),
   })
 
 export async function fetchImportPhoto(url: string): Promise<Blob> {
@@ -1433,15 +1447,54 @@ export const useShoppingSession = () =>
     refetchInterval: (query) => (query.state.data?.active === true ? 20_000 : false),
   })
 
+/*
+ * LES ECRITURES DU CHARIOT PASSENT UNE PAR UNE. La session vit en un seul
+ * JSON (`app_setting`) que chaque route relit puis reecrit : deux ecritures
+ * croisees, et la seconde efface la premiere. Depuis que Savarin lit en
+ * arriere-plan (plusieurs articles a la fois, pendant qu'on en ajoute
+ * d'autres), ce croisement n'est plus rare. Chaque ecriture attend la
+ * precedente, et pose l'etat rendu dans le cache AVANT de laisser passer la
+ * suivante, qui relit donc un chariot a jour.
+ */
+let fileSession: Promise<unknown> = Promise.resolve()
+
+function enFileSession<T>(travail: () => Promise<T>): Promise<T> {
+  const suite = fileSession.then(travail, travail)
+  fileSession = suite.catch(() => undefined)
+  return suite
+}
+
 function useSessionMutation<TVars, TResult extends SessionState = SessionState>(
   fn: (vars: TVars) => Promise<TResult>,
 ) {
   const client = useQueryClient()
   return useMutation({
-    mutationFn: fn,
-    onSuccess: (state) => {
-      client.setQueryData(keys.session, state)
-    },
+    mutationFn: (vars: TVars) =>
+      enFileSession(async () => {
+        const state = await fn(vars)
+        client.setQueryData(keys.session, state)
+        return state
+      }),
+  })
+}
+
+/**
+ * Reecrire un article du chariot SANS ecran : ce que Savarin a lu en
+ * arriere-plan. `calcul` recoit l'article tel qu'il est AU MOMENT de
+ * l'ecriture (pas tel qu'il etait a l'envoi des photos) et rend ce qui part,
+ * ou `null` pour ne rien ecrire. `false` : l'article n'existe plus.
+ */
+export function modifierArticleEnFond(
+  id: string,
+  calcul: (item: SessionItem) => SessionItemWrite | null,
+): Promise<boolean> {
+  return enFileSession(async () => {
+    const item = queryClient.getQueryData<SessionState>(keys.session)?.session?.items.find((i) => i.id === id)
+    if (item === undefined) return false
+    const ecrit = calcul(item)
+    if (ecrit === null) return true
+    queryClient.setQueryData(keys.session, await put<SessionState>(`/api/courses/items/${id}`, ecrit))
+    return true
   })
 }
 

@@ -1091,6 +1091,40 @@ bloc. Ce qui ne se devine pas :
   le 2026-10-11 : la route répond 400 à un ancien client, le temps qu'il se mette à jour. Le
   viseur prend la forme de ce qu'on lit.
 
+## Savarin en rafale au chariot : `screens/courses/lecturesArticle.ts`, `POST /api/scan/article`
+
+Demandé au retour des courses du 2026-10-13 : la lecture champ par champ est précise, mais on
+attend chaque réponse devant le rayon. La tête de Savarin, en bas à gauche de la feuille d'un
+article (ajout ou correction), ouvre un viseur en RAFALE : le prix, le poids, la date, trois
+photos au plus, puis "Envoyer". Ce qui ne se devine pas :
+
+- **Ce n'est pas l'ancien "Remplir avec une photo"** : chaque photo vise UNE information, et un
+  seul appel les lit toutes (`ARTICLE_QUESTION`, `interpretArticle`, mêmes bornes qu'un champ
+  seul). Il compte pour une lecture dans le plafond quotidien.
+- **Plusieurs photos, un corps** : mises bout à bout, leurs tailles dans l'en-tête `x-photos`
+  (`imagesDuCorps`, `worker/src/imageRecue.ts`). Pas de `formData()`, qui ne borne rien.
+- **Envoyer AJOUTE l'article quand il est complet** (un nom, une quantité) : on revient au
+  chariot aussitôt et Savarin lit en arrière-plan. Incomplet (produit inconnu, sans nom), la
+  feuille reste ouverte et se remplit sous les yeux.
+- **La lecture survit à la feuille, et à l'écran** : elle vit hors de React
+  (`lecturesArticle.ts`, `useSyncExternalStore`) et écrit dans l'article par
+  `modifierArticleEnFond`. D'où `lib/clientRequetes.ts` : le cache des requêtes sorti de
+  `main.tsx` pour qu'un travail sans écran puisse y lire. PLUSIEURS lectures tournent à la fois.
+- **Les écritures du chariot passent UNE PAR UNE** (`enFileSession`, `queries.ts`) : la session
+  est un seul JSON relu puis réécrit par chaque route, et deux lectures qui finissent ensemble
+  s'effaçaient l'une l'autre. Chaque écriture pose l'état rendu dans le cache AVANT de laisser
+  passer la suivante. Vérifié avec deux lectures croisées.
+- **ÉCRIT SANS RELECTURE, à la demande** : "c'est pas grave s'il y a des erreurs, le but est
+  d'aller vite". `appliquerArticle` (`sessionDraft.ts`) compare au brouillon de l'ENVOI : un champ
+  touché depuis garde sa valeur, un champ intact prend celle de Savarin, même s'il en avait une
+  (la contenance d'OpenFoodFacts) ; nom et marque ne remplissent qu'un champ vide.
+- **Savarin en face de la ligne** : il réfléchit pendant la lecture, reste une fois l'article
+  rempli jusqu'à ce qu'on rouvre la ligne (champs encadrés de jaune), porte un "!" sur un échec.
+  La feuille dit pourquoi et relance avec les mêmes photos, gardées en mémoire jusqu'au succès.
+  "Terminer" prévient si une lecture tourne encore.
+- **Rien n'est conservé au rechargement** : une lecture interrompue est perdue, l'article reste
+  tel qu'il a été ajouté. Les boutons des champs restent, pour corriger une valeur.
+
 ## Compléter une fiche par l'IA : `shared/src/completion.ts`, `worker/src/completion.ts`
 
 Rayon, poids cuit (rapport cru/cuit) et mois de saison : trois champs qu'on ne remplit presque
@@ -1294,7 +1328,8 @@ par l'HORLOGE du Worker `prandia-notifier`, celle des rappels. Procédure de res
 
 Des lunettes rondes et une moustache en guidon, au trait, nommé en clin d'œil à Brillat-Savarin.
 Il marque tout ce que fait l'IA : bouton IA du pied de la fiche, coin des champs qu'elle sait
-remplir, bandeau de complétion de la bibliothèque, revue d'une recette importée, et en bas à
+remplir, bandeau de complétion de la bibliothèque, revue d'une recette importée, pied de la feuille
+d'un article du chariot (la rafale) et en face de sa ligne pendant qu'il la lit, et en bas à
 gauche de l'écran des rayons quand il a une idée (`SavarinFlottant`, à 40 px, il y vit au repos
 et sursaute quand on le touche). Ce qui ne se
 devine pas :

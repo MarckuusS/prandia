@@ -28,9 +28,10 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { lastPaidPrice, type Ingredient } from '@prandia/shared'
+import { lastPaidPrice, todayLocalIsoDate, type Ingredient } from '@prandia/shared'
 
 import { BarcodeScanner } from '../../components/BarcodeScanner.js'
+import { BoutonRafale } from '../../components/ScanEtiquette.js'
 import { Icon } from '../../icons/index.js'
 import { Sheet } from '../../components/Sheet.js'
 import type { ScanRequest } from '../../lib/useScanParam.js'
@@ -45,12 +46,24 @@ import {
   useShoppingSession,
 } from '../../lib/queries.js'
 import { formatPriceSource } from '../frigo/PricePaid.js'
+import { LectureSavarin } from './LectureSavarin.js'
+import {
+  detacher,
+  lancerLecture,
+  quitterFeuille,
+  rattacher,
+  reprendre,
+  useLectures,
+  type Ecouteur,
+} from './lecturesArticle.js'
 import { SessionItemFields } from './SessionItemFields.js'
 import {
+  appliquerArticle,
   draftFromProduct,
   emptyDraft,
   mergeProduct,
   readDraft,
+  type ChampLu,
   type ItemDraft,
 } from './sessionDraft.js'
 
@@ -151,10 +164,12 @@ export function ScanToCart({ listIngredientIds, scan, onScanTraite }: ScanToCart
           ean={pending.ean}
           listIngredientIds={listIngredientIds}
           onClose={() => setPending(null)}
-          onAdded={(name) => {
+          onAdded={(name, savarinLit) => {
             setPending(null)
             setLastAdded(name)
-            toast.show({ message: `✓ ${name} dans le chariot.` })
+            toast.show({
+              message: savarinLit ? `✓ ${name} dans le chariot. Savarin lit tes photos.` : `✓ ${name} dans le chariot.`,
+            })
           }}
         />
       )}
@@ -206,7 +221,8 @@ function ScannedItemSheet({
 }: {
   ean: string | null
   listIngredientIds: ReadonlySet<number>
-  onAdded: (name: string) => void
+  /** `savarinLit` : l'article part avant la fin de la lecture de ses photos. */
+  onAdded: (name: string, savarinLit: boolean) => void
   onClose: () => void
 }) {
   const library = useLibraryByBarcode()
@@ -282,13 +298,53 @@ function ScannedItemSheet({
     setDraft(next)
   }
 
-  const submit = () => {
-    const reading = readDraft(draft)
+  /*
+   * LES PHOTOS DE SAVARIN, LUES EN ARRIERE-PLAN (lecturesArticle.ts). La
+   * reponse va dans ce brouillon si la feuille est encore ouverte, sinon dans
+   * l'article une fois au chariot. Le brouillon est relu par une ref : la
+   * reponse arrive des secondes apres l'envoi, sur un brouillon qui a pu bouger.
+   */
+  const cle = useRef(`ajout-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`).current
+  const lecture = useLectures().find((l) => l.cle === cle)
+  const [lusSavarin, setLusSavarin] = useState<readonly ChampLu[]>([])
+  const draftRef = useRef(draft)
+  draftRef.current = draft
+  const appliquerIci: Ecouteur = (lu, avant) => {
+    const applique = appliquerArticle(draftRef.current, avant, lu, todayLocalIsoDate())
+    setDraft(applique.draft)
+    setLusSavarin(applique.champs)
+  }
+  // Annulee, la feuille emporte sa lecture ; ajoutee, la lecture suit l'article.
+  useEffect(() => () => quitterFeuille(cle), [cle])
+
+  const submit = (savarinLit = lecture?.etat === 'lecture') => {
+    const reading = readDraft(draftRef.current)
     if (reading.kind === 'invalid') {
       setError(reading.message)
       return
     }
-    add.mutate(reading.item, { onSuccess: () => onAdded(reading.item.name) })
+    detacher(cle)
+    add.mutate(reading.item, {
+      onSuccess: (state) => {
+        // La file des ecritures du chariot garantit que le dernier article
+        // rendu est celui-ci.
+        const id = state.session?.items.at(-1)?.id
+        if (id !== undefined) rattacher(cle, id)
+        onAdded(reading.item.name, savarinLit)
+      },
+      onError: () => reprendre(cle, appliquerIci),
+    })
+  }
+
+  /*
+   * Envoyer les photos AJOUTE l'article quand il est complet (un nom, une
+   * quantite) : on retourne au chariot aussitot, Savarin finira derriere.
+   * Sinon (un produit inconnu, sans nom), la feuille reste ouverte et se
+   * remplit sous les yeux.
+   */
+  const envoyer = (photos: readonly Blob[]) => {
+    lancerLecture({ cle, photos, avant: draftRef.current, itemId: null, ecouteur: appliquerIci })
+    if (readDraft(draftRef.current).kind === 'ready') submit(true)
   }
 
   const unknownCode = barcode.error instanceof ApiError && barcode.error.status === 404
@@ -302,6 +358,11 @@ function ScannedItemSheet({
       dismissible={!add.isPending}
       actions={
         <>
+          <BoutonRafale
+            onEnvoyer={envoyer}
+            occupe={lecture?.etat === 'lecture'}
+            disabled={add.isPending}
+          />
           <button
             type="button"
             className="button button--secondary"
@@ -313,14 +374,15 @@ function ScannedItemSheet({
           <button
             type="button"
             className="button button--primary"
-            onClick={submit}
+            onClick={() => submit()}
             disabled={add.isPending}
           >
-            {add.isPending ? 'Ajout…' : 'Ajouter au chariot'}
+            {add.isPending ? 'Ajout…' : 'Ajouter'}
           </button>
         </>
       }
     >
+      <LectureSavarin lecture={lecture} />
       {ean !== null && (
         <p className="row__meta session-source">
           <span>Code {ean}</span>
@@ -353,6 +415,7 @@ function ScannedItemSheet({
         proposition={proposition}
         error={error ?? add.error?.message}
         disabled={add.isPending}
+        lusSavarin={lusSavarin}
       />
     </Sheet>
   )

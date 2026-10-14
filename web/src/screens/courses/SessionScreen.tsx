@@ -30,6 +30,7 @@ import { Link } from 'react-router'
 import { Icon } from '../../icons/index.js'
 import { formatEuros, formatGrams, formatShoppingQuantity, type ShoppingSession } from '@prandia/shared'
 
+import { Savarin } from '../../components/Savarin.js'
 import { ConfirmDialog } from '../../components/Sheet.js'
 import { useToast } from '../../components/Toast.js'
 import {
@@ -40,6 +41,7 @@ import {
   type SessionState,
 } from '../../lib/queries.js'
 import { CartLineSheet } from './CartLineSheet.js'
+import { lectureDeLArticle, oublierLectures, useLectures, type Lecture } from './lecturesArticle.js'
 import type { ScanRequest } from '../../lib/useScanParam.js'
 import { ScanToCart } from './ScanToCart.js'
 import { TicketCaisse } from './TicketCaisse.js'
@@ -107,6 +109,9 @@ export function SessionScreen({ state, session, onShowList, onCommitted, scan, o
   const aPeserCount = items.filter((item) => item.quantityG === null).length
 
   const editing = editingId === null ? null : (items.find((item) => item.id === editingId) ?? null)
+  // Les lectures de Savarin en arriere-plan : un logo en face de chaque ligne.
+  const lectures = useLectures()
+  const enLecture = items.filter((item) => lectureDeLArticle(lectures, item.id)?.etat === 'lecture').length
   const cart = [...items].reverse()
 
   return (
@@ -230,6 +235,7 @@ export function SessionScreen({ state, session, onShowList, onCommitted, scan, o
                           </span>}
                       </span>
                     </span>
+                    <LogoSavarin lecture={lectureDeLArticle(lectures, item.id)} />
                     <span
                       className={`session-line__price${item.priceEur === null ? ' session-line__price--missing' : ''}`}
                     >
@@ -284,7 +290,7 @@ export function SessionScreen({ state, session, onShowList, onCommitted, scan, o
         message={
           aPeserCount > 0
             ? `${aPeserCount === 1 ? 'Un article attend encore son poids' : `${aPeserCount} articles attendent encore leur poids`} : le ticket le donne. Tu peux aussi le saisir dans l’article.`
-            : commitAnnounce(items.length, unknownCount, pricedCount, session.store)
+            : `${enLecture > 0 ? `Savarin lit encore ${enLecture === 1 ? 'les photos d’un article' : `les photos de ${enLecture} articles`} : attends-le, ou ce qu’il lit sera perdu. ` : ''}${commitAnnounce(items.length, unknownCount, pricedCount, session.store)}`
         }
         // Le serveur refuserait la validation : le bouton mene la ou elle se
         // debloque, plutot qu'a une erreur.
@@ -298,7 +304,12 @@ export function SessionScreen({ state, session, onShowList, onCommitted, scan, o
             setTicketOuvert(true)
             return
           }
-          commit.mutate(undefined, { onSuccess: onCommitted })
+          commit.mutate(undefined, {
+            onSuccess: (result) => {
+              oublierLectures()
+              onCommitted(result)
+            },
+          })
         }}
       />
 
@@ -314,6 +325,7 @@ export function SessionScreen({ state, session, onShowList, onCommitted, scan, o
         onConfirm={() =>
           abandon.mutate(undefined, {
             onSuccess: () => {
+              oublierLectures()
               setDialog('none')
               toast.show({ message: 'Session abandonnée.' })
             },
@@ -321,6 +333,28 @@ export function SessionScreen({ state, session, onShowList, onCommitted, scan, o
         }
       />
     </section>
+  )
+}
+
+/**
+ * Savarin en face d'une ligne du chariot : il reflechit pendant qu'il lit les
+ * photos, il reste, encadre, une fois l'article rempli, jusqu'a ce qu'on
+ * rouvre la ligne (on peut aussi ne jamais la rouvrir : l'article est deja
+ * rempli). Une lecture ratee porte un "!" : la ligne dit pourquoi, et relance.
+ */
+function LogoSavarin({ lecture }: { readonly lecture: Lecture | undefined }) {
+  if (lecture === undefined || (lecture.etat === 'lue' && lecture.vue)) return null
+  const etiquette =
+    lecture.etat === 'lecture'
+      ? 'Savarin lit les photos'
+      : lecture.etat === 'lue'
+        ? 'Rempli par Savarin'
+        : 'Lecture de Savarin ratée'
+  return (
+    <span className={`session-line__savarin session-line__savarin--${lecture.etat}`} role="img" aria-label={etiquette}>
+      <Savarin size={20} occupe={lecture.etat === 'lecture'} />
+      {lecture.etat === 'echec' && <span className="session-line__savarin-signal">!</span>}
+    </span>
   )
 }
 

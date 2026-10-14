@@ -11,14 +11,17 @@
  * reinterroger OpenFoodFacts ne pourrait qu'ecraser ce qu'on vient corriger.
  */
 
-import { useState } from 'react'
-import type { SessionItem } from '@prandia/shared'
+import { useEffect, useRef, useState } from 'react'
+import { todayLocalIsoDate, type SessionItem } from '@prandia/shared'
 
+import { BoutonRafale } from '../../components/ScanEtiquette.js'
 import { Sheet } from '../../components/Sheet.js'
 import { Icon } from '../../icons/index.js'
 import { useRemoveSessionItem, useUpdateSessionItem } from '../../lib/queries.js'
+import { LectureSavarin } from './LectureSavarin.js'
+import { ecouter, lancerLecture, lectureDeLArticle, marquerVue, useLectures, type Ecouteur } from './lecturesArticle.js'
 import { SessionItemFields } from './SessionItemFields.js'
-import { draftFromItem, readDraft, type ItemDraft } from './sessionDraft.js'
+import { appliquerArticle, draftFromItem, readDraft, type ChampLu, type ItemDraft } from './sessionDraft.js'
 
 export interface CartLineSheetProps {
   readonly item: SessionItem
@@ -37,12 +40,56 @@ export function CartLineSheet({ item, onList, onClose, onRemoved }: CartLineShee
   const remove = useRemoveSessionItem()
   const busy = update.isPending || remove.isPending
 
+  /*
+   * SAVARIN SUR UNE LIGNE DEJA AU CHARIOT. Rouverte apres sa lecture, elle
+   * encadre ce qu'il a rempli, et son logo s'eteint dans le chariot. Rouverte
+   * PENDANT, la reponse vient aussi dans ce brouillon (elle est de toute facon
+   * ecrite dans l'article, feuille ouverte ou non).
+   */
+  const lecture = lectureDeLArticle(useLectures(), item.id)
+  const [lusSavarin, setLusSavarin] = useState<readonly ChampLu[]>(() =>
+    lecture?.etat === 'lue' && !lecture.vue ? lecture.champs : [],
+  )
+  const draftRef = useRef(draft)
+  draftRef.current = draft
+  const appliquerIci: Ecouteur = (lu, avant) => {
+    const applique = appliquerArticle(draftRef.current, avant, lu, todayLocalIsoDate())
+    setDraft(applique.draft)
+    setLusSavarin(applique.champs)
+  }
+  const cleLecture = lecture?.cle
+  const etatLecture = lecture?.etat
+  useEffect(() => {
+    if (cleLecture === undefined) return
+    if (etatLecture === 'lue') marquerVue(cleLecture)
+    if (etatLecture === 'lecture') return ecouter(cleLecture, appliquerIci)
+    return undefined
+    // `appliquerIci` relit le brouillon par sa ref : seule la lecture compte.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cleLecture, etatLecture])
+
   const save = () => {
     const reading = readDraft(draft)
     if (reading.kind === 'invalid') {
       setError(reading.message)
       return
     }
+    update.mutate({ ...reading.item, id: item.id }, { onSuccess: onClose })
+  }
+
+  /*
+   * Des photos envoyees depuis une ligne : ce qui a ete corrige ici part
+   * d'abord, la feuille se ferme, et la lecture remplit l'article ensuite. Un
+   * brouillon incomplet garde la feuille ouverte, qui recevra la lecture.
+   */
+  const envoyer = (photos: readonly Blob[]) => {
+    const cle = `ligne-${item.id}-${Date.now().toString(36)}`
+    const reading = readDraft(draft)
+    if (reading.kind === 'invalid') {
+      lancerLecture({ cle, photos, avant: draft, itemId: item.id, ecouteur: appliquerIci })
+      return
+    }
+    lancerLecture({ cle, photos, avant: draft, itemId: item.id, ecouteur: null })
     update.mutate({ ...reading.item, id: item.id }, { onSuccess: onClose })
   }
 
@@ -54,6 +101,7 @@ export function CartLineSheet({ item, onList, onClose, onRemoved }: CartLineShee
       dismissible={!busy}
       actions={
         <>
+          <BoutonRafale onEnvoyer={envoyer} occupe={lecture?.etat === 'lecture'} disabled={busy} />
           <button type="button" className="button button--secondary" onClick={onClose} disabled={busy}>
             Annuler
           </button>
@@ -63,7 +111,9 @@ export function CartLineSheet({ item, onList, onClose, onRemoved }: CartLineShee
         </>
       }
     >
+      <LectureSavarin lecture={lecture} />
       <SessionItemFields
+        lusSavarin={lusSavarin}
         draft={draft}
         onChange={(next) => {
           if (error !== null) setError(null)

@@ -13,11 +13,19 @@
  * imageRecue.ts.
  */
 
-import { SCAN_QUESTIONS, interpretScan, isScanKind } from '@prandia/shared'
+import {
+  ARTICLE_PHOTOS_MAX,
+  ARTICLE_QUESTION,
+  ARTICLE_TOOL,
+  SCAN_QUESTIONS,
+  interpretArticle,
+  interpretScan,
+  isScanKind,
+} from '@prandia/shared'
 
 import { cleClaude, compterAppel, demanderOutil } from '../anthropic.js'
 import { badRequest, json, route } from '../http.js'
-import { imageDuCorps } from '../imageRecue.js'
+import { imageDuCorps, imagesDuCorps } from '../imageRecue.js'
 
 /** Le telephone envoie 1 568 px de cote au plus : quelques centaines de Ko. */
 const IMAGE_MAX_OCTETS = 4 * 1024 * 1024
@@ -32,4 +40,19 @@ route('POST', '/api/scan', async ({ request, url, env, repos }) => {
   const { question, tool } = SCAN_QUESTIONS[quoi]
   const sortie = await demanderOutil(cle, [image, { type: 'text', text: question }], tool)
   return json(interpretScan(quoi, sortie))
+})
+
+/**
+ * `POST /api/scan/article` : jusqu'a trois photos d'un MEME article du chariot
+ * (prix, poids, date), en un seul appel, qui compte pour une lecture. Le
+ * modele range chaque information la ou elle va (shared/src/scan.ts). Rien
+ * n'est ecrit ici non plus : l'ecran pose la lecture dans l'article.
+ */
+route('POST', '/api/scan/article', async ({ request, env, repos }) => {
+  const cle = cleClaude(env)
+  const images = await imagesDuCorps(request, IMAGE_MAX_OCTETS, ARTICLE_PHOTOS_MAX)
+
+  await compterAppel(repos)
+  const sortie = await demanderOutil(cle, [...images, { type: 'text', text: ARTICLE_QUESTION }], ARTICLE_TOOL)
+  return json(interpretArticle(sortie))
 })

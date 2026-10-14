@@ -9,7 +9,7 @@
  * flottant la ou le serveur attend une chaine decimale.
  */
 
-import type { Ingredient, SessionItem } from '@prandia/shared'
+import { parseDateLue, type ArticleLu, type Ingredient, type SessionItem } from '@prandia/shared'
 
 import type { SessionItemWrite } from '../../lib/queries.js'
 
@@ -149,6 +149,64 @@ export function draftFromItem(item: SessionItem): ItemDraft {
     expiryDate: item.expiryDate,
     aPeser: item.aPeser,
   }
+}
+
+/** Les champs qu'une lecture de Savarin peut remplir, pour les encadrer de jaune. */
+export type ChampLu = 'name' | 'brand' | 'quantityG' | 'priceEur' | 'expiryDate'
+
+/**
+ * Pose dans le brouillon ce que Savarin a lu sur les photos d'un article.
+ *
+ * `avant` est le brouillon AU MOMENT DE L'ENVOI des photos. La lecture arrive
+ * des secondes plus tard, parfois feuille fermee : un champ que la personne a
+ * touche entre-temps garde sa valeur, un champ intact prend celle de Savarin,
+ * meme s'il en avait une (la contenance d'OpenFoodFacts, un prix ancien) : on
+ * a photographie le poids et le prix pour qu'ils soient pris. Le nom et la
+ * marque, eux, ne remplissent qu'un champ VIDE : apres un code-barres, ils
+ * viennent deja de la fiche, et les photos visaient le prix, le poids et la
+ * date. L'utilisateur prefere aller vite : rien n'est relu avant d'ecrire.
+ */
+export function appliquerArticle(
+  draft: ItemDraft,
+  avant: ItemDraft,
+  lu: ArticleLu,
+  aujourdhui: string,
+): { readonly draft: ItemDraft; readonly champs: readonly ChampLu[] } {
+  const suite: { -readonly [K in keyof ItemDraft]?: ItemDraft[K] } = {}
+  const champs: ChampLu[] = []
+
+  if (lu.nom !== null && draft.name.trim() === '') {
+    suite.name = lu.nom
+    champs.push('name')
+  }
+  if (lu.marque !== null && draft.brand.trim() === '') {
+    suite.brand = lu.marque
+    champs.push('brand')
+  }
+  const quantiteIntacte = draft.quantityG === avant.quantityG && draft.pieceWeightG === avant.pieceWeightG
+  if (lu.contenanceG !== null && quantiteIntacte) {
+    if (lu.pese) {
+      // Etiquette de balance : un poids pese n'est pas une piece.
+      suite.quantityG = lu.contenanceG
+    } else {
+      // "12 x 125 g" : le lot, dont l'unite devient la piece.
+      suite.quantityG = (lu.nombre ?? 1) * lu.contenanceG
+      suite.pieceWeightG = lu.contenanceG
+    }
+    // Un poids lu est un poids connu : plus rien a peser en caisse.
+    suite.aPeser = false
+    champs.push('quantityG')
+  }
+  if (lu.prixEur !== null && draft.priceEur === avant.priceEur) {
+    suite.priceEur = lu.prixEur
+    champs.push('priceEur')
+  }
+  const date = lu.dateTexte === null ? null : parseDateLue(lu.dateTexte, aujourdhui)
+  if (date !== null && draft.expiryDate === avant.expiryDate) {
+    suite.expiryDate = date.date
+    champs.push('expiryDate')
+  }
+  return { draft: { ...draft, ...suite }, champs }
 }
 
 export type DraftReading =

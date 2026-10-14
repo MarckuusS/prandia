@@ -20,7 +20,7 @@
  * lu sur une etiquette de BALANCE pose aussi le prix a payer, s'il est vide.
  */
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { formatEuros, formatGrams } from '@prandia/shared'
 
 import { CadreIA } from '../../components/CadreIA.js'
@@ -30,7 +30,7 @@ import { NumberField, SwitchField, TextField } from '../../components/Field.js'
 import { QuantityField } from '../../components/QuantityField.js'
 import { Icon } from '../../icons/index.js'
 import type { ObservedPrice } from '../../lib/queries.js'
-import type { ItemDraft } from './sessionDraft.js'
+import type { ChampLu, ItemDraft } from './sessionDraft.js'
 
 /** « 2026-07-21 » -> « 21 juil. 2026 ». */
 function formatDay(iso: string): string {
@@ -55,6 +55,12 @@ export interface SessionItemFieldsProps {
   readonly proposition?: { readonly priceEur: number; readonly source: string } | null | undefined
   readonly error?: string | null | undefined
   readonly disabled?: boolean | undefined
+  /**
+   * Ce que Savarin vient de remplir d'apres les photos de l'article (lecture en
+   * arriere-plan) : encadre de jaune comme une lecture de champ. Une nouvelle
+   * liste s'ajoute a l'encadrement en cours.
+   */
+  readonly lusSavarin?: readonly ChampLu[] | undefined
 }
 
 export function SessionItemFields({
@@ -66,6 +72,7 @@ export function SessionItemFields({
   proposition,
   error,
   disabled,
+  lusSavarin,
 }: SessionItemFieldsProps) {
   /** Les champs que Savarin vient de remplir : encadres de jaune jusqu'a une retouche. */
   const [lus, setLus] = useState<ReadonlySet<keyof ItemDraft>>(new Set())
@@ -81,6 +88,8 @@ export function SessionItemFields({
     onChange({ ...draft, ...suite })
   }
   const [dateOuverte, setDateOuverte] = useState(draft.expiryDate !== null)
+  // Une date posee par Savarin ouvre le champ : elle doit se voir.
+  const dateVisible = dateOuverte || draft.expiryDate !== null
 
   const [lotOuvert, setLotOuvert] = useState(false)
   const [lot, setLot] = useState<{ nombre: number | null; contenanceG: number | null }>({
@@ -95,6 +104,23 @@ export function SessionItemFields({
     setLot({ nombre, contenanceG: piece })
     setLotOuvert(true)
   }
+  // La lecture des photos arrive pendant que la feuille est ouverte : ses champs
+  // s'encadrent, et un lot lu ("4 x 125 g") ouvre son detail.
+  useEffect(() => {
+    if (lusSavarin === undefined || lusSavarin.length === 0) return
+    setLus((avant) => new Set([...avant, ...lusSavarin]))
+    const piece = draft.pieceWeightG
+    if (lusSavarin.includes('quantityG') && piece !== null && piece > 0 && draft.quantityG !== null) {
+      const nombre = Math.round(draft.quantityG / piece)
+      if (nombre > 1) {
+        setLot({ nombre, contenanceG: piece })
+        setLotOuvert(true)
+      }
+    }
+    // Seule une nouvelle lecture compte, pas chaque retouche du brouillon.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lusSavarin])
+
   const changerLot = (suite: { nombre: number | null; contenanceG: number | null }) => {
     oublier('quantityG')
     setLot(suite)
@@ -316,13 +342,15 @@ export function SessionItemFields({
         </p>
       )}
 
-      {dateOuverte ? (
-        <DatePeremption
-          value={draft.expiryDate}
-          onChange={(expiryDate) => set('expiryDate', expiryDate)}
-          hint="Facultatif."
-          disabled={disabled}
-        />
+      {dateVisible ? (
+        <CadreIA actif={lus.has('expiryDate')}>
+          <DatePeremption
+            value={draft.expiryDate}
+            onChange={(expiryDate) => set('expiryDate', expiryDate)}
+            hint="Facultatif."
+            disabled={disabled}
+          />
+        </CadreIA>
       ) : (
         <button
           type="button"

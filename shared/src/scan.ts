@@ -6,7 +6,9 @@
  * photo" demandait nom, marque et poids d'un coup, alors qu'une photo ne les
  * montre presque jamais ensemble, et la reponse etait lente. Une exception,
  * demandee : le poids lu sur une ETIQUETTE DE BALANCE rend aussi le prix a
- * payer, imprime juste a cote, que l'ecran pose s'il est vide.
+ * payer, imprime juste a cote, que l'ecran pose s'il est vide. Au chariot
+ * s'y ajoute, depuis le 2026-10-14, la lecture d'un article en plusieurs
+ * photos d'un coup (`ARTICLE_QUESTION`, plus bas).
  *
  * Le serveur envoie la photo a un modele de vision (Claude Haiku) avec UNE
  * question et UN outil dont le schema force la forme de la reponse. Ce module,
@@ -227,6 +229,74 @@ export function interpretScan(kind: ScanKind, entree: unknown): ScanResult {
       return nutritionBornee(o)
   }
 }
+
+// ---------------------------------------------------------------------------
+// Un article en plusieurs photos
+// ---------------------------------------------------------------------------
+
+/**
+ * TROIS PHOTOS D'UN MEME ARTICLE, LUES D'UN COUP (decision du 2026-10-14). En
+ * magasin, la lecture champ par champ fait attendre chaque reponse devant le
+ * rayon : on mitraille le prix, le poids et la date, on envoie, et l'on va
+ * chercher l'article suivant pendant que Savarin lit. Ce n'est pas l'ancien
+ * "remplir avec une photo" : chaque photo vise UNE information, et le modele
+ * range chacune la ou elle va. L'utilisateur prefere aller vite et accepte
+ * une marge d'erreur : ce qui est lu s'ecrit sans relecture.
+ */
+export const ARTICLE_PHOTOS_MAX = 3
+
+export const ARTICLE_QUESTION =
+  "Jusqu'a trois photos d'un MEME article alimentaire, prises en magasin : l'etiquette de prix du rayon, l'emballage, une etiquette imprimee par une balance. Chaque information peut se trouver sur n'importe laquelle des photos : lis chacune la ou elle est la plus nette, et laisse null ce qu'aucune photo ne montre. PRIX : le prix de vente de l'article, celui qu'on paie a la caisse, jamais le prix au kilo ni au litre ; en cas de promotion affichee, le prix promotionnel ; sur une etiquette de balance, le prix a payer. QUANTITE : la quantite nette, le nombre d'unites et la contenance d'UNE unite (\"12 x 125 g\" : nombre 12, contenance 125, unite g ; \"500 g\" : nombre 1, contenance 500, unite g) ; pour une conserve, le poids net total, pas le poids egoutte ; sur une etiquette de balance, le poids NET (jamais la tare), nombre 1 et pese vrai, sinon pese faux. DATE : la date de peremption (DLC ou DDM), recopiee exactement comme imprimee, chiffres et separateurs compris, sans numero de lot ni heure, et sans ajouter d'annee si aucune n'est imprimee. NOM : le nom du produit sans la marque, tel qu'on l'ecrirait dans une liste de courses, en francais. MARQUE : la marque du produit."
+
+export const ARTICLE_TOOL: ScanTool = {
+  name: 'article_lu',
+  description: 'Rend ce que les photos montrent de l’article.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      prix: { ...nombreOuNul, description: 'Prix de l’article en euros, ex. 2.49, ou null.' },
+      nombre: { ...nombreOuNul, description: 'Nombre d’unites, 1 pour un produit seul.' },
+      contenance: { ...nombreOuNul, description: 'Contenance d’une unite.' },
+      unite: { type: ['string', 'null'], enum: ['g', 'kg', 'ml', 'cl', 'l', null] },
+      pese: { type: 'boolean', description: 'Vrai si la quantite vient d’une etiquette de balance.' },
+      date: { ...texteOuNul, description: 'La date de peremption telle qu’imprimee, ou null.' },
+      nom: { ...texteOuNul, description: 'Nom du produit, sans la marque.' },
+      marque: { ...texteOuNul },
+    },
+    required: ['prix', 'nombre', 'contenance', 'unite', 'pese', 'date', 'nom', 'marque'],
+  },
+}
+
+export interface ArticleLu {
+  readonly prixEur: number | null
+  readonly nombre: number | null
+  readonly contenanceG: number | null
+  /** Poids lu sur une etiquette de BALANCE : un poids pese, pas une piece. */
+  readonly pese: boolean
+  /** La date telle qu'imprimee : elle passe par `parseDateLue`, comme une lecture seule. */
+  readonly dateTexte: string | null
+  readonly nom: string | null
+  readonly marque: string | null
+}
+
+/** Ce que le modele a rendu pour un article, verifie avec les memes bornes qu'un champ seul. */
+export function interpretArticle(entree: unknown): ArticleLu {
+  const o = (entree !== null && typeof entree === 'object' ? entree : {}) as Record<string, unknown>
+  const quantite = quantiteBornee(o)
+  return {
+    prixEur: prixBorne(o['prix']),
+    // Un nombre sans contenance ne dit rien : "1" de rien n'est pas une quantite.
+    nombre: quantite.contenanceG === null ? null : quantite.nombre,
+    contenanceG: quantite.contenanceG,
+    pese: o['pese'] === true && quantite.contenanceG !== null,
+    dateTexte: texteBorne(o['date'], 80),
+    nom: texteBorne(o['nom'], 80),
+    marque: texteBorne(o['marque'], 60),
+  }
+}
+
+export const isEmptyArticle = (a: ArticleLu): boolean =>
+  a.prixEur === null && a.contenanceG === null && a.dateTexte === null && a.nom === null && a.marque === null
 
 function prixBorne(v: unknown): number | null {
   const prix = nombre(v)
