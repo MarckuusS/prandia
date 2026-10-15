@@ -15,6 +15,13 @@ describe('ticketQuestion', () => {
     expect(q).toContain('2 : Yaourt nature (Danone, 500 g, prix saisi 1.89 EUR)')
     expect(q).toContain('3 : Thon à l’huile (Nixe, 240 g)')
   })
+
+  it('deduit une remise immediate de son article, et ignore les remises globales', () => {
+    // Carrefour, 2026-10-15 : avocats 2,98 puis remise -0,48 sous la ligne, bon de reduction de 1 EUR.
+    const q = ticketQuestion(CHARIOT)
+    expect(q).toContain('se deduit du prix de CET article')
+    expect(q).toContain('bon de reduction')
+  })
 })
 
 describe('interpretTicket', () => {

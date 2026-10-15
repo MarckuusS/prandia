@@ -90,7 +90,7 @@ export function ticketQuestion(articles: readonly TicketArticle[]): string {
     'Photo d’un ticket de caisse, entier ou en partie. Voici les articles du chariot, numerotes :',
     ...lignes,
     '',
-    'Pour chaque ligne du ticket qui paie un article du chariot, donne le numero de l’article, l’intitule tel qu’imprime, le poids net si la ligne en indique un, et le prix paye pour cet article : le montant de la ligne, divise si elle regroupe plusieurs articles identiques du chariot. Les lignes du ticket sans article correspondant vont dans hors_chariot. Ignore les sous-totaux, le total, la TVA, les remises globales et les moyens de paiement.',
+    'Pour chaque ligne du ticket qui paie un article du chariot, donne le numero de l’article, l’intitule tel qu’imprime, le poids net si la ligne en indique un, et le prix paye pour cet article : le montant de la ligne, divise si elle regroupe plusieurs articles identiques du chariot. Une remise immediate imprimee juste sous un article (montant negatif, "Remise Immediate") se deduit du prix de CET article : "Avocat 2,98" puis "Remise -0,48", le prix paye est 2,50. Les lignes du ticket sans article correspondant vont dans hors_chariot. Ignore les sous-totaux, le total, la TVA, les remises globales (bon de reduction, remise sur le total) et les moyens de paiement.',
   ].join('\n')
 }
 

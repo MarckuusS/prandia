@@ -15,8 +15,8 @@
 
 import {
   ARTICLE_PHOTOS_MAX,
-  ARTICLE_QUESTION,
   ARTICLE_TOOL,
+  articleQuestion,
   SCAN_QUESTIONS,
   interpretArticle,
   interpretScan,
@@ -48,11 +48,20 @@ route('POST', '/api/scan', async ({ request, url, env, repos }) => {
  * modele range chaque information la ou elle va (shared/src/scan.ts). Rien
  * n'est ecrit ici non plus : l'ecran pose la lecture dans l'article.
  */
-route('POST', '/api/scan/article', async ({ request, env, repos }) => {
+route('POST', '/api/scan/article', async ({ request, url, env, repos }) => {
   const cle = cleClaude(env)
+  // Ce qu'on sait deja de l'article (le code-barres l'a nomme), dans l'adresse :
+  // le corps est fait des photos. Borne, et seulement un indice pour le modele.
+  const parametre = (nom: string, max: number) => url.searchParams.get(nom)?.trim().slice(0, max) || null
+  const grammes = Number(url.searchParams.get('g'))
+  const question = articleQuestion({
+    nom: parametre('nom', 80),
+    marque: parametre('marque', 60),
+    grammes: Number.isFinite(grammes) && grammes > 0 && grammes <= 20_000 ? grammes : null,
+  })
   const images = await imagesDuCorps(request, IMAGE_MAX_OCTETS, ARTICLE_PHOTOS_MAX)
 
   await compterAppel(repos)
-  const sortie = await demanderOutil(cle, [...images, { type: 'text', text: ARTICLE_QUESTION }], ARTICLE_TOOL)
+  const sortie = await demanderOutil(cle, [...images, { type: 'text', text: question }], ARTICLE_TOOL)
   return json(interpretArticle(sortie))
 })

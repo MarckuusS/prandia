@@ -119,7 +119,7 @@ export function lancerLecture({
 async function executer(e: Interne) {
   let lu: ArticleLu
   try {
-    lu = await lireArticle(e.photos)
+    lu = await lireArticle(e.photos, { nom: e.avant.name, marque: e.avant.brand, grammes: e.avant.quantityG })
   } catch (erreur) {
     if (entrees.get(e.lecture.cle) !== e) return
     poser(e, { etat: 'echec', erreur: erreur instanceof Error ? erreur.message : 'La lecture a échoué.' })

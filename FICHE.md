@@ -5,7 +5,7 @@ type: application                             # application | outil | documentat
 statut: actif                                  # idee | actif | pause | termine | abandonne
 pitch: Application personnelle de gestion culinaire (ingrédients, recettes, nutrition), en pivot vers une PWA web.
 cree: 2026-04-29
-maj: 2026-10-14                               # AAAA-MM-JJ, mis à jour par Claude Code en fin de session
+maj: 2026-10-15                               # AAAA-MM-JJ, mis à jour par Claude Code en fin de session
 tags: [perso, pyside6, pwa, cloudflare]
 stack: Python 3.12 + PySide6 + QML, puis Cloudflare Pages et Workers
 lancer: run.bat

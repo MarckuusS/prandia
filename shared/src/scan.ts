@@ -248,6 +248,27 @@ export const ARTICLE_PHOTOS_MAX = 3
 export const ARTICLE_QUESTION =
   "Jusqu'a trois photos d'un MEME article alimentaire, prises en magasin : l'etiquette de prix du rayon, l'emballage, une etiquette imprimee par une balance. Chaque information peut se trouver sur n'importe laquelle des photos : lis chacune la ou elle est la plus nette, et laisse null ce qu'aucune photo ne montre. PRIX : le prix de vente de l'article, celui qu'on paie a la caisse, jamais le prix au kilo ni au litre ; en cas de promotion affichee, le prix promotionnel ; sur une etiquette de balance, le prix a payer. QUANTITE : la quantite nette, le nombre d'unites et la contenance d'UNE unite (\"12 x 125 g\" : nombre 12, contenance 125, unite g ; \"500 g\" : nombre 1, contenance 500, unite g) ; pour une conserve, le poids net total, pas le poids egoutte ; sur une etiquette de balance, le poids NET (jamais la tare), nombre 1 et pese vrai, sinon pese faux. DATE : la date de peremption (DLC ou DDM), recopiee exactement comme imprimee, chiffres et separateurs compris, sans numero de lot ni heure, et sans ajouter d'annee si aucune n'est imprimee. NOM : le nom du produit sans la marque, tel qu'on l'ecrirait dans une liste de courses, en francais. MARQUE : la marque du produit."
 
+/**
+ * La question, AVEC ce qu'on sait deja de l'article (le code-barres l'a
+ * nomme). Une photo d'etiquette de rayon en montre souvent plusieurs cote a
+ * cote : le haché végétal a 2,99 EUR a ete lu au prix de son voisin, 3,69
+ * (Carrefour, 2026-10-15). Le nom, la marque et le poids disent laquelle est
+ * la bonne.
+ */
+export function articleQuestion(connu?: {
+  readonly nom?: string | null | undefined
+  readonly marque?: string | null | undefined
+  readonly grammes?: number | null | undefined
+}): string {
+  const indices = [
+    connu?.nom?.trim() || null,
+    connu?.marque?.trim() || null,
+    connu?.grammes !== null && connu?.grammes !== undefined && connu.grammes > 0 ? `${Math.round(connu.grammes)} g` : null,
+  ].filter((v): v is string => v !== null)
+  if (indices.length === 0) return ARTICLE_QUESTION
+  return `${ARTICLE_QUESTION} L'article est probablement : ${indices.join(', ')}. Si une photo montre plusieurs etiquettes de prix, prends celle de CET article (son nom, sa marque ou son poids y figurent), jamais celle d'un produit voisin.`
+}
+
 export const ARTICLE_TOOL: ScanTool = {
   name: 'article_lu',
   description: 'Rend ce que les photos montrent de l’article.',

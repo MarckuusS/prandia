@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  ARTICLE_QUESTION,
   ARTICLE_TOOL,
+  articleQuestion,
   SCAN_QUESTIONS,
   interpretArticle,
   interpretScan,
@@ -220,5 +222,20 @@ describe('interpretArticle, plusieurs photos d’un meme article', () => {
 
   it('exige chacun de ses champs dans son outil', () => {
     expect(ARTICLE_TOOL.input_schema['required']).toEqual(Object.keys(ARTICLE_TOOL.input_schema['properties'] as object))
+  })
+})
+
+describe('articleQuestion, ce qu’on sait deja de l’article', () => {
+  it('nomme l’article pour choisir la bonne etiquette parmi plusieurs', () => {
+    // Carrefour, 2026-10-15 : le hache vegetal a 2,99 lu au prix de son voisin, 3,69.
+    const q = articleQuestion({ nom: 'Haché 100% végétal', marque: 'Accro', grammes: 200 })
+    expect(q.startsWith(ARTICLE_QUESTION)).toBe(true)
+    expect(q).toContain('Haché 100% végétal, Accro, 200 g')
+    expect(q).toContain('jamais celle d’un produit voisin'.replace('’', "'"))
+  })
+
+  it('reste la question nue sans rien de connu', () => {
+    expect(articleQuestion()).toBe(ARTICLE_QUESTION)
+    expect(articleQuestion({ nom: '  ', marque: null, grammes: 0 })).toBe(ARTICLE_QUESTION)
   })
 })

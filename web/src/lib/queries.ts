@@ -651,12 +651,22 @@ export const scanEtiquette = (quoi: ScanKind, image: Blob): Promise<ScanResult> 
  * un seul corps, leurs tailles dans `x-photos` (worker/src/imageRecue.ts) :
  * pas de multipart, que le serveur ne saurait pas borner.
  */
-export const lireArticle = (photos: readonly Blob[]): Promise<ArticleLu> =>
-  apiFetch<ArticleLu>('/api/scan/article', {
+export const lireArticle = (
+  photos: readonly Blob[],
+  /** Ce qu'on sait deja de l'article : il aide Savarin a choisir la bonne etiquette. */
+  connu: { readonly nom: string; readonly marque: string; readonly grammes: number | null },
+): Promise<ArticleLu> => {
+  const params = new URLSearchParams()
+  if (connu.nom.trim() !== '') params.set('nom', connu.nom.trim())
+  if (connu.marque.trim() !== '') params.set('marque', connu.marque.trim())
+  if (connu.grammes !== null && connu.grammes > 0) params.set('g', String(Math.round(connu.grammes)))
+  const suite = params.toString()
+  return apiFetch<ArticleLu>(`/api/scan/article${suite === '' ? '' : `?${suite}`}`, {
     method: 'POST',
     headers: { 'content-type': 'application/octet-stream', 'x-photos': photos.map((p) => p.size).join(',') },
     body: new Blob([...photos]),
   })
+}
 
 export async function fetchImportPhoto(url: string): Promise<Blob> {
   let reponse: Response
