@@ -30,7 +30,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { lastPaidPrice, todayLocalIsoDate, type Ingredient } from '@prandia/shared'
 
-import { BarcodeScanner } from '../../components/BarcodeScanner.js'
 import { BoutonRafale } from '../../components/ScanEtiquette.js'
 import { Icon } from '../../icons/index.js'
 import { Sheet } from '../../components/Sheet.js'
@@ -47,6 +46,7 @@ import {
 } from '../../lib/queries.js'
 import { formatPriceSource } from '../frigo/PricePaid.js'
 import { LectureSavarin } from './LectureSavarin.js'
+import { ScanEnChaine } from './ScanEnChaine.js'
 import {
   detacher,
   lancerLecture,
@@ -88,6 +88,8 @@ export interface ScanToCartProps {
    * l'ecran, un code fantome attendant un chariot qui venait de fermer.
    */
   readonly onScanTraite: () => void
+  /** Ouvre le scan en chaine des l'arrivee : on vient de dire "Ranger mes courses". */
+  readonly ouvrirAuDepart?: boolean | undefined
 }
 
 /** Un code en attente de confirmation. Le compteur force une feuille NEUVE. */
@@ -96,10 +98,15 @@ interface Pending {
   readonly nonce: number
 }
 
-export function ScanToCart({ listIngredientIds, scan, onScanTraite }: ScanToCartProps) {
-  const [scanning, setScanning] = useState(false)
+export function ScanToCart({ listIngredientIds, scan, onScanTraite, ouvrirAuDepart = false }: ScanToCartProps) {
+  /*
+   * LE SCAN EN CHAINE (ScanEnChaine.tsx) : code-barres, photos, produit
+   * suivant, sans quitter la camera ni ouvrir de feuille. "Sans code" y entre
+   * directement par les photos. La feuille d'un article ne sert plus qu'a un
+   * code arrive d'ailleurs (l'entree de scan globale) et a corriger une ligne.
+   */
+  const [chaine, setChaine] = useState<'fermee' | 'code' | 'sans-code'>(ouvrirAuDepart ? 'code' : 'fermee')
   const [pending, setPending] = useState<Pending | null>(null)
-  const [lastAdded, setLastAdded] = useState<string | null>(null)
   const toast = useToast()
 
   // Deux articles identiques scannes de suite sont deux lignes distinctes :
@@ -130,9 +137,9 @@ export function ScanToCart({ listIngredientIds, scan, onScanTraite }: ScanToCart
         <button
           type="button"
           className="button button--primary session-scan__main"
-          onClick={() => setScanning(true)}
+          onClick={() => setChaine('code')}
         >
-          <Icon name="ui-camera" size={18} className="icon--inline" /> Scanner un produit
+          <Icon name="ui-camera" size={18} className="icon--inline" /> Scanner les produits
         </button>
         {/* Le vrac, la boucherie et le marche n'ont pas de code-barres, et ils
             pesent lourd dans un chariot. Sans cette porte, la session ne
@@ -140,23 +147,14 @@ export function ScanToCart({ listIngredientIds, scan, onScanTraite }: ScanToCart
         <button
           type="button"
           className="button button--secondary session-scan__manual"
-          onClick={() => openDraft(null)}
+          onClick={() => setChaine('sans-code')}
           aria-label="Ajouter un article sans code-barres"
         >
           Sans code
         </button>
       </div>
 
-      <BarcodeScanner
-        open={scanning}
-        onClose={() => setScanning(false)}
-        onDetect={(code) => {
-          setScanning(false)
-          openDraft(code)
-        }}
-        title="Scanner un produit"
-        hint={lastAdded === null ? undefined : `Dernier ajouté : ${lastAdded}`}
-      />
+      {chaine !== 'fermee' && <ScanEnChaine sansCode={chaine === 'sans-code'} onClose={() => setChaine('fermee')} />}
 
       {pending !== null && (
         <ScannedItemSheet
@@ -166,7 +164,6 @@ export function ScanToCart({ listIngredientIds, scan, onScanTraite }: ScanToCart
           onClose={() => setPending(null)}
           onAdded={(name, savarinLit) => {
             setPending(null)
-            setLastAdded(name)
             toast.show({
               message: savarinLit ? `✓ ${name} dans le chariot. Savarin lit tes photos.` : `✓ ${name} dans le chariot.`,
             })
@@ -193,7 +190,7 @@ export function ScanToCart({ listIngredientIds, scan, onScanTraite }: ScanToCart
  * dossier qui n'appartient pas a cette fonctionnalite. Le partager demanderait
  * de deplacer les deux — un remaniement pour douze lignes.
  */
-function useLibraryByBarcode(): ReadonlyMap<string, Ingredient> {
+export function useLibraryByBarcode(): ReadonlyMap<string, Ingredient> {
   const library = useIngredients('')
   const items = library.data?.items
 

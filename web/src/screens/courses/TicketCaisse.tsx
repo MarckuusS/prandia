@@ -30,7 +30,7 @@ import {
 
 import { Sheet } from '../../components/Sheet.js'
 import { useToast } from '../../components/Toast.js'
-import { lireTicket, useAppliquerTicket } from '../../lib/queries.js'
+import { lireTicket, useAppliquerTicket, useSetSessionStore } from '../../lib/queries.js'
 
 /** Le plus grand cote envoye : ce que le modele lit sans reduire l'image. */
 const COTE_MAX = 2400
@@ -77,13 +77,17 @@ function changements(lecture: TicketReading, items: readonly SessionItem[]): Cha
 
 export function TicketCaisse({
   items,
+  magasin,
   onClose,
 }: {
   readonly items: readonly SessionItem[]
+  /** Le magasin des courses ; vide, le ticket le donne (son enseigne). */
+  readonly magasin: string
   readonly onClose: () => void
 }) {
   const entree = useRef<HTMLInputElement | null>(null)
   const appliquer = useAppliquerTicket()
+  const poserMagasin = useSetSessionStore()
   const toast = useToast()
   const [lecture, setLecture] = useState<TicketReading | null>(null)
   const [enCours, setEnCours] = useState(false)
@@ -118,7 +122,17 @@ export function TicketCaisse({
   const servis = new Set(lecture?.matches.map((m) => m.itemId) ?? [])
   const absents = items.filter((item) => !servis.has(item.id))
 
+  /** L'enseigne lue, quand les courses n'ont pas encore de magasin. */
+  const magasinLu = magasin === '' ? (lecture?.magasin ?? null) : null
+
   const valider = () => {
+    // Le magasin d'abord : les ecritures du chariot passent une par une, et
+    // les prix seront enregistres a son nom a la validation.
+    if (magasinLu !== null) poserMagasin.mutate(magasinLu)
+    if (retenus.length === 0) {
+      onClose()
+      return
+    }
     appliquer.mutate(
       retenus.map((c) => ({
         id: c.item.id,
@@ -166,7 +180,7 @@ export function TicketCaisse({
               type="button"
               className="button button--primary"
               onClick={valider}
-              disabled={enCours || appliquer.isPending || retenus.length === 0}
+              disabled={enCours || appliquer.isPending || (retenus.length === 0 && magasinLu === null)}
             >
               {appliquer.isPending ? 'Enregistrement…' : `Appliquer${retenus.length > 0 ? ` (${retenus.length})` : ''}`}
             </button>
@@ -185,8 +199,8 @@ export function TicketCaisse({
       {lecture === null && (
         <p className="card__lead">
           Prends le ticket à plat, en entier si possible. Prandia y retrouve chaque article du
-          chariot : le poids du vrac pesé en caisse, et les prix que tu n’as pas saisis. Rien ne
-          change avant que tu aies relu. Un long ticket se lit en plusieurs photos.
+          chariot et lui donne le prix payé, remises comprises, ainsi que le poids du vrac pesé en
+          caisse et le magasin. Tu relis avant d’appliquer. Un long ticket se lit en plusieurs photos.
         </p>
       )}
 
@@ -194,6 +208,10 @@ export function TicketCaisse({
         <p className="field__error" role="alert">
           {erreur}
         </p>
+      )}
+
+      {magasinLu !== null && (
+        <p className="status status--ok">Magasin lu sur le ticket : {magasinLu}. Les prix seront enregistrés à ce nom.</p>
       )}
       {appliquer.isError && (
         <p className="field__error" role="alert">

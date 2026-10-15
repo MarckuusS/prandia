@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { ArticleLu } from '@prandia/shared'
 
-import { appliquerArticle, emptyDraft, type ItemDraft } from './sessionDraft.js'
+import { appliquerArticle, brouillonEnArticle, emptyDraft, readDraft, type ItemDraft } from './sessionDraft.js'
 
 const AUJOURDHUI = '2026-10-13'
 
@@ -90,5 +90,17 @@ describe('appliquerArticle, la face avant montre un autre produit', () => {
     expect(appliquerArticle(connu, connu, lu, AUJOURDHUI).draft.name).toBe('Mini saucissons')
     const retouche = { ...scanneFaux, name: 'Tenders' }
     expect(appliquerArticle(retouche, scanneFaux, lu, AUJOURDHUI).draft.name).toBe('Tenders')
+  })
+})
+
+describe('brouillonEnArticle, le scan en chaine', () => {
+  it('fait entrer au chariot un produit inconnu, sans nom ni poids, que Savarin completera', () => {
+    const inconnu = emptyDraft('3770018078854')
+    expect(readDraft(inconnu).kind).toBe('invalid')
+    expect(brouillonEnArticle(inconnu)).toMatchObject({ ean: '3770018078854', name: '', quantityG: null, brand: null, priceEur: null })
+  })
+
+  it('garde ce que le code-barres a donne', () => {
+    expect(brouillonEnArticle(scanne)).toMatchObject({ name: 'Fromage blanc nature', brand: 'Danone', quantityG: 500, pieceWeightG: 500 })
   })
 })

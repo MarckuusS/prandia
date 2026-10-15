@@ -1,7 +1,11 @@
 /**
  * Session de courses — le chariot qui se remplit, article par article.
  *
- * On scanne en magasin, on valide a la caisse. Entre les deux, RIEN n'est ecrit
+ * Depuis le 2026-10-15, on RANGE ses courses : en magasin, la liste et ses
+ * cases ; a la maison, chaque produit scanne puis photographie (Savarin lit en
+ * arriere-plan), le ticket qui donne les prix et le magasin, puis la
+ * validation. Le scan en magasin reste possible. Entre l'ouverture et la
+ * validation, RIEN n'est ecrit
  * dans la bibliotheque ni dans le frigo : la session est un brouillon. On
  * renonce parfois a des courses, et un abandon ne doit laisser aucune trace.
  *
@@ -142,26 +146,38 @@ route('POST', '/api/courses', async ({ repos, request, env, user }) => {
   return json(await present(repos, session), 201)
 })
 
-/**
- * Un article sans poids n'est admis que s'il est "a peser en caisse" : son
- * poids viendra du ticket. Tenue ici, le schema zod ne pouvant pas a la fois
- * porter ce raffinement et se laisser `omit`.
+/*
+ * UN ARTICLE PEUT ENTRER INCOMPLET : sans nom ni poids, tant que Savarin lit
+ * sa face avant et sa quantite en arriere-plan, ou qu'il attend d'etre pese en
+ * caisse. C'est la VALIDATION qui exige un nom et un poids, et nomme ce qui
+ * manque.
  */
-function articleValide<T extends { quantityG: number | null; aPeser: boolean }>(item: T): T {
-  if (item.quantityG === null && !item.aPeser) {
-    throw new HttpError(400, 'invalid_body', 'Indique la quantité mise dans le chariot.')
-  }
-  return item
-}
 
 /** Les articles encore sans poids : la validation des courses les attend. */
 const sansPoids = (session: ShoppingSession) => session.items.filter((item) => item.quantityG === null)
+/** Les articles encore sans nom : une lecture qui n'a pas abouti. */
+const sansNom = (session: ShoppingSession) => session.items.filter((item) => item.name.trim() === '')
+
+const magasinSchema = z.object({ store: z.string().trim().min(1, 'Indique le magasin.').max(80) })
+
+/**
+ * Le magasin, quand on ne l'a pas donne au depart : lu sur le ticket, ou saisi
+ * a la validation. Les prix sont enregistres a son nom.
+ */
+route('PATCH', '/api/courses', async ({ repos, request }) => {
+  const session = await load(repos)
+  if (session === null) throw notFound('Aucune session de courses en cours.')
+  const { store } = parseOrThrow(magasinSchema, await readJson(request))
+  const next: ShoppingSession = { ...session, store }
+  await repos.settings.setJson(KEY, next)
+  return json(await present(repos, next))
+})
 
 route('POST', '/api/courses/items', async ({ repos, request }) => {
   const session = await load(repos)
   if (session === null) throw notFound('Aucune session de courses en cours.')
 
-  const item = articleValide(parseOrThrow(sessionItemWriteSchema, await readJson(request)))
+  const item = parseOrThrow(sessionItemWriteSchema, await readJson(request))
 
   const next: ShoppingSession = {
     ...session,
@@ -188,7 +204,7 @@ route('PUT', '/api/courses/items/:id', async ({ repos, params, request }) => {
   const id = params['id'] ?? ''
   if (!session.items.some((item) => item.id === id)) throw notFound('Article introuvable.')
 
-  const patch = articleValide(parseOrThrow(sessionItemWriteSchema, await readJson(request)))
+  const patch = parseOrThrow(sessionItemWriteSchema, await readJson(request))
   const next: ShoppingSession = {
     ...session,
     items: session.items.map((item) => (item.id === id ? { ...item, ...patch, id } : item)),
@@ -308,9 +324,25 @@ route('DELETE', '/api/courses', async ({ repos, env, user }) => {
  * poses, de prix releves. Apres trente scans, « c'est enregistré » ne suffit
  * pas a rassurer.
  */
-route('POST', '/api/courses/commit', async ({ repos, env, user, waitUntil }) => {
-  const session = await load(repos)
-  if (session === null) throw notFound('Aucune session de courses en cours.')
+route('POST', '/api/courses/commit', async ({ repos, request, env, user, waitUntil }) => {
+  const enCours = await load(repos)
+  if (enCours === null) throw notFound('Aucune session de courses en cours.')
+  // Le magasin peut arriver avec la validation, quand ni le depart ni le
+  // ticket ne l'ont donne.
+  const corps = (await readJson(request).catch(() => null)) as { store?: unknown } | null
+  const donne = typeof corps?.store === 'string' ? corps.store.trim().slice(0, 80) : ''
+  const session: ShoppingSession = enCours.store === '' && donne !== '' ? { ...enCours, store: donne } : enCours
+  if (session.store === '') {
+    throw new HttpError(422, 'magasin', 'Indique le magasin : les prix sont enregistrés à son nom.')
+  }
+  const anonymes = sansNom(session)
+  if (anonymes.length > 0) {
+    throw new HttpError(
+      422,
+      'a_completer',
+      `${anonymes.length === 1 ? 'Un article n’a pas encore de nom' : `${anonymes.length} articles n’ont pas encore de nom`} : ouvre-${anonymes.length === 1 ? 'le' : 'les'} dans le chariot pour le${anonymes.length === 1 ? '' : 's'} compléter.`,
+    )
+  }
   if (session.items.length === 0) {
     throw new HttpError(422, 'empty_session', 'Ce chariot est vide : il n’y a rien à enregistrer.')
   }
@@ -324,7 +356,7 @@ route('POST', '/api/courses/commit', async ({ repos, env, user, waitUntil }) => 
       'a_peser',
       `${attente.length === 1 ? 'Un article attend son poids' : `${attente.length} articles attendent leur poids`} : ${attente
         .map((item) => item.name)
-        .join(', ')}. Lis le ticket, ou saisis-le dans l’article.`,
+        .join(', ')}. Le ticket le donne pour le vrac pesé en caisse ; sinon, saisis-le dans l’article.`,
     )
   }
 

@@ -61,7 +61,7 @@ describe('interpretTicket', () => {
   })
 
   it('rend une lecture vide sur une reponse mal formee', () => {
-    expect(interpretTicket(null, CHARIOT)).toEqual({ matches: [], horsChariot: [] })
+    expect(interpretTicket(null, CHARIOT)).toEqual({ matches: [], horsChariot: [], magasin: null })
   })
 })
 
@@ -87,5 +87,13 @@ describe('mergeTicketReadings', () => {
     const tout = mergeTicketReadings(haut, bas)
     expect(tout.matches.map((m) => m.itemId)).toEqual(['a', 'c'])
     expect(tout.horsChariot).toHaveLength(1)
+  })
+
+  it('garde l’enseigne lue en tete, que la suite du ticket ne repete pas', () => {
+    const haut = interpretTicket({ correspondances: [], hors_chariot: [], magasin: ' Carrefour ' }, CHARIOT)
+    const bas = interpretTicket({ correspondances: [], hors_chariot: [], magasin: null }, CHARIOT)
+    expect(haut.magasin).toBe('Carrefour')
+    expect(mergeTicketReadings(haut, bas).magasin).toBe('Carrefour')
+    expect(mergeTicketReadings(bas, haut).magasin).toBe('Carrefour')
   })
 })

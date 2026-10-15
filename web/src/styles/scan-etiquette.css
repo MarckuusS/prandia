@@ -227,3 +227,30 @@
   cursor: default;
   opacity: 0.5;
 }
+
+/* ---------- Ranger mes courses : le scan en chaine ----------
+   Le code-barres et les photos se succedent dans le meme cadre, de la meme
+   taille : passer de l'un a l'autre ne fait rien sauter a l'ecran. */
+.chaine {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.chaine__etat {
+  min-height: 2.6em;
+  margin: 0;
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+}
+
+.chaine .scanner--plein .scanner__stage {
+  flex: none;
+  aspect-ratio: 3 / 4;
+  max-height: 60vh;
+  border-radius: var(--radius-lg);
+}
+
+.button.rafale__autre {
+  margin-top: var(--space-xs);
+}

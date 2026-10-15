@@ -31,12 +31,14 @@ import { Icon } from '../../icons/index.js'
 import { formatEuros, formatGrams, formatShoppingQuantity, type ShoppingSession } from '@prandia/shared'
 
 import { Savarin } from '../../components/Savarin.js'
-import { ConfirmDialog } from '../../components/Sheet.js'
+import { TextField } from '../../components/Field.js'
+import { ConfirmDialog, Sheet } from '../../components/Sheet.js'
 import { useToast } from '../../components/Toast.js'
 import {
   useAbandonSession,
   useCommitSession,
   useShoppingList,
+  useStores,
   type CommitResult,
   type SessionState,
 } from '../../lib/queries.js'
@@ -45,6 +47,7 @@ import { lectureDeLArticle, oublierLectures, useLectures, type Lecture } from '.
 import type { ScanRequest } from '../../lib/useScanParam.js'
 import { ScanToCart } from './ScanToCart.js'
 import { TicketCaisse } from './TicketCaisse.js'
+import { readRecentStores, rememberStore } from './recentStores.js'
 import '../../styles/session.css'
 
 export interface SessionScreenProps {
@@ -59,9 +62,19 @@ export interface SessionScreenProps {
   readonly scan: ScanRequest | null
   /** Remonte que le code a ete pris en charge : l'ecran doit l'oublier. */
   readonly onScanTraite: () => void
+  /** "Ranger mes courses" vient d'etre touche : le scan en chaine s'ouvre aussitot. */
+  readonly ouvrirChaine?: boolean | undefined
 }
 
-export function SessionScreen({ state, session, onShowList, onCommitted, scan, onScanTraite }: SessionScreenProps) {
+export function SessionScreen({
+  state,
+  session,
+  onShowList,
+  onCommitted,
+  scan,
+  onScanTraite,
+  ouvrirChaine = false,
+}: SessionScreenProps) {
   // La liste de la semaine DE LA SESSION, et non celle qu'affichait l'ecran :
   // c'est elle que la validation cochera, et se tromper de semaine ici ferait
   // mentir tous les compteurs.
@@ -106,7 +119,18 @@ export function SessionScreen({ state, session, onShowList, onCommitted, scan, o
   const unknownCount = items.filter((item) => item.ingredientId === null).length
   const pricedCount = items.filter((item) => item.priceEur !== null).length
   // Le vrac pese en caisse attend son poids : la validation le refuserait.
-  const aPeserCount = items.filter((item) => item.quantityG === null).length
+  const aPeserCount = items.filter((item) => item.quantityG === null && item.aPeser).length
+  // Ce que Savarin n'a pas su lire (ou lit encore) : un nom, un poids.
+  const incomplets = items.filter((item) => item.name.trim() === '' || (item.quantityG === null && !item.aPeser))
+
+  /*
+   * LES TROIS ETAPES du rangement : scanner chaque produit, lire le ticket (il
+   * donne les prix), terminer. L'etape en cours porte le seul aplat de la
+   * rangee : on sait toujours quoi faire ensuite.
+   */
+  const etape: 1 | 2 | 3 = items.length === 0 ? 1 : pricedCount < items.length ? 2 : 3
+  /** Pret a valider, mais sans magasin : la validation le demande. */
+  const magasinADemander = incomplets.length === 0 && aPeserCount === 0 && session.store === ''
 
   const editing = editingId === null ? null : (items.find((item) => item.id === editingId) ?? null)
   // Les lectures de Savarin en arriere-plan : un logo en face de chaque ligne.
@@ -120,14 +144,31 @@ export function SessionScreen({ state, session, onShowList, onCommitted, scan, o
         <div className="session-head__top">
           <div className="session-head__store">
             <p className="session-head__name">
-              <Icon name="ui-cart" size={16} className="icon--inline" /> {session.store}
+              <Icon name="ui-cart" size={16} className="icon--inline" />{' '}
+              {session.store === '' ? 'Mes courses' : session.store}
             </p>
             <p className="session-head__count">
               {itemCount} article{itemCount > 1 ? 's' : ''} dans le chariot
             </p>
           </div>
-          <strong className="session-head__total">{formatEuros(state.totalEur ?? '0')}</strong>
+          {/* Le total n'a de sens qu'avec des prix : avant le ticket, il dirait 0 €. */}
+          {pricedCount > 0 && <strong className="session-head__total">{formatEuros(state.totalEur ?? '0')}</strong>}
         </div>
+
+        <ol className="etapes" aria-label="Les étapes">
+          {(['Scanner les produits', 'Lire le ticket', 'Terminer'] as const).map((libelle, i) => (
+            <li
+              key={libelle}
+              className={`etapes__item${i + 1 < etape ? ' etapes__item--fait' : ''}${i + 1 === etape ? ' etapes__item--courante' : ''}`}
+              aria-current={i + 1 === etape ? 'step' : undefined}
+            >
+              <span className="etapes__numero" aria-hidden="true">
+                {i + 1 < etape ? <Icon name="ui-check" size={12} /> : i + 1}
+              </span>
+              {libelle}
+            </li>
+          ))}
+        </ol>
 
         {listItems.length > 0 && (
           <div className="session-progress">
@@ -152,7 +193,7 @@ export function SessionScreen({ state, session, onShowList, onCommitted, scan, o
               caisse, on lit le ticket, on termine. */}
           <button
             type="button"
-            className="button button--secondary"
+            className={`button ${etape === 2 ? 'button--primary' : 'button--secondary'}`}
             onClick={() => setTicketOuvert(true)}
             disabled={items.length === 0}
           >
@@ -160,7 +201,7 @@ export function SessionScreen({ state, session, onShowList, onCommitted, scan, o
           </button>
           <button
             type="button"
-            className="button button--secondary"
+            className={`button ${etape === 3 ? 'button--primary' : 'button--secondary'}`}
             onClick={() => setDialog('commit')}
             disabled={items.length === 0}
           >
@@ -176,7 +217,7 @@ export function SessionScreen({ state, session, onShowList, onCommitted, scan, o
           onToggle={(event) => setRemainingOpen(event.currentTarget.open)}
         >
           <summary className="session-remaining__summary">
-            Reste à prendre — {remaining.length}
+            Pas encore dans le chariot : {remaining.length}
           </summary>
           <ul className="session-remaining__list">
             {/* Deja trie par rayon puis par nom cote serveur : on suit le
@@ -204,8 +245,8 @@ export function SessionScreen({ state, session, onShowList, onCommitted, scan, o
 
         {items.length === 0 ? (
           <p className="session-cart__empty">
-            Rien encore. Scanne ton premier produit en le posant dans le caddie — même s’il n’est
-            pas sur ta liste.
+            Rien encore. Scanne chaque produit avant de le ranger : le code-barres, puis la face
+            avant, le poids et la date. Même ce qui n’était pas sur ta liste.
           </p>
         ) : (
           <ul className="session-cart__list">
@@ -219,10 +260,20 @@ export function SessionScreen({ state, session, onShowList, onCommitted, scan, o
                     onClick={() => setEditingId(item.id)}
                   >
                     <span className="session-line__body">
-                      <span className="session-line__name">{item.name}</span>
+                      {item.name.trim() === '' ? (
+                        <span className="session-line__name session-line__name--attente">
+                          {lectureDeLArticle(lectures, item.id)?.etat === 'lecture'
+                            ? 'Savarin lit la face avant…'
+                            : 'Nom à compléter'}
+                        </span>
+                      ) : (
+                        <span className="session-line__name">{item.name}</span>
+                      )}
                       <span className="session-line__meta">
                         {item.quantityG === null ? (
-                          <span className="badge badge--a-peser">à peser en caisse</span>
+                          <span className="badge badge--a-peser">
+                            {item.aPeser ? 'à peser en caisse' : 'poids à lire'}
+                          </span>
                         ) : (
                           <span>
                             {item.aPeser ? 'environ ' : ''}
@@ -239,7 +290,8 @@ export function SessionScreen({ state, session, onShowList, onCommitted, scan, o
                     <span
                       className={`session-line__price${item.priceEur === null ? ' session-line__price--missing' : ''}`}
                     >
-                      {item.priceEur === null ? 'sans prix' : formatEuros(item.priceEur)}
+                      {/* Le prix vient du ticket, a la fin : "sans prix" sonnait comme un oubli. */}
+                      {item.priceEur === null ? 'prix au ticket' : formatEuros(item.priceEur)}
                     </span>
                     <span className="session-line__chevron" aria-hidden="true">
                       ›
@@ -266,9 +318,33 @@ export function SessionScreen({ state, session, onShowList, onCommitted, scan, o
         listIngredientIds={listIngredientIds}
         scan={scan}
         onScanTraite={onScanTraite}
+        ouvrirAuDepart={ouvrirChaine}
       />
 
-      {ticketOuvert && <TicketCaisse items={items} onClose={() => setTicketOuvert(false)} />}
+      {ticketOuvert && (
+        <TicketCaisse items={items} magasin={session.store} onClose={() => setTicketOuvert(false)} />
+      )}
+
+      {/* Pret, mais sans magasin (ni donne, ni lu sur le ticket) : la
+          validation le demande, en grandes cibles. */}
+      {dialog === 'commit' && magasinADemander && (
+        <ValiderAvecMagasin
+          annonce={commitAnnounce(items.length, unknownCount, pricedCount, null)}
+          enLecture={enLecture}
+          busy={commit.isPending}
+          error={commit.error?.message}
+          onClose={() => setDialog('none')}
+          onConfirm={(magasin) =>
+            commit.mutate(magasin, {
+              onSuccess: (result) => {
+                rememberStore(magasin)
+                oublierLectures()
+                onCommitted(result)
+              },
+            })
+          }
+        />
+      )}
 
       {editing !== null && (
         <CartLineSheet
@@ -285,20 +361,26 @@ export function SessionScreen({ state, session, onShowList, onCommitted, scan, o
       {/* Annoncer AVANT de faire : apres trente scans, « c'est enregistré »
           arrive trop tard pour qu'on puisse encore verifier quoi que ce soit. */}
       <ConfirmDialog
-        open={dialog === 'commit'}
+        open={dialog === 'commit' && !magasinADemander}
         title="Terminer les courses ?"
         message={
-          aPeserCount > 0
-            ? `${aPeserCount === 1 ? 'Un article attend encore son poids' : `${aPeserCount} articles attendent encore leur poids`} : le ticket le donne. Tu peux aussi le saisir dans l’article.`
-            : `${enLecture > 0 ? `Savarin lit encore ${enLecture === 1 ? 'les photos d’un article' : `les photos de ${enLecture} articles`} : attends-le, ou ce qu’il lit sera perdu. ` : ''}${commitAnnounce(items.length, unknownCount, pricedCount, session.store)}`
+          incomplets.length > 0
+            ? `${incomplets.length === 1 ? 'Un article est incomplet' : `${incomplets.length} articles sont incomplets`} : nom ou poids encore à lire. Ouvre ${incomplets.length === 1 ? 'sa ligne' : 'leurs lignes'} dans le chariot pour compléter.`
+            : aPeserCount > 0
+              ? `${aPeserCount === 1 ? 'Un article attend encore son poids' : `${aPeserCount} articles attendent encore leur poids`} : le ticket le donne. Tu peux aussi le saisir dans l’article.`
+              : `${enLecture > 0 ? `Savarin lit encore ${enLecture === 1 ? 'les photos d’un article' : `les photos de ${enLecture} articles`} : attends-le, ou ce qu’il lit sera perdu. ` : ''}${commitAnnounce(items.length, unknownCount, pricedCount, session.store)}`
         }
         // Le serveur refuserait la validation : le bouton mene la ou elle se
         // debloque, plutot qu'a une erreur.
-        confirmLabel={aPeserCount > 0 ? 'Lire le ticket' : 'Tout enregistrer'}
+        confirmLabel={incomplets.length > 0 ? 'Voir le chariot' : aPeserCount > 0 ? 'Lire le ticket' : 'Tout enregistrer'}
         busy={commit.isPending}
         error={commit.error?.message}
         onClose={() => setDialog('none')}
         onConfirm={() => {
+          if (incomplets.length > 0) {
+            setDialog('none')
+            return
+          }
           if (aPeserCount > 0) {
             setDialog('none')
             setTicketOuvert(true)
@@ -358,12 +440,104 @@ function LogoSavarin({ lecture }: { readonly lecture: Lecture | undefined }) {
   )
 }
 
+/**
+ * La validation, quand le magasin manque encore : ni donne au depart, ni lu
+ * sur le ticket. Les prix sont enregistres a son nom ; les enseignes deja
+ * frequentees (cet appareil, puis l'historique des prix du foyer) sont
+ * proposees en grandes cibles.
+ */
+function ValiderAvecMagasin({
+  annonce,
+  enLecture,
+  busy,
+  error,
+  onClose,
+  onConfirm,
+}: {
+  readonly annonce: string
+  readonly enLecture: number
+  readonly busy: boolean
+  readonly error: string | undefined
+  readonly onClose: () => void
+  readonly onConfirm: (magasin: string) => void
+}) {
+  const [magasin, setMagasin] = useState('')
+  const [recents] = useState(readRecentStores)
+  const stores = useStores()
+  const suggestions = useMemo(() => {
+    const vus = new Set<string>()
+    const tous: string[] = []
+    for (const connu of [...recents, ...(stores.data?.items ?? []).map((i) => i.store)]) {
+      const cle = connu.trim().toLowerCase()
+      if (cle === '' || vus.has(cle)) continue
+      vus.add(cle)
+      tous.push(connu)
+    }
+    return tous.slice(0, 8)
+  }, [recents, stores.data])
+  const nom = magasin.trim()
+
+  return (
+    <Sheet
+      open
+      onClose={onClose}
+      title="Terminer les courses"
+      dismissible={!busy}
+      actions={
+        <>
+          <button type="button" className="button button--secondary" onClick={onClose} disabled={busy}>
+            Annuler
+          </button>
+          <button type="button" className="button button--primary" onClick={() => onConfirm(nom)} disabled={busy || nom === ''}>
+            {busy ? 'Enregistrement…' : 'Tout enregistrer'}
+          </button>
+        </>
+      }
+    >
+      <TextField
+        label="Où as-tu fait ces courses ?"
+        value={magasin}
+        onChange={setMagasin}
+        placeholder="Lidl, Carrefour, le marché…"
+        autoComplete="off"
+        hint="Les prix seront enregistrés à ce nom."
+      />
+      {suggestions.length > 0 && (
+        <div className="session-stores">
+          {suggestions.map((connu) => (
+            <button
+              key={connu}
+              type="button"
+              className={`chip-toggle${connu === nom ? ' chip-toggle--on' : ''}`}
+              onClick={() => setMagasin(connu)}
+              disabled={busy}
+            >
+              {connu}
+            </button>
+          ))}
+        </div>
+      )}
+      <p className="card__lead">
+        {enLecture > 0
+          ? `Savarin lit encore ${enLecture === 1 ? 'les photos d’un article' : `les photos de ${enLecture} articles`} : attends-le, ou ce qu’il lit sera perdu. `
+          : ''}
+        {annonce}
+      </p>
+      {error !== undefined && (
+        <p className="status status--error" role="alert">
+          {error}
+        </p>
+      )}
+    </Sheet>
+  )
+}
+
 /** Ce que la validation va faire, en toutes lettres et au futur. */
 function commitAnnounce(
   itemCount: number,
   unknownCount: number,
   pricedCount: number,
-  store: string,
+  store: string | null,
 ): string {
   const lines = [
     itemCount === 1 ? '1 article ira au frigo.' : `${itemCount} articles iront au frigo.`,
@@ -379,7 +553,7 @@ function commitAnnounce(
     lines.push(
       pricedCount === 1
         ? `1 prix sera enregistré chez ${store}.`
-        : `${pricedCount} prix seront enregistrés chez ${store}.`,
+        : `${pricedCount} prix seront enregistrés${store === null ? '' : ` chez ${store}`}.`,
     )
   }
   lines.push('Ta liste de la semaine sera cochée en conséquence.')
@@ -411,8 +585,9 @@ export function SessionSummary({
 
         <ul className="session-summary__list">
           <li>
+            {/* Ils arrivent dans "À ranger" : aucun n'a encore sa place. */}
             <strong>{result.stockedCount}</strong> article
-            {result.stockedCount > 1 ? 's' : ''} rangé{result.stockedCount > 1 ? 's' : ''} au frigo
+            {result.stockedCount > 1 ? 's' : ''} à ranger
           </li>
           <li>
             <strong>{result.createdCount}</strong> nouvelle{result.createdCount > 1 ? 's' : ''}{' '}
@@ -422,20 +597,24 @@ export function SessionSummary({
             <strong>{result.pricedCount}</strong> prix relevé{result.pricedCount > 1 ? 's' : ''}{' '}
             chez {result.store}
           </li>
-          <li>
-            Total payé : <strong>{formatEuros(result.totalEur)}</strong>
-          </li>
+          {result.pricedCount > 0 && (
+            <li>
+              Total payé : <strong>{formatEuros(result.totalEur)}</strong>
+            </li>
+          )}
         </ul>
 
         <p className="card__lead">Ta liste de courses a été cochée en conséquence.</p>
 
+        {/* La suite du rangement : les produits attendent dans "À ranger", où
+            "Tout ranger comme d'habitude" les met en place d'un geste. */}
         <div className="session-summary__actions">
-          <button type="button" className="button button--primary" onClick={onClose}>
+          <Link to="/frigo?ou=ranger" className="button button--primary lien-surface">
+            Ranger au frigo
+          </Link>
+          <button type="button" className="button button--secondary" onClick={onClose}>
             Revenir à ma liste
           </button>
-          <Link to="/frigo" className="button button--secondary lien-surface">
-            Voir le frigo
-          </Link>
         </div>
       </div>
     </section>

@@ -223,6 +223,28 @@ export function appliquerArticle(
   return { draft: { ...draft, ...suite }, champs }
 }
 
+/**
+ * L'article tel qu'il part au chariot depuis le SCAN EN CHAINE : sans
+ * exigence. Le nom ou le poids peuvent manquer, Savarin les lit en
+ * arriere-plan sur les photos ; la validation des courses refusera ce qui
+ * manquerait encore. La saisie a la main, elle, passe par `readDraft`.
+ */
+export function brouillonEnArticle(draft: ItemDraft): SessionItemWrite {
+  const brand = draft.brand.trim()
+  return {
+    ean: draft.ean,
+    name: draft.name.trim(),
+    brand: brand === '' ? null : brand,
+    quantityG: draft.quantityG !== null && draft.quantityG > 0 ? draft.quantityG : null,
+    aPeser: draft.aPeser,
+    priceEur: draft.priceEur === null || draft.priceEur <= 0 ? null : draft.priceEur.toFixed(2),
+    ingredientId: draft.ingredientId,
+    macros: draft.macros,
+    pieceWeightG: draft.pieceWeightG,
+    expiryDate: draft.expiryDate,
+  }
+}
+
 export type DraftReading =
   | { readonly kind: 'invalid'; readonly message: string }
   | { readonly kind: 'ready'; readonly item: SessionItemWrite }

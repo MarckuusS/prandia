@@ -76,6 +76,8 @@ export function ShoppingScreen() {
    */
   const session = useShoppingSession()
   const [showList, setShowList] = useState(false)
+  /** "Ranger mes courses" vient d'etre touche : le scan en chaine s'ouvre aussitot. */
+  const [ouvrirChaine, setOuvrirChaine] = useState(false)
   /*
    * Code arrive par `/courses?scan=…`, depuis le point d'entree de scan.
    *
@@ -115,7 +117,11 @@ export function ShoppingScreen() {
       <SessionScreen
         state={live.state}
         session={live.session}
-        onShowList={() => setShowList(true)}
+        onShowList={() => {
+          setOuvrirChaine(false)
+          setShowList(true)
+        }}
+        ouvrirChaine={ouvrirChaine}
         onCommitted={setSummary}
         scan={scanEnCours}
         onScanTraite={() => setScanEnCours(null)}
@@ -127,7 +133,10 @@ export function ShoppingScreen() {
     <section className={`screen screen--shopping${store.active ? ' screen--store' : ''}`}>
       <SessionBar
         isoWeek={week.isoWeek}
-        onEnterCart={() => setShowList(false)}
+        onEnterCart={(chaine) => {
+          setOuvrirChaine(chaine)
+          setShowList(false)
+        }}
         pendingScan={scanEnCours}
       />
 

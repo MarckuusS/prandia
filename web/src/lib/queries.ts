@@ -1536,10 +1536,15 @@ export function modifierArticleEnFond(
   })
 }
 
+/** Le magasin est facultatif : rangees a la maison, les courses le lisent sur le ticket. */
 export const useStartSession = () =>
-  useSessionMutation<{ store: string; isoWeek: string }>((vars) =>
+  useSessionMutation<{ store?: string; isoWeek: string }>((vars) =>
     post<SessionState>('/api/courses', vars),
   )
+
+/** Le magasin, lu sur le ticket ou saisi a la fin. */
+export const useSetSessionStore = () =>
+  useSessionMutation<string>((store) => patch<SessionState>('/api/courses', { store }))
 
 export const useAddSessionItem = () =>
   useSessionMutation<SessionItemWrite>((item) => post<SessionState>('/api/courses/items', item))
@@ -1581,7 +1586,8 @@ export const useAbandonSession = () =>
 export function useCommitSession() {
   const client = useQueryClient()
   return useMutation({
-    mutationFn: () => post<CommitResult>('/api/courses/commit', {}),
+    // Le magasin voyage avec la validation quand ni le depart ni le ticket ne l'ont donne.
+    mutationFn: (store?: string) => post<CommitResult>('/api/courses/commit', store === undefined ? {} : { store }),
     onSuccess: (result) => {
       client.setQueryData(keys.session, { active: false, session: null })
       void client.invalidateQueries({ queryKey: ['ingredients'] })

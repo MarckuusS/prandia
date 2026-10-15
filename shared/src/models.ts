@@ -597,13 +597,18 @@ export const sessionItemSchema = z.object({
   id: z.string().min(1),
   /** `null` pour un article saisi a la main (vrac, fruits et legumes). */
   ean: z.string().nullable().default(null),
-  name: nonEmpty('Donne un nom à cet article.'),
+  /**
+   * VIDE tant que Savarin lit la face avant d'un produit inconnu (courses
+   * rangees a la maison, 2026-10-15) : l'article entre au chariot des que ses
+   * photos partent, et la lecture le complete. La validation des courses
+   * refuse un article encore sans nom.
+   */
+  name: z.string().trim().max(120).default(''),
   brand: z.string().nullable().default(null),
   /**
-   * `null` SEULEMENT pour un article "a peser en caisse" (`aPeser`) : le vrac
-   * pese par le caissier n'a pas de poids avant le ticket. La regle est tenue
-   * par la route (un objet zod a raffinement ne se laisse plus `omit`), et la
-   * validation des courses refuse un article encore sans poids.
+   * `null` pour un article "a peser en caisse" (`aPeser`), dont le ticket
+   * donnera le poids, ou dont Savarin lit encore la quantite. La validation
+   * des courses refuse un article encore sans poids.
    */
   quantityG: z.number().positive('La quantité doit être strictement positive.').nullable(),
   /** Vrac pese en caisse : poids et prix viendront du ticket (shared/src/ticket.ts). */
@@ -632,7 +637,12 @@ export const sessionItemSchema = z.object({
 export type SessionItem = z.infer<typeof sessionItemSchema>
 
 export const shoppingSessionSchema = z.object({
-  store: nonEmpty('Indique le magasin.'),
+  /**
+   * VIDE au depart quand on range ses courses a la maison : le ticket le donne
+   * (`TicketReading.magasin`), a defaut il est demande a la validation, qui le
+   * refuse vide. Les prix sont enregistres a son nom.
+   */
+  store: z.string().trim().max(80).default(''),
   /** Liste de courses de reference, pour la correspondance article par article. */
   isoWeek: isoWeekString,
   startedAt: utcTimestamp.nullable().default(null),

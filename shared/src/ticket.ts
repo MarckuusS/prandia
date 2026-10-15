@@ -37,6 +37,8 @@ export interface TicketReading {
   readonly matches: readonly TicketMatch[]
   /** Payes mais absents du chariot : un oubli de scan, ou un sac. */
   readonly horsChariot: ReadonlyArray<{ readonly libelle: string; readonly prixEur: number | null }>
+  /** L'enseigne imprimee en tete du ticket : le magasin des courses, quand on ne l'a pas dit. */
+  readonly magasin: string | null
 }
 
 const texteOuNul = { type: ['string', 'null'] }
@@ -70,8 +72,9 @@ export const TICKET_TOOL: ScanTool = {
           required: ['libelle', 'prix'],
         },
       },
+      magasin: { ...texteOuNul, description: 'L’enseigne imprimee en tete du ticket, ex. Carrefour, Lidl, ou null.' },
     },
-    required: ['correspondances', 'hors_chariot'],
+    required: ['correspondances', 'hors_chariot', 'magasin'],
   },
 }
 
@@ -84,10 +87,10 @@ export function ticketQuestion(articles: readonly TicketArticle[]): string {
       a.aPeser || a.quantityG === null ? 'a peser' : grammesLisibles(a.quantityG),
       a.priceEur === null ? null : `prix saisi ${a.priceEur} EUR`,
     ].filter(Boolean)
-    return `${i + 1} : ${a.name}${details.length > 0 ? ` (${details.join(', ')})` : ''}`
+    return `${i + 1} : ${a.name === '' ? '(nom en cours de lecture)' : a.name}${details.length > 0 ? ` (${details.join(', ')})` : ''}`
   })
   return [
-    'Photo d’un ticket de caisse, entier ou en partie. Voici les articles du chariot, numerotes :',
+    'Photo d’un ticket de caisse, entier ou en partie. Donne aussi l’enseigne imprimee en tete (magasin), si elle est visible. Voici les articles du chariot, numerotes :',
     ...lignes,
     '',
     'Pour chaque ligne du ticket qui paie un article du chariot, donne le numero de l’article, l’intitule tel qu’imprime, le poids net si la ligne en indique un, et le prix paye pour cet article : le montant de la ligne, divise si elle regroupe plusieurs articles identiques du chariot. Une remise immediate imprimee juste sous un article (montant negatif, "Remise Immediate") se deduit du prix de CET article : "Avocat 2,98" puis "Remise -0,48", le prix paye est 2,50. Les lignes du ticket sans article correspondant vont dans hors_chariot. Ignore les sous-totaux, le total, la TVA, les remises globales (bon de reduction, remise sur le total) et les moyens de paiement.',
@@ -142,7 +145,7 @@ export function interpretTicket(entree: unknown, articles: readonly TicketArticl
     const libelle = texte(h['libelle'], 60)
     if (libelle !== null) horsChariot.push({ libelle, prixEur: prixBorne(h['prix']) })
   }
-  return { matches, horsChariot }
+  return { matches, horsChariot, magasin: texte(o['magasin'], 40) }
 }
 
 /**
@@ -156,5 +159,7 @@ export function mergeTicketReadings(avant: TicketReading, apres: TicketReading):
   return {
     matches: [...avant.matches, ...apres.matches.filter((m) => !servis.has(m.itemId))],
     horsChariot: [...avant.horsChariot, ...apres.horsChariot.filter((h) => !vus.has(`${h.libelle}|${h.prixEur}`))],
+    // La suite d'un ticket n'a souvent plus l'en-tete : la premiere enseigne lue reste.
+    magasin: avant.magasin ?? apres.magasin,
   }
 }

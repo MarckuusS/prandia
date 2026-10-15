@@ -351,12 +351,15 @@ const ECLAIR_MS = 260
  * eclair et repart pour la photo suivante ; la troisieme envoie d'elle-meme.
  * Une photo ratee se retire de sa vignette.
  */
-function ViseurRafale({
+export function ViseurRafale({
   onEnvoyer,
   onClose,
+  autreAction,
 }: {
   readonly onEnvoyer: (photos: readonly Blob[]) => void
   readonly onClose: () => void
+  /** Un second geste sous "Envoyer" : "Ajouter sans photo" au scan en chaine. */
+  readonly autreAction?: { readonly libelle: string; readonly onClick: () => void } | undefined
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const sceneRef = useRef<HTMLDivElement | null>(null)
@@ -468,6 +471,11 @@ function ViseurRafale({
           ? 'Envoyer à Savarin'
           : `Envoyer ${photos.length === 1 ? 'la photo' : `les ${photos.length} photos`} à Savarin`}
       </button>
+      {autreAction !== undefined && photos.length === 0 && (
+        <button type="button" className="button button--ghost button--block rafale__autre" onClick={autreAction.onClick}>
+          {autreAction.libelle}
+        </button>
+      )}
     </div>
   )
 }

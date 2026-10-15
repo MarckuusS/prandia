@@ -673,3 +673,66 @@
 .lecture-savarin__relancer {
   margin-top: 0;
 }
+
+/* ---------- Les trois etapes du rangement ----------
+   Scanner, lire le ticket, terminer : l'etape en cours a le seul aplat de la
+   rangee de boutons, et ici sa pastille pleine. On sait quoi faire ensuite. */
+.etapes {
+  display: flex;
+  gap: var(--space-xs);
+  margin: var(--space-sm) 0;
+  padding: 0;
+  list-style: none;
+}
+
+.etapes__item {
+  display: flex;
+  flex: 1;
+  gap: var(--space-xs);
+  align-items: center;
+  min-width: 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.2;
+  color: var(--color-text-secondary);
+}
+
+.etapes__numero {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  border: 1.5px solid var(--color-text-placeholder);
+  border-radius: 50%;
+}
+
+.etapes__item--courante {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.etapes__item--courante .etapes__numero {
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.etapes__item--fait .etapes__numero {
+  color: var(--color-primary-text);
+  border-color: var(--color-primary-text);
+}
+
+/* Le nom que Savarin lit encore sur la face avant. */
+.session-line__name--attente {
+  font-style: italic;
+  color: var(--color-text-secondary);
+}
+
+/* "Ranger au frigo" est un lien a l'aplat d'un bouton principal :
+   `.lien-surface` (app.css, evalue en dernier) lui rendrait la couleur du
+   texte courant. Trois classes l'emportent. */
+.session-summary__actions .button--primary.lien-surface {
+  color: var(--color-on-primary);
+}

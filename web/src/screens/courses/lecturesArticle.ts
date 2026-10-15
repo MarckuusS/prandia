@@ -232,6 +232,11 @@ export function quitterFeuille(cle: string) {
   }
 }
 
+/** L'article n'a pas pu entrer au chariot : sa lecture n'a plus de destination. */
+export function oublierLecture(cle: string) {
+  if (entrees.delete(cle)) publier()
+}
+
 /** La ligne a ete rouverte : Savarin s'eteint sur elle. */
 export function marquerVue(cle: string) {
   const e = entrees.get(cle)

@@ -1,43 +1,39 @@
 /**
- * L'entree dans la session, depuis la liste de courses.
+ * L'entree dans les courses, depuis la liste.
  *
- * Deux etats, et ils ne se ressemblent pas :
+ * LES COURSES SE RANGENT A LA MAISON (decision du 2026-10-15). En magasin, on
+ * coche sa liste et rien d'autre ; de retour, "Ranger mes courses" ouvre le
+ * chariot ET le scan en chaine d'un seul toucher : chaque produit, son
+ * code-barres puis ses photos, avant de le ranger. Le ticket donnera les prix
+ * et le magasin. Plus aucune question au depart : le magasin etait demande
+ * ici, il est lu sur le ticket, ou demande a la toute fin s'il manque encore.
  *
- *   - AUCUNE session : une invitation a demarrer, avec le nom du magasin pour
- *     seule question. C'est la porte d'entree de toute la fonctionnalite ;
- *   - UNE session en cours : un rappel qu'un chariot est ouvert quelque part,
- *     et le chemin pour y revenir. Il apparait des le chargement de l'ecran,
- *     parce que la session vit sur le serveur : reprendre l'application apres
- *     qu'iOS a decharge l'onglet doit ramener le chariot, pas une page vide.
- *
- * Le magasin est demande UNE FOIS. C'est la demande explicite de l'utilisateur,
- * et la raison d'etre de la session : le redemander a chaque article serait
- * insupportable sur trente produits.
+ * Deux etats :
+ *   - AUCUNE session : l'invitation a ranger ses courses ;
+ *   - UNE session en cours : le chemin pour y revenir. Elle vit sur le serveur :
+ *     reprendre l'application apres qu'iOS a decharge l'onglet ramene le
+ *     chariot, pas une page vide.
  */
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect } from 'react'
 import { formatEuros } from '@prandia/shared'
 
-import { TextField } from '../../components/Field.js'
 import { Icon } from '../../icons/index.js'
-import { Sheet } from '../../components/Sheet.js'
 import { ApiError } from '../../lib/api.js'
-import { useShoppingSession, useStartSession, useStores } from '../../lib/queries.js'
-import { readRecentStores, rememberStore } from './recentStores.js'
+import { useShoppingSession, useStartSession } from '../../lib/queries.js'
 import '../../styles/session.css'
 
 export interface SessionBarProps {
   /** Semaine de la liste affichee : c'est elle que la session cochera. */
   readonly isoWeek: string
-  /** Ramene l'ecran sur le chariot — la liste et la session partagent l'onglet. */
-  readonly onEnterCart: () => void
   /**
-   * Code en attente, venu du point d'entree de scan.
-   *
-   * Ajouter au chariot exige une session OUVERTE : sans elle, il n'existe
-   * aucun destinataire et le code serait perdu. On ouvre donc la feuille de
-   * demarrage d'office, et on DIT pourquoi — une feuille qui s'ouvre seule,
-   * sans explication, passe pour un defaut.
+   * Ramene l'ecran sur le chariot (la liste et les courses partagent
+   * l'onglet). `chaine` : ouvrir aussitot le scan en chaine.
+   */
+  readonly onEnterCart: (chaine: boolean) => void
+  /**
+   * Code en attente, venu du point d'entree de scan. Ajouter au chariot exige
+   * des courses ouvertes : on les ouvre d'office, plus rien n'est a demander.
    */
   readonly pendingScan?: { readonly ean: string } | null
 }
@@ -46,36 +42,54 @@ export function SessionBar({ isoWeek, onEnterCart, pendingScan = null }: Session
   // Meme cle de cache que l'ecran : aucune requete de plus, et les deux
   // composants voient toujours le meme chariot.
   const query = useShoppingSession()
-  const [opening, setOpening] = useState(false)
+  const start = useStartSession()
 
   const state = query.data
   const session = state !== undefined && state.active ? state.session : null
 
+  const demarrer = (chaine: boolean) =>
+    start.mutate(
+      { isoWeek },
+      {
+        onSuccess: () => onEnterCart(chaine),
+        onError: (erreur) => {
+          // Des courses sont deja ouvertes : c'est le cache local qui est en
+          // retard, pas le serveur. On le rafraichit et l'on y entre.
+          if (erreur instanceof ApiError && erreur.code === 'session_active') {
+            void query.refetch()
+            onEnterCart(false)
+          }
+        },
+      },
+    )
+
   // `query.isSuccess` et non `session === null` seul : pendant le chargement,
-  // l'absence de session n'est pas une information, et la feuille clignoterait
-  // devant quelqu'un qui a deja un chariot ouvert.
+  // l'absence de session n'est pas une information.
   useEffect(() => {
-    if (pendingScan !== null && query.isSuccess && session === null) setOpening(true)
+    if (pendingScan !== null && query.isSuccess && session === null && !start.isPending) demarrer(false)
+    // `demarrer` est recree a chaque rendu ; seule l'arrivee d'un code compte.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingScan, query.isSuccess, session])
 
   if (session !== null) {
     const count = state?.itemCount ?? session.items.length
+    const avecPrix = session.items.some((item) => item.priceEur !== null)
     return (
       <div className="session-resume">
         <div className="session-resume__body">
           <p className="session-resume__title">
-            <Icon name="ui-cart" size={16} className="icon--inline" /> Courses en cours chez{' '}
-            {session.store}
+            <Icon name="ui-cart" size={16} className="icon--inline" /> Courses à ranger
+            {session.store === '' ? '' : ` (${session.store})`}
           </p>
           <p className="session-resume__meta">
             {count} article{count > 1 ? 's' : ''}
-            {state?.totalEur !== undefined && ` · ${formatEuros(state.totalEur)}`}
+            {avecPrix && state?.totalEur !== undefined && ` · ${formatEuros(state.totalEur)}`}
           </p>
         </div>
         <button
           type="button"
           className="button button--primary session-resume__action"
-          onClick={onEnterCart}
+          onClick={() => onEnterCart(false)}
         >
           Reprendre
         </button>
@@ -84,194 +98,27 @@ export function SessionBar({ isoWeek, onEnterCart, pendingScan = null }: Session
   }
 
   return (
-    <>
-      <div className="session-entry">
-        <div className="session-entry__body">
-          <p className="session-entry__title">
-            {pendingScan === null ? 'Tu es au magasin ?' : 'Il faut d’abord ouvrir les courses'}
-          </p>
-          <p className="session-entry__lead">
-            {pendingScan === null
-              ? 'Scanne chaque produit en le mettant dans le caddie. Tout part au frigo d’un seul coup à la fin.'
-              : 'Un produit scanné attend d’être mis au chariot. Choisis le magasin et il y sera ajouté.'}
-          </p>
-        </div>
-        <button
-          type="button"
-          className="button button--primary session-entry__action"
-          onClick={() => setOpening(true)}
-        >
-          Commencer les courses
-        </button>
-      </div>
-
-      {opening && (
-        <StartSheet
-          isoWeek={isoWeek}
-          onClose={() => setOpening(false)}
-          onStarted={() => {
-            setOpening(false)
-            onEnterCart()
-          }}
-          onResume={() => {
-            setOpening(false)
-            // Le 409 prouve qu'une session existe : c'est le cache local qui
-            // est en retard, pas le serveur. On le rafraichit et l'ecran
-            // bascule tout seul sur le chariot.
-            void query.refetch()
-            onEnterCart()
-          }}
-        />
-      )}
-    </>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Ouverture
-// ---------------------------------------------------------------------------
-
-function StartSheet({
-  isoWeek,
-  onClose,
-  onStarted,
-  onResume,
-}: {
-  isoWeek: string
-  onClose: () => void
-  onStarted: () => void
-  onResume: () => void
-}) {
-  const start = useStartSession()
-  const [store, setStore] = useState('')
-  // Lus une fois : la liste ne bouge pas pendant que la feuille est ouverte.
-  const [recent] = useState(readRecentStores)
-
-  /*
-   * Enseignes deja saisies, tirees de l'historique de prix — donc PARTAGEES
-   * entre les deux telephones du foyer. `recentStores` ne connait que ce que
-   * CET appareil a tape : l'un des deux ne verrait jamais les magasins de
-   * l'autre.
-   *
-   * Les deux sources fusionnent, le local d'abord : un magasin saisi il y a
-   * dix secondes n'est pas encore dans l'historique, le serveur ne l'ayant vu
-   * qu'a la validation.
-   */
-  const stores = useStores()
-  const suggestions = useMemo(() => {
-    const seen = new Set<string>()
-    const all: string[] = []
-    for (const known of [...recent, ...(stores.data?.items ?? []).map((i) => i.store)]) {
-      const key = known.trim().toLowerCase()
-      if (key === '' || seen.has(key)) continue
-      seen.add(key)
-      all.push(known)
-    }
-    return all.slice(0, 8)
-  }, [recent, stores.data])
-
-  const name = store.trim()
-
-  const submit = () => {
-    if (name === '') return
-    start.mutate(
-      { store: name, isoWeek },
-      {
-        onSuccess: () => {
-          // Memorise seulement ce qui a REELLEMENT servi : un magasin refuse
-          // par un 409 n'a pas ouvert de session.
-          rememberStore(name)
-          onStarted()
-        },
-      },
-    )
-  }
-
-  // Le serveur nomme la session en cours dans son refus : on peut donc
-  // proposer de la reprendre au lieu de laisser l'utilisateur devant une
-  // erreur qu'il ne sait pas resoudre.
-  const conflict =
-    start.error instanceof ApiError && start.error.code === 'session_active' ? start.error : null
-  const openStore =
-    conflict !== null && typeof conflict.extra['store'] === 'string' ? conflict.extra['store'] : null
-  const openCount =
-    conflict !== null && typeof conflict.extra['itemCount'] === 'number'
-      ? conflict.extra['itemCount']
-      : null
-
-  return (
-    <Sheet
-      open
-      onClose={onClose}
-      title="Commencer les courses"
-      dismissible={!start.isPending}
-      actions={
-        <>
-          <button
-            type="button"
-            className="button button--secondary"
-            onClick={onClose}
-            disabled={start.isPending}
-          >
-            Annuler
-          </button>
-          <button
-            type="button"
-            className="button button--primary"
-            onClick={submit}
-            disabled={start.isPending || name === ''}
-          >
-            {start.isPending ? 'Ouverture…' : 'C’est parti'}
-          </button>
-        </>
-      }
-    >
-      <TextField
-        label="Magasin"
-        value={store}
-        onChange={setStore}
-        placeholder="Lidl, Intermarché, le marché…"
-        autoFocus
-        required
-        autoComplete="off"
-        enterKeyHint="go"
-        hint="Demandé une seule fois : tous les prix relevés pendant la session seront enregistrés à ce nom."
-      />
-
-      {/* Les enseignes deja frequentees, en grandes cibles. */}
-      {suggestions.length > 0 && (
-        <div className="session-stores">
-          {suggestions.map((known) => (
-            <button
-              key={known}
-              type="button"
-              className={`chip-toggle${known === name ? ' chip-toggle--on' : ''}`}
-              onClick={() => setStore(known)}
-              disabled={start.isPending}
-            >
-              {known}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {conflict !== null ? (
-        <div className="session-conflict">
-          <p className="status status--error" role="alert">
-            Une session est déjà ouverte{openStore === null ? '' : ` chez ${openStore}`}
-            {openCount === null ? '' : ` — ${openCount} article${openCount > 1 ? 's' : ''}`}.
-          </p>
-          <button type="button" className="button button--primary" onClick={onResume}>
-            Reprendre cette session
-          </button>
-        </div>
-      ) : (
-        start.isError && (
+    <div className="session-entry">
+      <div className="session-entry__body">
+        <p className="session-entry__title">Tes courses sont faites ?</p>
+        <p className="session-entry__lead">
+          En magasin, coche ta liste. À la maison, avant de ranger, scanne chaque produit : le code-barres,
+          puis la face avant, le poids et la date. La photo du ticket donnera les prix.
+        </p>
+        {start.isError && !(start.error instanceof ApiError && start.error.code === 'session_active') && (
           <p className="status status--error" role="alert">
             {start.error.message}
           </p>
-        )
-      )}
-    </Sheet>
+        )}
+      </div>
+      <button
+        type="button"
+        className="button button--primary session-entry__action"
+        onClick={() => demarrer(true)}
+        disabled={start.isPending}
+      >
+        {start.isPending ? 'Ouverture…' : 'Ranger mes courses'}
+      </button>
+    </div>
   )
 }

@@ -1124,6 +1124,29 @@ photos au plus, puis "Envoyer". Ce qui ne se devine pas :
   date) de chaque produit, puis le ticket, qui remplit tous les prix, puis "Terminer". Le
   ticket est la meilleure source du prix PAYÉ ; l'étiquette de rayon trompe (le haché à 2,99
   lu à 3,69, l'étiquette du voisin). Le scan en magasin reste possible.
+- **"Ranger mes courses", un parcours et non un bricolage** (demandé tel quel) :
+  - UN toucher depuis la liste (`SessionBar`) ouvre les courses ET le scan en chaîne. Plus
+    aucune question au départ : le magasin était demandé ici, il est lu sur le ticket
+    (`TicketReading.magasin`, posé par `PATCH /api/courses`) ou demandé à la toute fin
+    (`ValiderAvecMagasin`, qui l'envoie avec la validation). Vide, la validation le refuse.
+  - Le SCAN EN CHAÎNE (`ScanEnChaine.tsx`) : code-barres, photos, produit suivant, dans la
+    même feuille plein écran, la caméra partagée passant du lecteur de codes au viseur de
+    rafale. Le produit est cherché pendant qu'on photographie (bibliothèque, sinon
+    OpenFoodFacts, deux secondes au plus après l'envoi) pour que Savarin reçoive le nom à
+    vérifier. "Sans code-barres" va droit aux photos ; "Ajouter sans photo" pour un produit
+    connu qui dit déjà son poids.
+  - UN ARTICLE ENTRE INCOMPLET (sans nom ni poids) dès ses photos envoyées : le schéma
+    l'accepte (`name` vide permis, `quantityG` nul sans `aPeser`), la ligne dit "Savarin lit
+    la face avant…" ou "Nom à compléter", "poids à lire", et c'est la VALIDATION qui exige un
+    nom (422 `a_completer`) et un poids. `brouillonEnArticle` l'envoie sans exigence ; la
+    saisie à la main garde `readDraft`.
+  - Trois ÉTAPES au chariot (scanner, lire le ticket, terminer) ; celle en cours porte le seul
+    aplat de la rangée. Le total ne s'affiche qu'avec des prix ; "prix au ticket" remplace
+    "sans prix". Le bilan mène à "Ranger au frigo" (`/frigo?ou=ranger`), où attendent les lots.
+  - Vérifié en local de bout en bout, avec un vrai OpenFoodFacts et une lecture simulée : un
+    produit de la bibliothèque, le code des tenders lu "Mini saucissons" puis corrigé par la
+    face avant, un produit sans code nommé par sa photo, le ticket qui pose prix et magasin,
+    la validation, le frigo "À ranger" ; puis la validation qui demande le magasin.
 - **Savarin sait quel article il lit** (`articleQuestion`) : nom, marque et poids connus
   partent dans l'adresse de la requête (le corps est fait des photos), avec la consigne de
   prendre l'étiquette de CET article. Et la FACE AVANT vérifie le code-barres :
