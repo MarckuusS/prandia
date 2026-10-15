@@ -419,7 +419,7 @@ function ViseurRafale({
         <Cadre forme="article" cadreRef={cadreRef} />
         <p className="viseur__astuce">
           {photos.length === 0
-            ? 'Le prix, le poids, la date : une photo chacun'
+            ? 'La face avant, le poids, la date : une photo chacun'
             : `Photo ${photos.length + 1} sur ${ARTICLE_PHOTOS_MAX}, ou envoie`}
         </p>
         {etatCamera === 'demarrage' && <p className="scanner__overlay">Ouverture de la caméra…</p>}

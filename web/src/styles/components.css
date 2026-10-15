@@ -636,6 +636,26 @@
   animation: toast-rise var(--duration-normal) var(--easing-enter);
 }
 
+/*
+ * UN TOAST NE BLOQUE RIEN. Au chariot, "✓ Tenders dans le chariot. Savarin lit
+ * tes photos." couvrait le bouton de scan pendant six secondes : on attendait
+ * qu'il parte pour scanner l'article suivant (constate le 2026-10-15). Le
+ * message laisse passer les touchers ; seul son bouton d'action les prend.
+ */
+.toast {
+  pointer-events: none;
+}
+
+.toast__action {
+  pointer-events: auto;
+}
+
+/* Un ecran a pied fixe (le chariot) le pose AU-DESSUS de son pied, pour qu'on
+   voie encore le bouton qu'on vise. */
+body:has(.session-scan) .toast {
+  bottom: calc(var(--above-tabbar) + var(--session-scan-hauteur, 92px) + var(--space-sm));
+}
+
 .toast__message {
   min-width: 0;
   font-size: var(--font-size-lg);

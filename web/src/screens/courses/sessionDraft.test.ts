@@ -22,6 +22,7 @@ const rien: ArticleLu = {
   dateTexte: null,
   nom: null,
   marque: null,
+  autreProduit: false,
 }
 
 describe('appliquerArticle, ce que Savarin a lu sur les photos', () => {
@@ -65,5 +66,29 @@ describe('appliquerArticle, ce que Savarin a lu sur les photos', () => {
     const { draft, champs } = appliquerArticle(avecDate, avecDate, { ...rien, dateTexte: 'L2861' }, AUJOURDHUI)
     expect(draft.expiryDate).toBe('2026-10-20')
     expect(champs).toEqual([])
+  })
+})
+
+describe('appliquerArticle, la face avant montre un autre produit', () => {
+  // OpenFoodFacts rangeait le code de ces tenders sous "Mini saucissons" (2026-10-15).
+  const scanneFaux: ItemDraft = {
+    ...emptyDraft('3770018078854'),
+    name: 'Mini saucissons',
+    quantityG: 192,
+    macros: { kcal: 400, proteins: 20 },
+  }
+  const lu = { ...rien, autreProduit: true, nom: 'Tenders croustillants', marque: 'La Vie' }
+
+  it('prend le nom et la marque de la photo, et ecarte les valeurs du mauvais produit', () => {
+    const { draft, champs } = appliquerArticle(scanneFaux, scanneFaux, lu, AUJOURDHUI)
+    expect(draft).toMatchObject({ name: 'Tenders croustillants', brand: 'La Vie', macros: null, ean: '3770018078854' })
+    expect(champs).toEqual(['name', 'brand'])
+  })
+
+  it('laisse un produit de la bibliotheque, et un nom corrige a la main', () => {
+    const connu = { ...scanneFaux, ingredientId: 12 }
+    expect(appliquerArticle(connu, connu, lu, AUJOURDHUI).draft.name).toBe('Mini saucissons')
+    const retouche = { ...scanneFaux, name: 'Tenders' }
+    expect(appliquerArticle(retouche, scanneFaux, lu, AUJOURDHUI).draft.name).toBe('Tenders')
   })
 })

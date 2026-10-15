@@ -175,13 +175,27 @@ export function appliquerArticle(
   const suite: { -readonly [K in keyof ItemDraft]?: ItemDraft[K] } = {}
   const champs: ChampLu[] = []
 
-  if (lu.nom !== null && draft.name.trim() === '') {
+  // UN AUTRE PRODUIT que celui du code-barres : la base collaborative s'est
+  // trompee (des tenders sous "Mini saucissons"). La face avant fait foi pour
+  // le nom et la marque, et les valeurs nutritionnelles venues avec le mauvais
+  // nom sont ecartees : la fiche naitra sans valeurs, a completer. Seulement
+  // pour un produit encore inconnu de la bibliotheque (celle-ci a deja ete
+  // relue), et si le nom n'a pas ete touche depuis l'envoi.
+  const corrige = lu.autreProduit && lu.nom !== null && draft.ingredientId === null && draft.name === avant.name
+  if (corrige && lu.nom !== null) {
     suite.name = lu.nom
-    champs.push('name')
-  }
-  if (lu.marque !== null && draft.brand.trim() === '') {
-    suite.brand = lu.marque
-    champs.push('brand')
+    suite.brand = lu.marque ?? ''
+    suite.macros = null
+    champs.push('name', 'brand')
+  } else {
+    if (lu.nom !== null && draft.name.trim() === '') {
+      suite.name = lu.nom
+      champs.push('name')
+    }
+    if (lu.marque !== null && draft.brand.trim() === '') {
+      suite.brand = lu.marque
+      champs.push('brand')
+    }
   }
   const quantiteIntacte = draft.quantityG === avant.quantityG && draft.pieceWeightG === avant.pieceWeightG
   if (lu.contenanceG !== null && quantiteIntacte) {

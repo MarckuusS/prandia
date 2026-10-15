@@ -201,7 +201,14 @@ describe('interpretArticle, plusieurs photos d’un meme article', () => {
       dateTexte: '17.10',
       nom: 'Fromage blanc nature',
       marque: 'Danone',
+      autreProduit: false,
     })
+  })
+
+  it('signale un autre produit que celui annonce, jamais sans nom lu', () => {
+    expect(interpretArticle({ nom: 'Tenders croustillants', autre_produit: true }).autreProduit).toBe(true)
+    expect(interpretArticle({ nom: null, autre_produit: true }).autreProduit).toBe(false)
+    expect(interpretArticle({ nom: 'Tenders', autre_produit: 'oui' }).autreProduit).toBe(false)
   })
 
   it('lit une etiquette de balance comme un poids pese', () => {
@@ -211,7 +218,16 @@ describe('interpretArticle, plusieurs photos d’un meme article', () => {
 
   it('applique les bornes d’un champ seul, et ne croit pas "pese" sans poids', () => {
     const lu = interpretArticle({ prix: 1200, nombre: 1, contenance: 30, unite: 'kg', pese: true, date: '', nom: '  ', marque: 42 })
-    expect(lu).toEqual({ prixEur: null, nombre: null, contenanceG: null, pese: false, dateTexte: null, nom: null, marque: null })
+    expect(lu).toEqual({
+      prixEur: null,
+      nombre: null,
+      contenanceG: null,
+      pese: false,
+      dateTexte: null,
+      nom: null,
+      marque: null,
+      autreProduit: false,
+    })
     expect(isEmptyArticle(lu)).toBe(true)
   })
 

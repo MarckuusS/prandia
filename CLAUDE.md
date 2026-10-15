@@ -1118,6 +1118,22 @@ photos au plus, puis "Envoyer". Ce qui ne se devine pas :
   d'aller vite". `appliquerArticle` (`sessionDraft.ts`) compare au brouillon de l'ENVOI : un champ
   touché depuis garde sa valeur, un champ intact prend celle de Savarin, même s'il en avait une
   (la contenance d'OpenFoodFacts) ; nom et marque ne remplissent qu'un champ vide.
+- **LE PARCOURS A CHANGÉ le 2026-10-15** : en magasin, la liste et ses cases à cocher, rien
+  d'autre (le total qui monte n'intéresse pas l'utilisateur ; le prix sert au coût des
+  recettes). À la maison, avant de ranger : le code-barres puis la rafale (face avant, poids,
+  date) de chaque produit, puis le ticket, qui remplit tous les prix, puis "Terminer". Le
+  ticket est la meilleure source du prix PAYÉ ; l'étiquette de rayon trompe (le haché à 2,99
+  lu à 3,69, l'étiquette du voisin). Le scan en magasin reste possible.
+- **Savarin sait quel article il lit** (`articleQuestion`) : nom, marque et poids connus
+  partent dans l'adresse de la requête (le corps est fait des photos), avec la consigne de
+  prendre l'étiquette de CET article. Et la FACE AVANT vérifie le code-barres :
+  OpenFoodFacts rangeait les tenders La Vie (3770018078854) sous "Mini saucissons". Si la photo
+  montre clairement un autre produit (`autreProduit`), nom et marque sont remplacés et les
+  valeurs nutritionnelles venues avec le mauvais nom écartées ; seulement pour un produit
+  inconnu de la bibliothèque (celle-ci a été relue), et si le nom n'a pas été retouché.
+- **Un toast ne bloque aucun toucher** (`pointer-events: none`, sauf son bouton d'action) : au
+  chariot, "Savarin lit tes photos" couvrait le bouton de scan six secondes. Il se pose en plus
+  au-dessus de la barre de scan (`body:has(.session-scan)`).
 - **Savarin en face de la ligne** : il réfléchit pendant la lecture, reste une fois l'article
   rempli jusqu'à ce qu'on rouvre la ligne (champs encadrés de jaune), porte un "!" sur un échec.
   La feuille dit pourquoi et relance avec les mêmes photos, gardées en mémoire jusqu'au succès.

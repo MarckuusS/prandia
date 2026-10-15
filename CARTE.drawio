@@ -112,16 +112,16 @@
         <mxCell id="z5" value="5. Faire les courses" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FBF9F7;strokeColor=#D8CFC9;verticalAlign=top;align=left;spacingLeft=16;spacingTop=6;fontSize=17;fontStyle=1;fontColor=#7A2E3A;arcSize=2;" vertex="1" parent="1">
           <mxGeometry x="40" y="1378" width="1740" height="308" as="geometry" />
         </mxCell>
-        <mxCell id="liste" value="&lt;b&gt;Liste de courses&lt;/b&gt;&lt;br&gt;le planning, moins ce que le frigo contient déjà" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fontColor=#2B1D24;arcSize=10;spacing=6;fillColor=#E3ECE5;strokeColor=#5B8266;strokeWidth=1.5;" vertex="1" parent="1">
+        <mxCell id="liste" value="&lt;b&gt;Liste de courses&lt;/b&gt;&lt;br&gt;le planning, moins le frigo ; en magasin, on coche, rien d’autre" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fontColor=#2B1D24;arcSize=10;spacing=6;fillColor=#E3ECE5;strokeColor=#5B8266;strokeWidth=1.5;" vertex="1" parent="1">
           <mxGeometry x="70" y="1433" width="250" height="84" as="geometry" />
         </mxCell>
-        <mxCell id="session" value="&lt;b&gt;Session en magasin&lt;/b&gt;&lt;br&gt;scanner, chariot partagé, lots (12 x 125 g), prix proposé" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fontColor=#2B1D24;arcSize=10;spacing=6;fillColor=#E3ECE5;strokeColor=#5B8266;strokeWidth=1.5;" vertex="1" parent="1">
+        <mxCell id="session" value="&lt;b&gt;Ranger mes courses&lt;/b&gt;&lt;br&gt;à la maison : code-barres puis rafale ; le scan en magasin reste possible" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fontColor=#2B1D24;arcSize=10;spacing=6;fillColor=#F7E9D2;strokeColor=#C8892A;strokeWidth=1.5;" vertex="1" parent="1">
           <mxGeometry x="352" y="1433" width="250" height="84" as="geometry" />
         </mxCell>
         <mxCell id="lectures" value="&lt;b&gt;Savarin lit chaque champ&lt;/b&gt;&lt;br&gt;un bouton par champ, image figée ; balance : poids et prix ; essayé : réactif et précis" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fontColor=#2B1D24;arcSize=10;spacing=6;fillColor=#E3ECE5;strokeColor=#5B8266;strokeWidth=1.5;" vertex="1" parent="1">
           <mxGeometry x="634" y="1433" width="250" height="84" as="geometry" />
         </mxCell>
-        <mxCell id="ticket" value="&lt;b&gt;Vrac pesé, lire le ticket&lt;/b&gt;&lt;br&gt;poids et prix du ticket, revus avant d’être appliqués ; essayé en magasin, les remises corrigent le prix" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fontColor=#2B1D24;arcSize=10;spacing=6;fillColor=#E3ECE5;strokeColor=#5B8266;strokeWidth=1.5;" vertex="1" parent="1">
+        <mxCell id="ticket" value="&lt;b&gt;Lire le ticket&lt;/b&gt;&lt;br&gt;à la fin, il remplit tous les prix ; remise immédiate déduite de son article" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fontColor=#2B1D24;arcSize=10;spacing=6;fillColor=#E3ECE5;strokeColor=#5B8266;strokeWidth=1.5;" vertex="1" parent="1">
           <mxGeometry x="916" y="1433" width="250" height="84" as="geometry" />
         </mxCell>
         <mxCell id="terminer" value="&lt;b&gt;Terminer les courses&lt;/b&gt;&lt;br&gt;fiches créées, prix relevés, lots posés au frigo" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fontColor=#2B1D24;arcSize=10;spacing=6;fillColor=#E3ECE5;strokeColor=#5B8266;strokeWidth=1.5;" vertex="1" parent="1">
@@ -362,7 +362,7 @@
         <mxCell id="ideeAntiGaspi" value="&lt;b&gt;Cuisiner ce qui va se perdre&lt;/b&gt;&lt;br&gt;ce qui périme cette semaine, dans tes recettes, au planning" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fontColor=#2B1D24;arcSize=10;spacing=6;fillColor=#F3DEE2;strokeColor=#7A2E3A;strokeWidth=2;" vertex="1" parent="1">
           <mxGeometry x="916" y="1885" width="250" height="84" as="geometry" />
         </mxCell>
-        <mxCell id="rafale" value="&lt;b&gt;Savarin lit l’article en rafale&lt;/b&gt;&lt;br&gt;2 ou 3 photos, lues en arrière-plan, plusieurs à la fois ; à essayer en magasin" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fontColor=#2B1D24;arcSize=10;spacing=6;fillColor=#F7E9D2;strokeColor=#C8892A;strokeWidth=1.5;" vertex="1" parent="1">
+        <mxCell id="rafale" value="&lt;b&gt;Savarin lit l’article en rafale&lt;/b&gt;&lt;br&gt;face avant (vérifie le nom), poids, date ; lues en arrière-plan, plusieurs à la fois" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fontColor=#2B1D24;arcSize=10;spacing=6;fillColor=#F7E9D2;strokeColor=#C8892A;strokeWidth=1.5;" vertex="1" parent="1">
           <mxGeometry x="634" y="1547" width="250" height="84" as="geometry" />
         </mxCell>
         <mxCell id="parts" value="&lt;b&gt;Manger une part&lt;/b&gt;&lt;br&gt;le planning compte ce que je mange : des parts ou des grammes d’un plat cuisiné" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fontColor=#2B1D24;arcSize=10;spacing=6;fillColor=#F3DEE2;strokeColor=#7A2E3A;strokeWidth=2;" vertex="1" parent="1">
